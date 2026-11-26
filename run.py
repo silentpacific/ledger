@@ -67,6 +67,14 @@ def main() -> int:
             print(f"  terms: {gate.get('verdict')} {gate.get('url') or ''}")
             if gate.get("evidence") and gate.get("verdict") == "prohibited":
                 print(f"  terms quote: {gate['evidence'][:300]}")
+            if args.dry_run:
+                # print the facts so a test run can be compared without downloading files
+                for x in facts:
+                    if x.get("method") in ("ai_text",) or x["key"] in ("free_shipping_threshold", "payment_icons", "bnpl_providers"):
+                        print("  FACT", json.dumps({"k": f"{x['category']}.{x['key']}", "s": x["status"], "v": x.get("value"),
+                                                    "ev": x.get("evidence_verified"), "c": x.get("confidence")}, default=str)[:400])
+                for p in payload["promotions"] + payload["promotion_history_from_terms_page"]:
+                    print("  PROMO", json.dumps(p, default=str)[:300])
             if not args.dry_run:
                 if gate:
                     db.record_terms(t["domain"], gate)
