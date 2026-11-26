@@ -12,7 +12,7 @@ import pathlib
 import sys
 import traceback
 
-from ledger_scanner import config, extract, db
+from ledger_scanner import config, extract, db, promos
 from ledger_scanner.scan import scan_site
 
 
@@ -42,6 +42,44 @@ def _carry_forward(domain: str, payload: dict) -> int:
     return kept
 
 
+def _match_promotions(domain: str, payload: dict) -> None:
+    """Reuse stored promotion keys for offers already on record, so each offer keeps one timeline."""
+    try:
+        existing = db.domain_promotions(domain)
+    except Exception as e:
+        print("  could not load stored promotions (keys not matched):", str(e)[:150])
+        existing = []
+    for e in existing:
+        e["headline"] = e.get("name")
+    promos.assign_keys(payload["promotions"], payload["promotion_history_from_terms_page"], existing)
+
+
+def dedupe_stored_promotions(domain: str, dry: bool) -> int:
+    """Fold duplicate promotions already stored for a site into one record each."""
+    rows = db.domain_promotions(domain)
+    for r in rows:
+        r["headline"] = r.get("name")
+    groups: list[list[dict]] = []
+    for r in rows:
+        for g in groups:
+            if any(promos.same_offer(r, q) for q in g):
+                g.append(r)
+                break
+        else:
+            groups.append([r])
+    merged = 0
+    for g in groups:
+        if len(g) < 2:
+            continue
+        keep = max(g, key=lambda r: (r.get("times_seen") or 0, promos.richness(r)))
+        drop = [r["id"] for r in g if r["id"] != keep["id"]]
+        print(f"  {domain}: keep '{keep['name']}' <- " + "; ".join(f"'{r['name']}'" for r in g if r["id"] != keep["id"]))
+        if not dry:
+            db.merge_promotions(keep["id"], drop)
+        merged += len(drop)
+    return merged
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=False)
@@ -54,6 +92,8 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="don't write to the database")
     ap.add_argument("--recheck-refusals", action="store_true",
                     help="terms-only recheck of switched-off sites; results go to terms_checks")
+    ap.add_argument("--dedupe-promotions", action="store_true",
+                    help="merge duplicate promotions already stored (all enabled sites, or --domain)")
     ap.add_argument("--no-ai", action="store_true", help="code-based facts only (no Anthropic calls)")
     args = ap.parse_args()
 
@@ -73,8 +113,14 @@ def main() -> int:
         print(f"\nRechecked {len(sites)} switched-off sites, AI cost ~${extract.usage_cost():.3f}")
         return 0
 
+    if args.dedupe_promotions:
+        doms = [args.domain] if args.domain else db.enabled_domains()
+        total = sum(dedupe_stored_promotions(d, args.dry_run) for d in doms)
+        print(f"\n{'Would merge' if args.dry_run else 'Merged'} {total} duplicate promotions across {len(doms)} sites")
+        return 0
+
     if not (args.all or args.domain):
-        ap.error("one of --domain, --all or --recheck-refusals is required")
+        ap.error("one of --domain, --all, --recheck-refusals or --dedupe-promotions is required")
     if args.all:
         targets = db.domains_due(args.limit)
     else:
@@ -116,6 +162,11 @@ def main() -> int:
             if gate.get("evidence") and gate.get("verdict") == "prohibited":
                 print(f"  terms quote: {gate['evidence'][:300]}")
             if args.dry_run:
+                for k, v in (payload.get("pages_chosen") or {}).items():
+                    print(f"  PAGE {k}: {', '.join(v)}")
+                if payload["products"]:
+                    pr = payload["products"]
+                    print(f"  PRODUCTS {len(pr)} from {sorted({x.get('collection') for x in pr})}; e.g. {pr[0]['title']} ${pr[0]['price']}")
                 # print the facts so a test run can be compared without downloading files
                 for x in facts:
                     if x["category"] not in ("products",) and not x["key"].startswith("detected."):
@@ -136,6 +187,7 @@ def main() -> int:
                 if payload.get("skip_ingest"):
                     print("  not stored: stopped by terms gate (site switched off if prohibited)")
                 else:
+                    _match_promotions(t["domain"], payload)
                     kept = _carry_forward(t["domain"], payload)
                     if kept:
                         print(f"  {kept} facts re-worded but unchanged: previous value kept (no change logged)")

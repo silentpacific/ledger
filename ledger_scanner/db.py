@@ -56,3 +56,22 @@ def current_facts(domain: str) -> dict[str, dict]:
     if not r.ok:
         raise RuntimeError(f"current_facts failed: {r.status_code} {r.text[:300]}")
     return {row["fact_key"]: row for row in r.json()}
+
+
+def domain_promotions(domain: str) -> list[dict]:
+    """Stored promotions for a site (newest first), for matching this scan's sightings."""
+    return _rpc("domain_promotions", {"p_domain": domain}) or []
+
+
+def merge_promotions(keep: int, drop: list[int]) -> int:
+    return _rpc("merge_promotions", {"p_keep": keep, "p_drop": drop}) or 0
+
+
+def enabled_domains() -> list[str]:
+    r = requests.get(f"{config.SUPABASE_URL}/rest/v1/domains",
+                     params={"select": "domain", "scan_enabled": "eq.true", "order": "domain"},
+                     headers={"apikey": config.SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {config.SUPABASE_SERVICE_KEY}"},
+                     timeout=60)
+    if not r.ok:
+        raise RuntimeError(f"domains list failed: {r.status_code} {r.text[:300]}")
+    return [row["domain"] for row in r.json()]

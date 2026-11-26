@@ -5,7 +5,7 @@ import statistics
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
-from . import config, detect, discover, extract, shopify, terms
+from . import config, detect, discover, extract, products_generic, promos, shopify, terms
 from .detect import fact
 from .fetch import Fetcher
 
@@ -63,6 +63,11 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
 
     # ---- sitemaps: content activity --------------------------------------
     facts += _content_facts(sm, base, started)
+    stores = discover.store_pages(sm)
+    if len(stores) >= 3:
+        facts.append(fact("site_identity", "store_count", len(stores), source_url=base + "sitemap.xml",
+                          evidence=f"{len(stores)} store pages listed in the sitemap, e.g. {stores[0]}",
+                          confidence="medium", note="Counted store pages in the sitemap; a store-locator read takes priority"))
 
     # ---- promotions (weekly + full) ----------------------------------------
     if ai:
@@ -71,7 +76,14 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         except Exception as e:
             issues.append(f"AI read failed for homepage promotions: {type(e).__name__}: {str(e)[:200]}")
     lastmods = {u: lm for u, lm in sm["pages"] if lm}
-    pages_by_type = discover.classify_pages(candidates, base, lastmods)
+    pages_by_type = discover.classify_pages(candidates, base, lastmods, discover.link_texts(home.html, base))
+    # no dedicated page: shipping and returns are often answered in the FAQ, else the site terms
+    for need in ("shipping", "returns"):
+        if not pages_by_type.get(need):
+            fallback = (pages_by_type.get("faq") or [])[:1] or [u for u in (pages_by_type.get("terms") or [])
+                                                                 if terms.is_general_terms(u)][:1]
+            if fallback:
+                pages_by_type[need] = fallback
     if ai and pages_by_type.get("promo_terms"):
         pt = f.fetch(pages_by_type["promo_terms"][0])
         try:
@@ -84,14 +96,16 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
                 if p["live"]:
                     promos_live.append(p)
                 else:
-                    promo_history.append({"name": p["headline"], "type": p["type"],
+                    promo_history.append({"name": p["headline"], "type": p["type"], "discount": p.get("discount"),
                                           "starts": p["starts"], "ends": p["ends"]})
 
     # ---- products: category top-10s (weekly + full) ------------------------
     if platform == "shopify":
         cats = discover.top_categories(home.html, base, config.MAX_CATEGORIES)
         if not cats:
-            issues.append("no category links found in navigation")
+            cats = shopify.top_collections(f, config.MAX_CATEGORIES, [u for u, _ in sm["collections"]])
+        if not cats:
+            issues.append("no product categories found (menu, collections list or sitemap)")
         for c in cats:
             items = shopify.collection_products(f, c, config.TOP_PER_CATEGORY)
             products += items
@@ -104,7 +118,21 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
             if items:
                 facts.append(_category_summary(best[0], items, key_prefix="best_sellers"))
     else:
-        issues.append(f"platform '{platform or 'unknown'}': category top-10 prices not yet supported")
+        got = []
+        if platform in ("woocommerce", "wordpress"):
+            got, used = products_generic.woocommerce_products(f, config.MAX_CATEGORIES, config.TOP_PER_CATEGORY)
+            for c in used:
+                items = [i for i in got if i["collection"] == c["slug"]]
+                facts.append(_category_summary(base + "product-category/" + c["slug"], items,
+                                               note="Most popular first, from the store's public WooCommerce Store API"))
+        if not got:
+            got = products_generic.jsonld_products(f, home.html, base, 12)
+            if got:
+                facts.append(_category_summary(base + "homepage", got, key_prefix="homepage_featured",
+                                               note="Products linked from the homepage, priced from their schema.org data"))
+        products += got
+        if not got:
+            issues.append(f"platform '{platform or 'unknown'}': no product prices found (Store API or product data)")
 
     if mode == "full":
         facts += tech_facts
@@ -115,13 +143,17 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         # ---- AI reading of policy / info pages -----------------------------
         if ai:
             budget = config.MAX_INFO_PAGES
+            fetched: dict[str, object] = {}
             for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "contact", "faq", "stores"):
                 for url in (pages_by_type.get(ptype) or [])[: (2 if ptype == "payments" else 1)]:
                     if budget <= 0:
                         break
-                    page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
-                    if page.status == 200 and len(page.text) < 300:
-                        page = f.fetch_rendered(url)
+                    page = fetched.get(url)
+                    if page is None:
+                        page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
+                        if page.status == 200 and len(page.text) < 300:
+                            page = f.fetch_rendered(url)
+                        fetched[url] = page
                     if page.status != 200 or not page.text:
                         issues.append(f"{ptype} page not readable: {url} ({page.note or page.status})")
                         continue
@@ -138,6 +170,7 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         status = "partial"
     p = _payload(domain, started, status, f, _merge(facts), promos_live, promo_history, products, issues, mode,
                  platform=platform)
+    p["pages_chosen"] = {k: v[:2] for k, v in pages_by_type.items()}
     p["terms_gate"] = terms_info
     return p
 
@@ -184,7 +217,8 @@ def _merge(facts: list[dict]) -> list[dict]:
     return out
 
 
-def _category_summary(collection_url: str, items: list[dict], key_prefix: str = "category_top10") -> dict:
+def _category_summary(collection_url: str, items: list[dict], key_prefix: str = "category_top10",
+                      note: str = "Collection's own order via products.json") -> dict:
     handle = urlparse(collection_url).path.rstrip("/").split("/")[-1]
     prices = [i["price"] for i in items if i["price"] is not None]
     on_sale = [i for i in items if i["compare_at_price"] and i["price"] and i["compare_at_price"] > i["price"]]
@@ -198,7 +232,7 @@ def _category_summary(collection_url: str, items: list[dict], key_prefix: str = 
         "pct_on_sale": round(100 * len(on_sale) / len(items), 1) if items else None,
         "avg_discount_pct": round(100 * statistics.mean(discounts), 1) if discounts else None,
         "out_of_stock": sum(1 for i in items if not i["available"]),
-    }, source_url=collection_url, note="Collection's own order via products.json")
+    }, source_url=collection_url, note=note)
 
 
 def _content_facts(sm: dict, base: str, started: datetime) -> list[dict]:
@@ -233,8 +267,8 @@ def _payload(domain, started, status, f, facts, promos_live, promo_history, prod
             "pages_fetched": [p.record() for p in f.pages],
         },
         "facts": facts,
-        "promotions": _dedupe_promos(promos_live),
-        "promotion_history_from_terms_page": promo_history,
+        "promotions": promos.merge_list(promos_live),
+        "promotion_history_from_terms_page": promos.merge_list(promo_history),
         "products": _dedupe_products(products),
         "issues_found": issues,
     }

@@ -4,7 +4,7 @@ import json
 import pytest
 import requests
 
-from ledger_scanner import config, detect, discover, extract, scan
+from ledger_scanner import config, detect, discover, extract, scan, shopify
 
 BASE = "https://shop.example.com.au/"
 
@@ -296,3 +296,80 @@ def test_same_meaning():
     assert sm({"amount": 70, "currency": "AUD"}, {"amount": 70})
     assert not sm(["afterpay", "humm", "latitude", "zip"], ["afterpay", "humm", "zip"])
     assert sm(["Special orders", "resized items"], ["special orders", "Resized items"])
+
+
+def test_promo_same_offer_real_cases():
+    from ledger_scanner import promos
+    P = lambda h, d=None, t=None, s=None: {"headline": h, "discount": d, "type": t, "starts": s}
+    same = promos.same_offer
+    # Zamel's wordings of one Black Friday sale
+    assert same(P("Black Friday Sale", "Up to 70% off", "percent_off"), P("Black Friday Sale – Up to 70% Off", "Up to 70% off", "percent_off"))
+    assert same(P("Black Friday is ON", "Up to 70% off selected stock", None, "2026-11-04"), P("Black Friday Sale", "Up to 70% off", "percent_off"))
+    assert same(P("Buy One Ring, Get One Free – Selected Lab Grown Diamond Rings", "Buy one ring, get one free", "bogo"),
+                P("Buy One Ring, Get One Free - Selected Lab Grown Diamond Rings", "Buy one ring, get one free", "bogo"))
+    assert same(P("4-Day Deal Surge – Extra 10% Off", "Extra 10% off", "percent_off"), P("4-Day Deal Surge", "Extra 10% off"))
+    # genuinely different offers stay apart
+    assert not same(P("4-Day Deal Surge – Extra 10% Off", "Extra 10% off", "percent_off"), P("Black Friday Sale", "Up to 70% off", "percent_off"))
+    assert not same(P("Shop 25% off gifts", "25% off gifts", "percent_off"), P("25% off everything", "25% off everything, prices as marked", "percent_off"))
+    assert not same(P("Black Friday Cyber Monday Sale", None, "percent_off", "2025-10-29"), P("Black Friday is ON", "Up to 70% off selected stock", None, "2026-11-04"))
+    assert not same(P("Free Shipping Australia-wide over $70", "Free shipping on online orders over $70", "free_shipping"),
+                    P("Join & Get $20 Off", "$20 off first order, min. $100 spend", "dollar_off"))
+
+
+def test_promo_merge_and_keys():
+    from ledger_scanner import promos
+    live = promos.merge_list([
+        {"headline": "Black Friday Sale", "discount": "Up to 70% off", "type": "percent_off", "placement": ["hero"]},
+        {"headline": "Black Friday Sale – Up to 70% Off", "discount": "Up to 70% off", "type": "percent_off", "placement": ["banner"]},
+        {"headline": "Extra 10% Off", "discount": "Extra 10% off", "type": "percent_off"},
+    ])
+    assert len(live) == 2 and set(live[0]["placement"]) == {"hero", "banner"}
+    existing = [{"promo_key": "K1", "headline": "Black Friday is ON", "discount": "Up to 70% off selected stock",
+                 "promo_type": None, "stated_start": "2026-11-04"}]
+    promos.assign_keys(live, [], existing)
+    assert live[0]["promo_key"] == "K1" and live[1]["promo_key"] != "K1"
+
+
+def test_combined_and_link_text_pages():
+    urls = [BASE + "pages/shipping-returns", BASE + "pages/info-12", BASE + "pages/faqs"]
+    texts = {BASE + "pages/info-12": "Postage & Delivery"}
+    got = discover.classify_pages(urls, BASE, {}, texts)
+    assert got["returns"][0] == BASE + "pages/shipping-returns"
+    assert BASE + "pages/shipping-returns" in got["shipping"] and BASE + "pages/info-12" in got["shipping"]
+    assert got["shipping"][0] == BASE + "pages/shipping-returns"  # URL match beats link-words match
+    html = '<a href="/pages/info-12">Postage &amp; Delivery</a>'
+    assert discover.link_texts(html, BASE)[BASE + "pages/info-12"] == "Postage & Delivery"
+
+
+def test_top_collections_fallback():
+    import json as _j
+    class F:
+        base_url = BASE
+        def fetch(self, path, want_text=True):
+            from types import SimpleNamespace
+            cols = [{"handle": "jewellery", "products_count": 900}, {"handle": "rings", "products_count": 300},
+                    {"handle": "earrings", "products_count": 250}, {"handle": "black-friday-sale", "products_count": 400},
+                    {"handle": "necklaces", "products_count": 200}, {"handle": "tiny", "products_count": 1}]
+            return SimpleNamespace(status=200, html=_j.dumps({"collections": cols}))
+    got = shopify.top_collections(F(), 8)
+    assert got == [BASE.rstrip("/") + "/collections/" + h for h in ("rings", "earrings", "necklaces")]
+
+
+def test_jsonld_and_woo_prices():
+    from ledger_scanner import products_generic as pg
+    html = """<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebPage"},
+    {"@type":"Product","name":"Pearl strand","sku":"PS-1","offers":{"@type":"Offer","price":"1,250.00","priceCurrency":"AUD",
+    "availability":"https://schema.org/InStock"}}]}</script>"""
+    p = pg._ld_products(html)[0]
+    assert pg._offer_price(p) == (1250.0, "AUD", True)
+    assert pg._woo_price({"price": "12900", "currency_minor_unit": 2}, "price") == 129.0
+    links = pg.homepage_product_links('<a href="/product/pearl-strand/">x</a><a href="/about">y</a><a href="/rings/ring-123456.html">z</a>', BASE, 10)
+    assert links == [BASE + "product/pearl-strand", BASE + "rings/ring-123456.html"]
+
+
+def test_store_pages_from_sitemap():
+    sm = {"pages": [(BASE + "stores/chadstone", None), (BASE + "stores/bondi/", None), (BASE + "stores/rundle-mall", None),
+                    (BASE + "stores", None), (BASE + "pages/about", None)], "stores": []}
+    assert len(discover.store_pages(sm)) == 3
+    sm2 = {"pages": [], "stores": [(BASE + "s/a", None), (BASE + "s/b", None)]}
+    assert len(discover.store_pages(sm2)) == 2

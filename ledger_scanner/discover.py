@@ -12,8 +12,8 @@ from .fetch import Fetcher, same_site
 # page type -> URL keywords (first match wins, in this order)
 PAGE_TYPES: list[tuple[str, list[str]]] = [
     ("promo_terms", ["offer-terms", "promotion-terms", "promo-terms", "sale-terms", "competition-terms", "offer-t-cs"]),
-    ("returns", ["returns", "refund", "exchange"]),
-    ("shipping", ["delivery", "shipping"]),
+    ("returns", ["returns", "refund", "exchange", "return-policy"]),
+    ("shipping", ["delivery", "shipping", "postage", "dispatch", "freight"]),
     ("payments", ["payment-options", "payment-methods", "afterpay", "buy-now-pay-later", "payment-plans", "finance", "zip", "humm", "klarna", "layby", "lay-by"]),
     ("loyalty", ["rewards-club", "rewards", "loyalty", "club", "vip", "member"]),
     ("warranty", ["warranty", "guarantee", "care-plan", "price-match", "price-promise"]),
@@ -40,7 +40,7 @@ def read_sitemaps(f: Fetcher) -> dict:
     """Returns {'index': [...], 'pages': [(url, lastmod)], 'product_files': n,
     'product_urls': n or None, 'collections': [(url, lastmod)], 'blogs': [(url, lastmod)]}"""
     result = {"index": [], "pages": [], "product_files": 0, "product_urls": None,
-              "collections": [], "blogs": [], "agentic": False}
+              "collections": [], "blogs": [], "stores": [], "agentic": False}
     root = f.fetch("/sitemap.xml")
     if root.status != 200:
         return result
@@ -64,6 +64,11 @@ def read_sitemaps(f: Fetcher) -> dict:
                     counted_products = False
             else:
                 counted_products = False
+            continue
+        if any(k in name for k in ("store", "location", "boutique", "showroom")) and "product" not in name:
+            p = f.fetch(u, want_text=False)
+            if p.status == 200:
+                result["stores"] += parse_sitemap(p.html)
             continue
         if any(k in name for k in ("page", "collection", "blog", "article", "post", "category")):
             p = f.fetch(u, want_text=False)
@@ -96,26 +101,50 @@ def _match_score(path: str, keys: list[str]) -> tuple[int, int] | None:
     return best
 
 
-def classify_pages(urls: list[str], base: str, lastmods: dict[str, str] | None = None) -> dict[str, list[str]]:
-    """Group URLs by page type. Within a type: the general hub page first (store locator, not one
-    store's page), then the most recently updated, then the shortest URL."""
+# a URL can be more than one type (/pages/shipping-returns is both); these types stay exclusive
+EXCLUSIVE = {"promo_terms"}
+
+
+def classify_pages(urls: list[str], base: str, lastmods: dict[str, str] | None = None,
+                   texts: dict[str, str] | None = None) -> dict[str, list[str]]:
+    """Group URLs by page type, by the URL and, failing that, by the link's own words
+    ("Delivery" pointing at /pages/postage-info). Within a type: the general hub page first
+    (store locator, not one store's page), then the most recently updated, then the shortest URL."""
     lastmods = lastmods or {}
+    texts = texts or {}
     found: dict[str, dict[str, tuple]] = {}
     for u in urls:
         if not same_site(u, base):
             continue
         path = urlparse(u).path.lower()
+        label = "/" + re.sub(r"[^a-z0-9]+", "-", texts.get(u, "").lower()).strip("-")
         for ptype, keys in PAGE_TYPES:
             score = _match_score(path, keys)
+            if score is None and len(label) > 1:
+                ts = _match_score(label, keys)
+                score = (ts[0] + 1, ts[1]) if ts else None  # link words rank below a matching URL
             if score is not None:
                 found.setdefault(ptype, {})[u] = score
-                break
+                if ptype in EXCLUSIVE:
+                    break
 
     def order(item):
         u, score = item
         lm = lastmods.get(u, "")[:10]
         return (score, "".join(chr(255 - ord(c)) for c in lm) or "~", len(u))
     return {k: [u for u, _ in sorted(v.items(), key=order)] for k, v in found.items()}
+
+
+def link_texts(html: str, base: str) -> dict[str, str]:
+    """URL -> the visible words of the first link pointing at it."""
+    soup = BeautifulSoup(html, "lxml")
+    out: dict[str, str] = {}
+    for a in soup.find_all("a", href=True):
+        href = urljoin(base, a["href"].split("#")[0])
+        words = " ".join(a.get_text(" ", strip=True).split())[:80]
+        if same_site(href, base) and words and href not in out:
+            out[href] = words
+    return out
 
 
 def footer_and_nav_links(html: str, base: str) -> list[str]:
@@ -146,3 +175,14 @@ def top_categories(html: str, base: str, limit: int) -> list[str]:
         if len(out) >= limit:
             break
     return out
+
+
+STORE_PAGE = re.compile(r"/(stores?|store-locator|locations|boutiques|showrooms?|our-stores|find-a-store|"
+                        r"jewellery-stores?|jewellers)/[^/]+/?$", re.I)
+
+
+def store_pages(sm: dict) -> list[str]:
+    """One page per physical store, from a stores sitemap or store-directory URLs."""
+    urls = [u for u, _ in sm.get("stores", [])] or [u for u, _ in sm.get("pages", []) if STORE_PAGE.search(urlparse(u).path)]
+    urls = [u for u in urls if STORE_PAGE.search(urlparse(u).path) or sm.get("stores")]
+    return list(dict.fromkeys(u.rstrip("/") for u in urls))
