@@ -28,6 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ kind: str
   const n = sites.filter(f.test).length;
   const what = kind === "payments" ? `offer ${f.name}` : kind === "tech" ? `use ${f.name}` : kind === "platform" ? `run on ${f.name}` : kind === "segment" ? `are ${f.name}` : `have ${f.name.toLowerCase()}`;
   return {
+    robots: n < 2 ? { index: false, follow: true } : undefined,
     title: `Australian jewellery stores that ${what} (${n})`,
     description: `${n} of ${sites.length} Australian online jewellery stores ${what}. See which ones, who added or dropped it recently, and how they compare.`,
     alternates: { canonical: `/explore/${kind}/${value}` },
