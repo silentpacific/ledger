@@ -17,8 +17,9 @@ PAGE_TYPES: list[tuple[str, list[str]]] = [
     ("payments", ["payment-options", "payment-methods", "afterpay", "buy-now-pay-later", "payment-plans", "finance", "zip", "humm", "klarna", "layby", "lay-by"]),
     ("loyalty", ["rewards-club", "rewards", "loyalty", "club", "vip", "member"]),
     ("warranty", ["warranty", "guarantee", "care-plan", "price-match", "price-promise"]),
-    ("faq", ["faq", "help-centre", "help-center", "help", "contact"]),
-    ("stores", ["stores", "store-locator", "find-a-store", "locations", "showroom"]),
+    ("contact", ["contact-us", "contact"]),
+    ("faq", ["faq", "help-centre", "help-center", "help"]),
+    ("stores", ["store-locator", "find-a-store", "our-stores", "stores", "locations", "showroom"]),
     ("terms", ["terms-and-conditions", "terms-of-service", "terms-of-use", "terms"]),
 ]
 
@@ -81,21 +82,40 @@ def read_sitemaps(f: Fetcher) -> dict:
     return result
 
 
+def _match_score(path: str, keys: list[str]) -> tuple[int, int] | None:
+    """Lower is better: (which keyword matched, how many extra words the page slug has).
+    /pages/stores beats /pages/stores-mt-druitt; /pages/rewards-club beats /pages/become-a-vip."""
+    slug = path.rstrip("/").rsplit("/", 1)[-1]
+    best = None
+    for i, k in enumerate(keys):
+        if k not in path:
+            continue
+        extra = 0 if slug == k else max(1, len([w for w in slug.replace(k, "").split("-") if w]))
+        score = (extra, i)
+        best = score if best is None or score < best else best
+    return best
+
+
 def classify_pages(urls: list[str], base: str, lastmods: dict[str, str] | None = None) -> dict[str, list[str]]:
-    """Group URLs by page type; within a type, most recently updated first, then shortest."""
+    """Group URLs by page type. Within a type: the general hub page first (store locator, not one
+    store's page), then the most recently updated, then the shortest URL."""
     lastmods = lastmods or {}
-    found: dict[str, list[str]] = {}
+    found: dict[str, dict[str, tuple]] = {}
     for u in urls:
         if not same_site(u, base):
             continue
         path = urlparse(u).path.lower()
         for ptype, keys in PAGE_TYPES:
-            if any(k in path for k in keys):
-                found.setdefault(ptype, []).append(u)
+            score = _match_score(path, keys)
+            if score is not None:
+                found.setdefault(ptype, {})[u] = score
                 break
-    def order(u):
-        return (lastmods.get(u, "")[:10], -len(u))
-    return {k: sorted(set(v), key=order, reverse=True) for k, v in found.items()}
+
+    def order(item):
+        u, score = item
+        lm = lastmods.get(u, "")[:10]
+        return (score, "".join(chr(255 - ord(c)) for c in lm) or "~", len(u))
+    return {k: [u for u, _ in sorted(v.items(), key=order)] for k, v in found.items()}
 
 
 def footer_and_nav_links(html: str, base: str) -> list[str]:

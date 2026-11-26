@@ -97,14 +97,27 @@ SYSTEM = (
 )
 
 
-USAGE = {"calls": 0, "input": 0, "output": 0}
+USAGE: dict[str, dict] = {}
+
+# USD per million tokens (input, output), from Anthropic's pricing page, Nov 2026
+PRICES = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0)}
 
 
-def reset_usage() -> dict:
-    snap = dict(USAGE)
-    for k in USAGE:
-        USAGE[k] = 0
-    return snap
+def reset_usage() -> None:
+    USAGE.clear()
+
+
+def usage_summary() -> str:
+    parts, total = [], 0.0
+    for m, u in USAGE.items():
+        pin, pout = PRICES.get(m, (0, 0))
+        cost = u["input"] / 1e6 * pin + u["output"] / 1e6 * pout
+        total += cost
+        parts.append(f"{m}: calls={u['calls']} in={u['input']} out={u['output']} ~${cost:.3f}")
+    return " | ".join(parts) + f" | total ~${total:.3f}"
+
+
+FIELDS["contact"] = FIELDS["faq"]
 
 
 def _client():
@@ -141,15 +154,20 @@ def _spec_for(page_type: str, fields: dict | None = None) -> tuple[str, dict]:
     return instructions, schema
 
 
-def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None = None) -> list[dict]:
+def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None = None,
+         model: str | None = None) -> list[dict]:
     instructions, schema = _spec_for(page_type, fields)
     order = "" if variant == 0 else "\nRead the whole page carefully before answering; check the fine print."
-    msg = _client().messages.create(**_request(instructions, schema, url, text, order))
+    req = _request(instructions, schema, url, text, order)
+    if model:
+        req["model"] = model
+    msg = _client().messages.create(**req)
     u = getattr(msg, "usage", None)
     if u is not None:
-        USAGE["calls"] += 1
-        USAGE["input"] += getattr(u, "input_tokens", 0) or 0
-        USAGE["output"] += getattr(u, "output_tokens", 0) or 0
+        m = USAGE.setdefault(req["model"], {"calls": 0, "input": 0, "output": 0})
+        m["calls"] += 1
+        m["input"] += getattr(u, "input_tokens", 0) or 0
+        m["output"] += getattr(u, "output_tokens", 0) or 0
     raw = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
     return _parse(raw)
 
@@ -224,42 +242,69 @@ def read_page(page_type: str, url: str, text: str) -> list[dict]:
     return read_page_custom(FIELDS[page_type], url, text, page_type)
 
 
+def _combine(meta: dict, key: str, fa: dict | None, fb: dict | None, url: str, text: str) -> dict:
+    f = fa or fb
+    status = f.get("status", "not_observed")
+    agree = bool(fa and fb and fa.get("status") == fb.get("status")
+                 and _values_agree(meta["type"], fa.get("value"), fb.get("value")))
+    verified = evidence_on_page(f.get("evidence"), text) if status in ("observed", "not_offered") else None
+    note = []
+    if fa and fb and not agree:
+        if fa.get("status") == fb.get("status") == "observed":
+            status = "conflicting"
+        note.append(f"two reads disagreed: {json.dumps(fa.get('value'))[:120]} vs {json.dumps(fb.get('value'))[:120]}")
+    if status in ("observed", "not_offered") and not verified:
+        note.append("evidence quote not found on page")
+    conf = f.get("confidence", "medium")
+    if status in ("observed", "not_offered") and not (agree and verified):
+        conf = "low"
+    value = f.get("value") if status in ("observed", "not_offered", "conflicting") else None
+    if meta["type"] == "money":
+        value = money(value)
+    return {
+        "category": meta["cat"], "key": key, "status": status, "value": value,
+        "evidence": (f.get("evidence") or "")[:300] or None,
+        "evidence_verified": bool(verified and agree) if verified is not None else None,
+        "source_url": url, "method": "ai_text", "confidence": conf,
+        "note": "; ".join(note) or None,
+    }
+
+
+def _unsettled(x: dict) -> bool:
+    return x["status"] == "conflicting" or (x["status"] in ("observed", "not_offered") and not x["evidence_verified"])
+
+
 def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom") -> list[dict]:
-    """Two reads, evidence check, agreement check -> observation dicts for ingest."""
+    """Two reads, evidence check, agreement check -> observation dicts for ingest.
+    Facts the two reads can't settle get one more read from the stronger model; a fact is
+    settled when that read agrees with one of the first two and its quote is on the page."""
     a = {f.get("key"): f for f in _ask(page_type, url, text, 0, fields) if f.get("key") in fields}
     b = {f.get("key"): f for f in _ask(page_type, url, text, 1, fields) if f.get("key") in fields}
-    out = []
+    out = {}
     for key, meta in fields.items():
-        fa, fb = a.get(key), b.get(key)
-        if not fa and not fb:
-            continue
-        f = fa or fb
-        status = f.get("status", "not_observed")
-        agree = bool(fa and fb and fa.get("status") == fb.get("status")
-                     and _values_agree(meta["type"], fa.get("value"), fb.get("value")))
-        verified = evidence_on_page(f.get("evidence"), text) if status in ("observed", "not_offered") else None
-        note = []
-        if fa and fb and not agree:
-            if fa.get("status") == fb.get("status") == "observed":
-                status = "conflicting"
-            note.append(f"two reads disagreed: {json.dumps(fa.get('value'))[:120]} vs {json.dumps(fb.get('value'))[:120]}")
-        if status in ("observed", "not_offered") and not verified:
-            note.append("evidence quote not found on page")
-        conf = f.get("confidence", "medium")
-        if status in ("observed", "not_offered") and not (agree and verified):
-            conf = "low"
-        value = f.get("value") if status in ("observed", "not_offered", "conflicting") else None
-        if meta["type"] == "money":
-            value = money(value)
-        out.append({
-            "category": meta["cat"], "key": key, "status": status,
-            "value": value,
-            "evidence": (f.get("evidence") or "")[:300] or None,
-            "evidence_verified": bool(verified and agree) if verified is not None else None,
-            "source_url": url, "method": "ai_text", "confidence": conf,
-            "note": "; ".join(note) or None,
-        })
-    return out
+        if a.get(key) or b.get(key):
+            out[key] = _combine(meta, key, a.get(key), b.get(key), url, text)
+
+    todo = [k for k, x in out.items() if _unsettled(x)]
+    esc = config.ESCALATION_MODEL
+    if todo and esc and esc != config.CLAUDE_MODEL:
+        sub = {k: fields[k] for k in todo}
+        c = {f.get("key"): f for f in _ask(page_type, url, text, 1, sub, model=esc) if f.get("key") in sub}
+        for k in todo:
+            fc = c.get(k)
+            if not fc:
+                continue
+            for prior in (a.get(k), b.get(k)):
+                if not prior:
+                    continue
+                settled = _combine(fields[k], k, fc, prior, url, text)
+                if not _unsettled(settled):
+                    settled["note"] = f"settled by {esc} agreeing with one first read"
+                    out[k] = settled
+                    break
+            else:
+                out[k]["note"] = ((out[k].get("note") or "") + f"; {esc} did not settle it").lstrip("; ")
+    return list(out.values())
 
 
 def read_promotions(url: str, text: str) -> list[dict]:

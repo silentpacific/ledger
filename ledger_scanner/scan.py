@@ -115,7 +115,7 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         # ---- AI reading of policy / info pages -----------------------------
         if ai:
             budget = config.MAX_INFO_PAGES
-            for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "faq", "stores"):
+            for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "contact", "faq", "stores"):
                 for url in (pages_by_type.get(ptype) or [])[: (2 if ptype == "payments" else 1)]:
                     if budget <= 0:
                         break

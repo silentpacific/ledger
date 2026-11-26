@@ -146,13 +146,30 @@ def test_read_page_two_reads(monkeypatch):
     out = extract.read_page("returns", "u", text)
     assert out[0]["evidence_verified"] is True and out[0]["confidence"] == "high"
 
+    # reads disagree; the stronger model also says 30 (quote not on page) -> stays conflicting
     reads = iter([
         [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days", "confidence": "high"}],
+        [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
         [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
     ])
     monkeypatch.setattr(extract, "_ask", lambda *a, **k: next(reads))
     out = extract.read_page("returns", "u", text)
     assert out[0]["status"] == "conflicting" and out[0]["evidence_verified"] is False
+
+    # reads disagree; the stronger model agrees with the first read and its quote is on the page -> settled
+    calls = []
+    reads = iter([
+        [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days", "confidence": "high"}],
+        [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
+        [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days of delivery", "confidence": "high"}],
+    ])
+    def fake(*a, **k):
+        calls.append(k.get("model"))
+        return next(reads)
+    monkeypatch.setattr(extract, "_ask", fake)
+    out = extract.read_page("returns", "u", text)
+    assert out[0]["status"] == "observed" and out[0]["evidence_verified"] is True and out[0]["value"] == 14
+    assert calls[-1] == extract.config.ESCALATION_MODEL
 
 
 def test_classify_and_categories():
@@ -244,3 +261,12 @@ def test_page_choice_prefers_recent():
     urls = [BASE + "pages/become-a-vip", BASE + "pages/zamels-rewards-club"]
     lm = {urls[0]: "2024-05-21", urls[1]: "2026-07-22"}
     assert discover.classify_pages(urls, BASE, lm)["loyalty"][0] == urls[1]
+
+
+def test_hub_pages_beat_single_pages():
+    urls = [BASE + "pages/stores-mt-druitt", BASE + "pages/stores", BASE + "pages/contact-us",
+            BASE + "pages/contact-form-thanks", BASE + "pages/become-a-vip", BASE + "pages/zamels-rewards-club"]
+    lm = {urls[0]: "2026-11-20", urls[1]: "2025-01-01", urls[4]: "2024-05-21", urls[5]: "2026-07-22"}
+    got = discover.classify_pages(urls, BASE, lm)
+    assert got["stores"][0] == BASE + "pages/stores"
+    assert got["contact"][0] == BASE + "pages/contact-us"

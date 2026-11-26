@@ -43,6 +43,7 @@ jobs:
       FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
       CRAWLER_CONTACT: ${{ vars.CRAWLER_CONTACT }}
       CLAUDE_MODEL: ${{ github.event.inputs.model || vars.CLAUDE_MODEL }}
+      ESCALATION_MODEL: ${{ vars.ESCALATION_MODEL }}
       TERMS_UNCLEAR_POLICY: ${{ vars.TERMS_UNCLEAR_POLICY || 'skip' }}
     steps:
       - uses: actions/checkout@v4

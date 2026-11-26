@@ -48,7 +48,7 @@ def main() -> int:
     out_dir.mkdir(exist_ok=True)
     failures = 0
     for t in targets:
-        print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}) ===", flush=True)
+        print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
         extract.reset_usage()
         try:
             payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=args.mode, use_ai=not args.no_ai)
@@ -62,15 +62,14 @@ def main() -> int:
             for issue in payload["issues_found"]:
                 print("  issue:", issue)
             gate = payload.get("terms_gate") or {}
-            u = extract.USAGE
-            print(f"  ai usage: calls={u['calls']} input_tokens={u['input']} output_tokens={u['output']}")
+            print("  ai usage:", extract.usage_summary())
             print(f"  terms: {gate.get('verdict')} {gate.get('url') or ''}")
             if gate.get("evidence") and gate.get("verdict") == "prohibited":
                 print(f"  terms quote: {gate['evidence'][:300]}")
             if args.dry_run:
                 # print the facts so a test run can be compared without downloading files
                 for x in facts:
-                    if x.get("method") in ("ai_text",) or x["key"] in ("free_shipping_threshold", "payment_icons", "bnpl_providers"):
+                    if x["category"] not in ("products",) and not x["key"].startswith("detected."):
                         print("  FACT", json.dumps({"k": f"{x['category']}.{x['key']}", "s": x["status"], "v": x.get("value"),
                                                     "ev": x.get("evidence_verified"), "c": x.get("confidence")}, default=str)[:400])
                 for p in payload["promotions"] + payload["promotion_history_from_terms_page"]:

@@ -13,7 +13,12 @@ ANTHROPIC_API_KEY = _env("ANTHROPIC_API_KEY")
 FIRECRAWL_API_KEY = _env("FIRECRAWL_API_KEY")
 
 # AI model used for reading policy/promo text. Override with the CLAUDE_MODEL secret or variable.
-CLAUDE_MODEL = _env("CLAUDE_MODEL", "claude-sonnet-5-5")
+CLAUDE_MODEL = _env("CLAUDE_MODEL", "claude-haiku-5-5")
+# Stronger model asked only about the facts the first model could not settle
+# (its two reads disagreed, or its quote was not on the page). Set to 'off' to never escalate.
+ESCALATION_MODEL = _env("ESCALATION_MODEL", "claude-sonnet-5-5")
+if ESCALATION_MODEL.lower() in ("off", "none", "0"):
+    ESCALATION_MODEL = ""
 
 # Crawler identity (honest user agent with a contact address)
 CRAWLER_CONTACT = _env("CRAWLER_CONTACT")
