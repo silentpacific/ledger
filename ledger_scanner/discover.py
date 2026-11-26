@@ -113,9 +113,14 @@ def classify_pages(urls: list[str], base: str, lastmods: dict[str, str] | None =
     lastmods = lastmods or {}
     texts = texts or {}
     found: dict[str, dict[str, tuple]] = {}
+    seen_paths: set[str] = set()
     for u in urls:
         if not same_site(u, base):
             continue
+        key = urlparse(u).path.rstrip("/").lower()
+        if key in seen_paths:  # same page under www. and bare host
+            continue
+        seen_paths.add(key)
         path = urlparse(u).path.lower()
         label = "/" + re.sub(r"[^a-z0-9]+", "-", texts.get(u, "").lower()).strip("-")
         for ptype, keys in PAGE_TYPES:
@@ -163,10 +168,11 @@ def top_categories(html: str, base: str, limit: int) -> list[str]:
     scope = soup.find("nav") or soup.find("header") or soup
     seen, out = set(), []
     skip = re.compile(r"/(all|sale|new|best|gift|frontpage|clearance|search)(-|$|/)|sort_by|\?", re.I)
+    from .shopify import SKIP_COLLECTION
     for a in scope.find_all("a", href=True):
         href = urljoin(base, a["href"].split("#")[0])
         path = urlparse(href).path.rstrip("/")
-        if not same_site(href, base) or skip.search(href):
+        if not same_site(href, base) or skip.search(href) or SKIP_COLLECTION.search(path.rsplit("/", 1)[-1]):
             continue
         if re.match(r"^/collections/[^/]+$", path) or re.match(r"^/(product-category|category|shop)/[^/]+$", path):
             if path not in seen:

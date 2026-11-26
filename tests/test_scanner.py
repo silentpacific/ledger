@@ -373,3 +373,14 @@ def test_store_pages_from_sitemap():
     assert len(discover.store_pages(sm)) == 3
     sm2 = {"pages": [], "stores": [(BASE + "s/a", None), (BASE + "s/b", None)]}
     assert len(discover.store_pages(sm2)) == 2
+
+
+def test_brand_terms_and_www_dedupe():
+    from ledger_scanner import terms, shopify
+    assert terms.is_general_terms("https://calleija.com/calleija-terms-and-conditions/")
+    assert not terms.is_general_terms("https://calleija.com/bridal-terms-and-conditions/")
+    got = discover.classify_pages(["https://shop.example.com.au/pages/faq", "https://www.shop.example.com.au/pages/faq"], BASE)
+    assert len(got["faq"]) == 1
+    for h in ("gifts-under-20", "diamond-clearance", "past-creations-rings", "configurator"):
+        assert shopify.SKIP_COLLECTION.search(h), h
+    assert not shopify.SKIP_COLLECTION.search("diamond-rings")

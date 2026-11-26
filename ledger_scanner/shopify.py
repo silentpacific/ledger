@@ -47,7 +47,7 @@ def collection_products(f: Fetcher, collection_url: str, limit: int) -> list[dic
 SKIP_COLLECTION = re.compile(
     r"(^|-)(all|sale|new|best|gift|gifts|frontpage|clearance|search|under|over|price|black-friday|bfcm|cyber|"
     r"christmas|xmas|mothers|fathers|valentines?|hidden|test|home|featured|trending|outlet|archive|last-chance|"
-    r"shop-all|everything|collections?)(-|$)", re.I)
+    r"shop-all|everything|collections?|past|configurator|gifts?-under)(-|$)|^gifts?-under|^under-\d", re.I)
 
 
 def top_collections(f: Fetcher, limit: int, sitemap_collections: list[str] | None = None) -> list[str]:

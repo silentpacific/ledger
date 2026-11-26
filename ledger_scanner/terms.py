@@ -60,7 +60,11 @@ def is_general_terms(url: str) -> bool:
     """The site's own terms, not the terms of one offer or service (Black Friday, cleaning, click & collect...)."""
     path = urlparse(url).path.lower().rstrip("/")
     slug = path.rsplit("/", 1)[-1]
-    return slug in GENERAL_SLUGS
+    if slug in GENERAL_SLUGS:
+        return True
+    # brand-prefixed site terms: calleija.com/calleija-terms-and-conditions
+    m = re.fullmatch(r"([a-z0-9]+)-(terms|terms-and-conditions|terms-conditions|terms-of-use|terms-of-service)", slug)
+    return bool(m and m.group(1) in urlparse(url).netloc.lower())
 
 
 def find_terms_urls(candidates: list[str]) -> list[str]:
