@@ -13,7 +13,7 @@ import sys
 import traceback
 
 from ledger_scanner import config, extract, db
-from ledger_scanner.scan import scan_site
+from ledger_scanner.scan import recheck_terms, scan_site
 
 
 def normalise_domain(value: str) -> str:
@@ -34,11 +34,27 @@ def main() -> int:
     ap.add_argument("--budget", type=float, default=0.0,
                     help="pause (stop starting new sites) once estimated AI spend in this run reaches this many USD")
     ap.add_argument("--dry-run", action="store_true", help="don't write to the database")
+    ap.add_argument("--recheck-refusals", action="store_true",
+                    help="terms-only recheck of switched-off sites; results go to terms_checks")
     ap.add_argument("--no-ai", action="store_true", help="code-based facts only (no Anthropic calls)")
     args = ap.parse_args()
 
     if args.domain:
         args.domain = normalise_domain(args.domain)
+    if args.recheck_refusals:
+        sites = db.domains_refusing()
+        for t in sites:
+            try:
+                r = recheck_terms(t["domain"], t["homepage_url"])
+            except Exception as e:
+                print(f"{t['domain']}: recheck failed: {type(e).__name__}: {e}")
+                continue
+            print(f"{t['domain']}: {r['verdict']} {r.get('url') or ''}")
+            if not args.dry_run:
+                db.record_terms(t["domain"], r)  # never re-enables; ready_to_readd shows in the view
+        print(f"\nRechecked {len(sites)} switched-off sites, AI cost ~${extract.usage_cost():.3f}")
+        return 0
+
     if args.all:
         targets = db.domains_due(args.limit)
     else:
@@ -88,6 +104,13 @@ def main() -> int:
                 for p in payload["promotions"] + payload["promotion_history_from_terms_page"]:
                     print("  PROMO", json.dumps(p, default=str)[:300])
             if not args.dry_run:
+                blocked = next((i for i in payload["issues_found"]
+                                if i.startswith("homepage not readable: status 403") or i.startswith("homepage not readable: status 401")), None)
+                if blocked and not gate:
+                    db.record_terms(t["domain"], {"verdict": "blocked", "url": t["homepage_url"],
+                                                  "evidence": blocked.replace("homepage not readable: status", "homepage returned") + " to LedgerBot"})
+                    print("  site blocks our crawler: switched off and listed in sites_refusing_scraping")
+                    continue
                 if gate:
                     db.record_terms(t["domain"], gate)
                 if payload.get("skip_ingest"):

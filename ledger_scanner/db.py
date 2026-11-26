@@ -39,3 +39,7 @@ def record_error(domain: str, error: str) -> None:
 def record_terms(domain: str, gate: dict) -> None:
     _rpc("record_terms_check", {"p_domain": domain, "p_url": gate.get("url"),
                                 "p_verdict": gate.get("verdict"), "p_evidence": gate.get("evidence") or ""})
+
+
+def domains_refusing() -> list[dict]:
+    return _rpc("domains_refusing", {}) or []

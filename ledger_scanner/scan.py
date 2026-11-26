@@ -257,3 +257,19 @@ def _dedupe_products(ps):
             seen.add(p["external_id"])
             out.append(p)
     return out
+
+
+def recheck_terms(domain: str, homepage_url: str) -> dict:
+    """Terms-only check for a switched-off site: robots, homepage, sitemap and the terms page. No facts."""
+    parsed = urlparse(homepage_url)
+    base = f"{parsed.scheme}://{parsed.netloc}/"
+    f = Fetcher(base)
+    f.load_robots()
+    home = f.fetch(homepage_url)
+    if home.status in (401, 403) or (home.status != 200 and not home.html):
+        return {"verdict": "blocked" if home.status in (401, 403) else "unclear", "url": homepage_url,
+                "evidence": f"homepage returned {home.status} to LedgerBot"}
+    sm = discover.read_sitemaps(f)
+    candidates = [u for u, _ in sm["pages"]] + discover.footer_and_nav_links(home.html, base)
+    gate = terms.check_terms(f, candidates)
+    return {"verdict": gate.verdict, "url": gate.url, "evidence": gate.evidence}

@@ -21,6 +21,11 @@ on:
         description: "Optional: pause once estimated AI spend in this run reaches this many USD (e.g. 3)"
         required: false
         default: ""
+      recheck_refusals:
+        description: "Only recheck the terms of switched-off sites (no scanning)"
+        required: false
+        default: false
+        type: boolean
       dry_run:
         description: "Test only: scan and save the file, but don't store anything in the database"
         required: false
@@ -57,6 +62,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: Run scanner
+        if: github.event.inputs.recheck_refusals != 'true'
         run: |
           MODE="${{ github.event.inputs.mode }}"
           if [ -z "$MODE" ]; then
@@ -77,6 +83,9 @@ jobs:
           else
             python run.py --all --mode "$MODE" $BUDGET
           fi
+      - name: Recheck terms of switched-off sites (monthly run only)
+        if: github.event.schedule == '17 3 1 * *' || github.event.inputs.recheck_refusals == 'true'
+        run: python run.py --recheck-refusals ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
       - name: Keep scan files for 14 days
         if: always()
         uses: actions/upload-artifact@v4
