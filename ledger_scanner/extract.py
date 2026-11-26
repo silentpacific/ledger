@@ -102,54 +102,73 @@ def _client():
     return anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
 
-def _tool_for(page_type: str, fields: dict | None = None) -> dict:
+def _spec_for(page_type: str, fields: dict | None = None) -> tuple[str, dict]:
+    """Returns (instructions, JSON schema) for structured output."""
     if page_type == "promo_terms_or_home":
-        return {
-            "name": "record_promotions",
-            "description": PROMO_INSTRUCTIONS,
-            "input_schema": {"type": "object", "properties": {"promotions": {"type": "array", "items": {
-                "type": "object",
-                "properties": {k: {} for k in ["name", "promo_type", "discount", "starts", "ends", "live", "placement", "evidence"]},
-                "required": ["name", "evidence"]}}}, "required": ["promotions"]},
-        }
+        schema = {"type": "object", "additionalProperties": False, "required": ["promotions"], "properties": {
+            "promotions": {"type": "array", "items": {
+                "type": "object", "additionalProperties": False,
+                "required": ["name", "promo_type", "discount", "starts", "ends", "live", "placement", "evidence"],
+                "properties": {
+                    "name": {"type": "string"}, "promo_type": {"type": "string"}, "discount": {"type": "string"},
+                    "starts": {"type": "string"}, "ends": {"type": "string"}, "live": {"type": "boolean"},
+                    "placement": {"type": "string"}, "evidence": {"type": "string"}}}}}}
+        return PROMO_INSTRUCTIONS + " Use an empty string for unknown dates.", schema
     fields = fields or FIELDS[page_type]
-    return {
-        "name": "record_facts",
-        "description": "Record the requested facts. Fields:\n" + "\n".join(
-            f"- {k} ({v['type']}): {v['desc']}" for k, v in fields.items()),
-        "input_schema": {"type": "object", "properties": {"facts": {"type": "array", "items": {
-            "type": "object",
+    instructions = ("Return one entry per field below. value_json is the value encoded as JSON "
+                    "(e.g. 14, true, \"text\", [\"a\",\"b\"], {\"amount\": 70}) or null when not observed.\nFields:\n"
+                    + "\n".join(f"- {k} ({v['type']}): {v['desc']}" for k, v in fields.items()))
+    schema = {"type": "object", "additionalProperties": False, "required": ["facts"], "properties": {
+        "facts": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["key", "status", "value_json", "evidence", "confidence"],
             "properties": {
                 "key": {"type": "string", "enum": list(fields)},
                 "status": {"type": "string", "enum": ["observed", "not_offered", "not_observed"]},
-                "value": {},
+                "value_json": {"type": "string"},
                 "evidence": {"type": "string"},
-                "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
-            },
-            "required": ["key", "status"]}}}, "required": ["facts"]},
-    }
+                "confidence": {"type": "string", "enum": ["high", "medium", "low"]}}}}}}
+    return instructions, schema
 
 
 def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None = None) -> list[dict]:
-    tool = _tool_for(page_type, fields)
+    instructions, schema = _spec_for(page_type, fields)
     order = "" if variant == 0 else "\nRead the whole page carefully before answering; check the fine print."
-    msg = _client().messages.create(**_request(tool, url, text, order))
-    for block in msg.content:
-        if getattr(block, "type", "") == "tool_use":
-            data = block.input or {}
-            return data.get("facts") or data.get("promotions") or []
-    return []
+    msg = _client().messages.create(**_request(instructions, schema, url, text, order))
+    raw = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
+    return _parse(raw)
 
 
-def _request(tool: dict, url: str, text: str, order: str) -> dict:
+def _parse(raw: str) -> list[dict]:
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", raw, re.S)
+        if not m:
+            return []
+        data = json.loads(m.group(0))
+    items = data.get("facts") or data.get("promotions") or []
+    for it in items:
+        if "value_json" in it:
+            v = it.pop("value_json")
+            try:
+                it["value"] = json.loads(v) if isinstance(v, str) and v.strip() else None
+            except json.JSONDecodeError:
+                it["value"] = v
+        for k in ("starts", "ends", "evidence"):
+            if it.get(k) == "":
+                it[k] = None
+    return items
+
+
+def _request(instructions: str, schema: dict, url: str, text: str, order: str) -> dict:
     return dict(
         model=config.CLAUDE_MODEL,
         max_tokens=4000,
         system=SYSTEM + order,
-        tools=[tool],
-        tool_choice={"type": "tool", "name": tool["name"]},
+        output_config={"format": {"type": "json_schema", "schema": schema}},
         messages=[{"role": "user", "content":
-                   f"Page URL: {url}\n\n<page>\n{text[:config.MAX_PAGE_CHARS]}\n</page>"}],
+                   f"{instructions}\n\nPage URL: {url}\n\n<page>\n{text[:config.MAX_PAGE_CHARS]}\n</page>"}],
     )
 
 

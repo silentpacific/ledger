@@ -192,5 +192,24 @@ def test_terms_allowed(fake_http):
 def test_anthropic_request_matches_sdk():
     import inspect
     import anthropic
-    params = extract._request(extract._tool_for("returns"), "u", "page text", "")
+    instructions, schema = extract._spec_for("returns")
+    params = extract._request(instructions, schema, "u", "page text", "")
     inspect.signature(anthropic.resources.messages.Messages.create).bind(None, **params)
+
+
+def test_structured_output_parse(monkeypatch):
+    class B:  # fake SDK text block
+        type = "text"
+        text = json.dumps({"facts": [{"key": "returns.period_days", "status": "observed", "value_json": "14",
+                                      "evidence": "within 14 days of delivery", "confidence": "high"}]})
+    class M:
+        content = [B()]
+    class C:
+        class messages:
+            @staticmethod
+            def create(**kw):
+                assert "output_config" in kw and "tools" not in kw
+                return M()
+    monkeypatch.setattr(extract, "_client", lambda: C())
+    out = extract.read_page("returns", "u", "Return within 14 days of delivery.")
+    assert out[0]["value"] == 14 and out[0]["evidence_verified"] is True
