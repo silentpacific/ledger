@@ -2,13 +2,15 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Stat } from "@/components/ui";
-import { getJewellery as getSites, getJewelleryPromotions as getPromotions, Promo } from "@/lib/data";
+import IndustryFilter from "@/components/IndustryFilter";
+import { filterSites, getPromotions, getSites, industryOf, promotionsFor, Promo } from "@/lib/data";
+import { industryName } from "@/lib/industries";
 import { PROMO_TYPES, dateAU, dayKey, isDiscount, maxPct, siteName } from "@/lib/format";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
-  title: "Australian jewellery promotions calendar: who's on sale, when and how deep",
-  description: "Every promotion on Australian online jewellery stores on one timeline: who's on sale now, discount depth, how long sales run, and Black Friday compared.",
+  title: "Australian ecommerce promotions calendar: who's on sale, when and how deep",
+  description: "Every promotion on Australian online stores, across industries, on one timeline: who's on sale now, discount depth, how long sales run, and Black Friday compared.",
   alternates: { canonical: "/promotions" },
 };
 
@@ -19,9 +21,12 @@ const DATES: [string, string][] = [
 ];
 const DAY = 864e5;
 
-export default async function Promotions({ searchParams }: { searchParams: Promise<{ m?: string; type?: string; view?: string }> }) {
+export default async function Promotions({ searchParams }: { searchParams: Promise<{ m?: string; type?: string; view?: string; industry?: string; segment?: string }> }) {
   const sp = await searchParams;
-  const [promos, sites] = await Promise.all([getPromotions(), getSites()]);
+  const [promosAll, all] = await Promise.all([getPromotions(), getSites()]);
+  const sites = filterSites(all, sp.industry, sp.segment);
+  const promos = promotionsFor(promosAll, sites);
+  const indOf = new Map(all.map((s) => [s.domain, industryOf(s)] as const));
   const today = dayKey(new Date().toISOString());
   const month = /^\d{4}-\d{2}$/.test(sp.m || "") ? sp.m! : today.slice(0, 7);
   const [y, mo] = month.split("-").map(Number);
@@ -39,7 +44,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const byType = sp.type && PROMO_TYPES[sp.type];
   const rows = promos.filter((p) => (byType ? p.type === sp.type : isDiscount(p)))
     .map((p) => ({ p, s: span_(p) })).filter(({ s }) => s[1] > w0 && s[0] < w1)
-    .sort((a, b) => siteName(a.p.domain).localeCompare(siteName(b.p.domain)) || maxPct(b.p) - maxPct(a.p));
+    .sort((a, b) => industryName(indOf.get(a.p.domain)).localeCompare(industryName(indOf.get(b.p.domain))) || siteName(a.p.domain).localeCompare(siteName(b.p.domain)) || maxPct(b.p) - maxPct(a.p));
   // one row per site in the month view: its deepest offer
   const shown = year ? rows : [...new Map(rows.map((r) => [r.p.domain, r] as const)).values()]
     .map((r) => rows.filter((x) => x.p.domain === r.p.domain).sort((a, b) => maxPct(b.p) - maxPct(a.p))[0]);
@@ -52,7 +57,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const typeCounts = Object.entries(PROMO_TYPES).map(([k, n]) => [k, n, new Set(live.filter((p) => p.type === k).map((p) => p.domain)).size] as const).filter(([, , c]) => c > 0);
   const todayX = ((nowT - w0) / span) * 100;
   const ticks = year ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : Array.from({ length: days }, (_, i) => String(i + 1));
-  const q = (o: Record<string, string | undefined>) => "/promotions?" + new URLSearchParams(Object.entries({ m: month, type: sp.type, view: sp.view, ...o }).filter(([, v]) => v) as [string, string][]).toString();
+  const q = (o: Record<string, string | undefined>) => "/promotions?" + new URLSearchParams(Object.entries({ m: month, type: sp.type, view: sp.view, industry: sp.industry, segment: sp.segment, ...o }).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
     <>
@@ -60,7 +65,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
       <main className="wrap page">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
-            <div className="eyebrow">Promotions calendar · Jewellery</div>
+            <div className="eyebrow">Promotions calendar · {sp.industry ? industryName(sp.industry) : "All industries"}{sp.segment ? ` · ${sp.segment}` : ""}</div>
             <h1 className="title">{year ? y : dateAU(new Date(start + DAY), { month: "long", year: "numeric" })}</h1>
           </div>
           <div className="row" style={{ gap: 8, alignItems: "center" }}>
@@ -70,6 +75,8 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
             <Link className={`chip${year ? " on" : ""}`} href={q({ view: "year" })}>Year</Link>
           </div>
         </div>
+
+        <IndustryFilter path="/promotions" sites={all} industry={sp.industry} segment={sp.segment} keep={{ m: sp.m, type: sp.type, view: sp.view }} />
 
         <div className="grid g4" style={{ marginTop: 24 }}>
           <Stat k="Sites with a promotion live" v={`${liveSites.size} of ${sites.length}`} />
@@ -91,11 +98,11 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
                 <span style={{ flex: "1 1 auto", display: "grid", gridTemplateColumns: `repeat(${ticks.length}, minmax(0,1fr))`, textAlign: year ? "left" : "center" }}>{ticks.map((t) => <span key={t}>{t}</span>)}</span>
                 <span style={{ flex: "0 0 280px", paddingLeft: 14 }}>{year ? "Promotion" : "Headline offer"}</span>
               </div>
-              {shown.slice(0, 80).map(({ p, s }, i) => {
+              {shown.slice(0, 200).map(({ p, s }, i) => {
                 const a = Math.max(s[0], w0), b = Math.min(s[1], w1);
                 return (
-                  <div key={i} style={{ display: "flex", alignItems: "center", height: 36, borderBottom: "1px solid #F4F2EC", fontSize: 13 }}>
-                    <Link href={`/sites/${p.domain}`} style={{ flex: "0 0 170px", color: "var(--ink)", fontWeight: 500 }}>{siteName(p.domain)}</Link>
+                  <div key={i} style={{ display: "flex", alignItems: "center", height: sp.industry ? 36 : 42, borderBottom: "1px solid #F4F2EC", fontSize: 13 }}>
+                    <Link href={`/sites/${p.domain}`} style={{ flex: "0 0 170px", color: "var(--ink)", fontWeight: 500, lineHeight: 1.15, overflow: "hidden" }}>{siteName(p.domain)}{!sp.industry && <span className="tiny muted" style={{ display: "block", fontWeight: 400 }}>{industryName(indOf.get(p.domain))}</span>}</Link>
                     <span style={{ flex: "1 1 auto", position: "relative", height: 18 }}>
                       {todayX > 0 && todayX < 100 && <span style={{ position: "absolute", top: -9, bottom: -9, left: `${todayX}%`, width: 2, background: "#D97A1F" }} />}
                       <span title={`${dateAU(s[0])} – ${p.live && !p.ends ? "still running" : dateAU(s[1] - DAY)}`} style={{ position: "absolute", top: 0, height: 18, borderRadius: 4, left: `${((a - w0) / span) * 100}%`, width: `${Math.max(0.8, ((b - a) / span) * 100)}%`, background: p.starts ? "var(--accent)" : "var(--accent-light)" }} />

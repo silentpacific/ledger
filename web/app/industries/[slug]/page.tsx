@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Bars, Crumbs, Stat } from "@/components/ui";
-import { getPromotions, getSites } from "@/lib/data";
+import { getPromotions, getSites, industryOf } from "@/lib/data";
 import { INDUSTRIES } from "@/lib/industries";
 import { dateAU, isDiscount, label, list, maxPct, median, money, num, siteName, val } from "@/lib/format";
 
@@ -27,7 +27,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
   const ind = INDUSTRIES.find((x) => x.slug === slug);
   if (!ind) notFound();
   const [all, promosAll] = await Promise.all([getSites(), getPromotions()]);
-  const sites = all.filter((s) => (s.industry || "jewellery") === slug).sort((a, b) => siteName(a).localeCompare(siteName(b)));
+  const sites = all.filter((s) => industryOf(s) === slug).sort((a, b) => siteName(a).localeCompare(siteName(b)));
   const dom = new Set(sites.map((s) => s.domain));
   const promos = promosAll.filter((p) => dom.has(p.domain));
   const live = promos.filter((p) => p.live);
@@ -48,12 +48,13 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         <Crumbs items={[["Industries", "/industries"], [ind.name]]} />
         <h1 className="title">{ind.name}</h1>
         <p className="lede">{ind.why} {sites.length ? `${sites.length} Australian stores tracked so far${latest ? `, last scanned ${dateAU(latest)}` : ""}.` : "The first stores are being scanned now; they'll appear here as soon as their scans finish."}</p>
-        {slug === "jewellery" && (
-          <div className="row" style={{ gap: 8, marginTop: 16 }}>
-            <Link className="chip" href="/">This week</Link><Link className="chip" href="/benchmarks">Benchmarks</Link>
-            <Link className="chip" href="/explore">Explore</Link><Link className="chip" href="/promotions">Promotions calendar</Link>
-          </div>
-        )}
+        <div className="row" style={{ gap: 8, marginTop: 16 }}>
+          <Link className="chip" href={`/?industry=${slug}`}>This week</Link>
+          <Link className="chip" href={`/sites?industry=${slug}`}>Sites</Link>
+          <Link className="chip" href={`/benchmarks?industry=${slug}`}>Benchmarks</Link>
+          <Link className="chip" href={`/promotions?industry=${slug}`}>Promotions calendar</Link>
+          <Link className="chip" href={`/tech?industry=${slug}`}>Tech</Link>
+        </div>
 
         {sites.length > 0 && <>
           <div className="grid g4" style={{ marginTop: 28 }}>
@@ -98,7 +99,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
               </tbody>
             </table>
           </div>
-          <p className="small muted" style={{ marginTop: 12 }}>"Not stated" means the store doesn't publish it, not that it isn't offered. A weekly change feed and benchmarks for this industry arrive once it has a few weeks of history.</p>
+          <p className="small muted" style={{ marginTop: 12 }}>"Not stated" means the store doesn't publish it, not that it isn't offered.</p>
         </>}
       </main>
     </>

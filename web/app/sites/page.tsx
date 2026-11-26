@@ -1,49 +1,94 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
-import { getSites } from "@/lib/data";
-import { dateAU, list, money, num, siteName, val } from "@/lib/format";
-import { INDUSTRIES, industryName } from "@/lib/industries";
+import IndustryFilter from "@/components/IndustryFilter";
+import { filterSites, getPromotions, getSites, promotionsFor, Site } from "@/lib/data";
+import { KIND_NAMES, dateAU, facets, label, list, money, num, siteName, val } from "@/lib/format";
+import { industryName } from "@/lib/industries";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Australian online stores we track",
-  description: "Every Australian jewellery store Ledger tracks, with returns, shipping, buy now pay later and loyalty at a glance.",
+  description: "Every Australian online store Ledger tracks, filterable by industry, segment, payment option, technology, platform and policy, with returns, shipping, buy now pay later and loyalty at a glance.",
   alternates: { canonical: "/sites" },
 };
 
-export default async function Sites({ searchParams }: { searchParams: Promise<{ segment?: string; industry?: string }> }) {
-  const { segment, industry } = await searchParams;
-  const every = (await getSites()).sort((a, b) => siteName(a).localeCompare(siteName(b)));
-  const all = industry ? every.filter((s) => (s.industry || "jewellery") === industry) : every;
-  const segs = [...new Set(all.map((s) => s.segment).filter(Boolean))] as string[];
-  const sites = segment ? all.filter((s) => s.segment === segment) : all;
+const KINDS = ["payments", "tech", "platform", "policy"] as const;
+type Q = { industry?: string; segment?: string; payments?: string; tech?: string; platform?: string; policy?: string };
+
+export default async function Sites({ searchParams }: { searchParams: Promise<Q> }) {
+  const q = await searchParams;
+  const [every, promosAll] = await Promise.all([getSites(), getPromotions()]);
+  every.sort((a, b) => siteName(a).localeCompare(siteName(b)));
+  const scoped = filterSites(every, q.industry, q.segment);
+  const fc = facets(scoped);
+  const chosen = KINDS.map((k) => (q[k] ? fc[k].find((x) => x.value === q[k]) : undefined)).filter(Boolean) as any[];
+  const sites = scoped.filter((s) => chosen.every((f) => f.test(s)));
+  const promos = promotionsFor(promosAll, scoped);
+  const link = (o: Record<string, string | undefined>) =>
+    "/sites?" + new URLSearchParams(Object.entries({ ...q, ...o }).filter(([, v]) => v) as [string, string][]).toString();
+
+  // ready-made lists, worked out for whichever industry is selected
+  const has = (s: Site, p: string) => list(s, "payments.bnpl_providers").includes(p);
+  const n = (kind: string, v: string) => (fc[kind]?.find((x) => x.value === v) as any)?.n || 0;
+  const bf = new Set(promos.filter((p) => p.live && /black friday|cyber/i.test(`${p.name} ${p.discount}`)).map((p) => p.domain));
+  const ready = [
+    { n: scoped.filter((s) => has(s, "afterpay") && has(s, "zip") && !has(s, "humm")).length, title: "Afterpay and Zip, but no Humm", href: "/explore/payments/humm#prospects" },
+    { n: n("payments", "klarna"), title: "Offer Klarna", href: link({ payments: "klarna" }) },
+    { n: bf.size, title: "Running Black Friday or Cyber Monday", href: `/promotions${q.industry ? `?industry=${q.industry}` : ""}` },
+    { n: n("policy", "30-day-returns"), title: "30-day returns or longer", href: link({ policy: "30-day-returns" }) },
+    { n: n("policy", "free-shipping-under-80"), title: "Free shipping under $80", href: link({ policy: "free-shipping-under-80" }) },
+    { n: n("policy", "loyalty-programme"), title: "Have a loyalty programme", href: link({ policy: "loyalty-programme" }) },
+  ];
+
   return (
     <>
       <Header active="/sites" />
       <main className="wrap page">
-        <div className="eyebrow">Sites{industry ? ` · ${industryName(industry)}` : ""}</div>
+        <div className="eyebrow">Sites{q.industry ? ` · ${industryName(q.industry)}` : ""}{q.segment ? ` · ${q.segment}` : ""}</div>
         <h1 className="title">Stores we track</h1>
-        <p className="lede">{every.length} Australian online stores across {new Set(every.map((s) => s.industry || "jewellery")).size} industries, scanned every week. Open a store for its full profile, change history, promotions and prices.</p>
-        <div className="row" style={{ gap: 8, marginTop: 20 }}>
-          <Link href="/sites" className={`chip${!industry ? " on" : ""}`}>All industries · {every.length}</Link>
-          {INDUSTRIES.map((i) => ({ i, n: every.filter((s) => (s.industry || "jewellery") === i.slug).length })).filter(({ n }) => n > 0)
-            .map(({ i, n }) => <Link key={i.slug} href={`/sites?industry=${i.slug}`} className={`chip${industry === i.slug ? " on" : ""}`}>{i.name} · {n}</Link>)}
-        </div>
-        {segs.length > 1 && (
-          <div className="row" style={{ gap: 8, marginTop: 10 }}>
-            {segs.sort().map((g) => <Link key={g} href={`/sites?${industry ? `industry=${industry}&` : ""}segment=${encodeURIComponent(g)}`} className={`chip${segment === g ? " on" : ""}`}>{g} · {all.filter((s) => s.segment === g).length}</Link>)}
+        <p className="lede">{every.length} Australian online stores across {new Set(every.map((s) => s.industry || "jewellery")).size} industries. Pick an industry, then narrow by payment option, tool, platform or policy. Open a store for its full profile, change history, promotions and prices.</p>
+
+        <IndustryFilter path="/sites" sites={every} industry={q.industry} segment={q.segment} />
+
+        <form action="/sites" className="card" style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
+          {q.industry && <input type="hidden" name="industry" value={q.industry} />}
+          {q.segment && <input type="hidden" name="segment" value={q.segment} />}
+          {KINDS.map((k) => (
+            <div key={k} style={{ flex: "1 1 180px" }}>
+              <label className="lbl" htmlFor={`f-${k}`} style={{ fontWeight: 500, color: "var(--muted)", fontSize: 13 }}>{KIND_NAMES[k].replace(/s$/, "")}</label>
+              <select id={`f-${k}`} name={k} className="field" defaultValue={q[k] || ""}>
+                <option value="">Any</option>
+                {fc[k].map((x: any) => <option key={x.value} value={x.value}>{x.name} ({x.n})</option>)}
+              </select>
+            </div>
+          ))}
+          <button className="btn" type="submit">Filter</button>
+          {chosen.length > 0 && <Link className="btn ghost" href={link({ payments: undefined, tech: undefined, platform: undefined, policy: undefined })}>Clear</Link>}
+        </form>
+
+        {chosen.length === 0 && (
+          <div className="grid g3" style={{ marginTop: 16 }}>
+            {ready.map((r) => (
+              <Link key={r.title} href={r.href} className="card" style={{ color: "var(--ink)", textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: 16 }}>
+                <span className="display" style={{ fontSize: 26, fontWeight: 600, minWidth: 40 }}>{r.n}</span>
+                <span style={{ fontWeight: 600 }}>{r.title}</span>
+              </Link>
+            ))}
           </div>
         )}
-        <div className="card scroll" style={{ padding: 0, marginTop: 20 }}>
+
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline", marginTop: 24 }}>
+          <h2 style={{ margin: 0, fontSize: 22 }}>{sites.length} {sites.length === 1 ? "store" : "stores"}{chosen.length ? ` · ${chosen.map((f) => f.name).join(" · ")}` : ""}</h2>
+          {chosen.length === 1 && <Link className="small" href={chosen[0].kind === "tech" ? `/tech/${chosen[0].value}` : `/explore/${chosen[0].kind}/${chosen[0].value}`} style={{ fontWeight: 600 }}>Who added or dropped it →</Link>}
+        </div>
+        <div className="card scroll" style={{ padding: 0, marginTop: 12 }}>
           <table className="t" style={{ minWidth: 900 }}>
             <thead><tr><th style={{ paddingLeft: 20 }}>Store</th><th>Industry</th><th>Platform</th><th style={{ textAlign: "right" }}>Free shipping over</th><th style={{ textAlign: "right" }}>Returns</th><th>Buy now, pay later</th><th>Loyalty</th><th>Last scan</th></tr></thead>
             <tbody>
               {sites.map((s) => {
-                const fs = num(s, "shipping.free_shipping_threshold");
-                const rd = num(s, "policies.returns.period_days");
-                const bn = list(s, "payments.bnpl_providers");
-                const lp = val(s, "loyalty.program");
+                const fs = num(s, "shipping.free_shipping_threshold"), rd = num(s, "policies.returns.period_days");
+                const bn = list(s, "payments.bnpl_providers"), lp = val(s, "loyalty.program");
                 return (
                   <tr key={s.domain}>
                     <td style={{ paddingLeft: 20 }}><Link href={`/sites/${s.domain}`} style={{ fontWeight: 600 }}>{siteName(s)}</Link><div className="tiny muted">{s.domain}</div></td>
@@ -51,7 +96,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<{ 
                     <td>{val(s, "tech_stack.platform") || "—"}</td>
                     <td style={{ textAlign: "right" }}>{fs !== undefined ? money(fs) : <span className="muted">Not stated</span>}</td>
                     <td style={{ textAlign: "right" }}>{rd !== undefined ? `${rd} days` : <span className="muted">Not stated</span>}</td>
-                    <td>{bn.length ? bn.map((b) => b.replace(/_/g, " ")).map((b) => b.charAt(0).toUpperCase() + b.slice(1)).join(", ") : <span className="muted">Not stated</span>}</td>
+                    <td>{bn.length ? bn.map(label).join(", ") : <span className="muted">Not stated</span>}</td>
                     <td>{typeof lp === "string" ? lp : <span className="muted">—</span>}</td>
                     <td className="muted">{dateAU(s.last_scanned_at, { day: "numeric", month: "short" })}</td>
                   </tr>
@@ -60,7 +105,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<{ 
             </tbody>
           </table>
         </div>
-        <p className="small muted" style={{ marginTop: 12 }}>"Not stated" means the store doesn't publish it, not that it isn't offered. Know a store we should add? Use "Suggest a site" below.</p>
+        <p className="small muted" style={{ marginTop: 12 }}>"Not stated" means the store doesn't publish it, not that it isn't offered. Every filtered list has its own address, so it can be shared and bookmarked. Know a store we should add? Use "Suggest a site" below.</p>
       </main>
     </>
   );

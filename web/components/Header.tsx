@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const NAV = [
   ["/", "This week"], ["/industries", "Industries"], ["/sites", "Sites"], ["/compare", "Compare"],
-  ["/benchmarks", "Benchmarks"], ["/promotions", "Promotions"], ["/explore", "Explore"],
+  ["/benchmarks", "Benchmarks"], ["/promotions", "Promotions"], ["/tech", "Tech"],
 ] as const;
 
 export default function Header({ active }: { active?: string }) {

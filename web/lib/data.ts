@@ -48,13 +48,15 @@ export const getProducts = (domain: string) => rpc<Product[]>("web_products", { 
 export const suggestSite = (domain: string) => rpc<{ outcome: string; domain?: string }>("web_suggest_site", { p_domain: domain }, false);
 export const sendContact = (a: Record<string, string>) => rpc<{ ok: boolean; error?: string }>("web_contact", a, false);
 
-/** Jewellery-only views (home feed, benchmarks, explore, promotions) until other industries have enough history. */
-export async function getJewellery(): Promise<Site[]> {
-  return (await getSites()).filter((s) => (s.industry || "jewellery") === "jewellery");
+/** Sites with no industry recorded are the first vertical, jewellery. */
+export const industryOf = (s: { industry?: string | null }) => s.industry || "jewellery";
+
+/** Sites in one industry (and segment), or all of them. */
+export function filterSites(sites: Site[], industry?: string, segment?: string): Site[] {
+  return sites.filter((s) => (!industry || industryOf(s) === industry) && (!segment || s.segment === segment));
 }
 
-export async function getJewelleryPromotions(): Promise<Promo[]> {
-  const [sites, promos] = await Promise.all([getJewellery(), getPromotions()]);
+export function promotionsFor(promos: Promo[], sites: Site[]): Promo[] {
   const d = new Set(sites.map((x) => x.domain));
   return promos.filter((p) => d.has(p.domain));
 }

@@ -1,54 +1,43 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
-import { getPromotions, getSites } from "@/lib/data";
+import SortTable, { SortRow } from "@/components/SortTable";
+import { filterSites, getPromotions, getSites } from "@/lib/data";
 import { INDUSTRIES } from "@/lib/industries";
+import { COVERAGE, STAT_COLUMNS, groupStats } from "@/lib/stats";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Industries we cover",
-  description: "Ledger covers Australian online stores industry by industry, so every comparison is like for like: jewellery, fashion, beauty, health, homewares, pet, baby & kids, sports and electronics.",
+  description: "Australian online stores compared industry by industry: who's on sale, free-shipping thresholds, returns windows, buy now pay later and the tools they use.",
   alternates: { canonical: "/industries" },
 };
 
 export default async function Industries() {
   const [sites, promos] = await Promise.all([getSites(), getPromotions()]);
-  const count = (slug: string) => sites.filter((s) => (s.industry || "jewellery") === slug);
-  const live = (slug: string) => { const d = new Set(count(slug).map((s) => s.domain)); return promos.filter((p) => d.has(p.domain) && p.live).length; };
-  const [jew, ...rest] = INDUSTRIES;
+  const rows: SortRow[] = INDUSTRIES.map((i) => {
+    const st = groupStats(filterSites(sites, i.slug), promos);
+    return { id: i.slug, cells: {
+      industry: { text: i.name, sort: i.name, href: `/industries/${i.slug}`, sub: i.why },
+      ...Object.fromEntries(STAT_COLUMNS.map(([k]) => [k, { ...st[k], muted: !st[k].enough }])),
+    } };
+  });
+  const all = groupStats(sites, promos);
   return (
     <>
       <Header active="/industries" />
       <main className="wrap page">
         <h1 className="title">Industries</h1>
-        <p className="lede">We cover Australian online stores industry by industry, so every comparison is like for like. New stores are added every week.</p>
-        <Link href="/industries/jewellery" className="card" style={{ display: "flex", flexWrap: "wrap", gap: 24, justifyContent: "space-between", alignItems: "center", marginTop: 28, background: "var(--dark)", color: "#F6F5F1", border: 0, padding: 28, textDecoration: "none" }}>
-          <div>
-            <span className="tag" style={{ background: "#5FD3C4", color: "#15171C" }}>FULL COVERAGE</span>
-            <div className="display" style={{ fontSize: 32, fontWeight: 600, marginTop: 12 }}>{jew.name}</div>
-            <div style={{ fontSize: 15, color: "#C9CCD3", marginTop: 6 }}>{jew.why} Weekly feed, benchmarks, explore lists and promotions calendar.</div>
-          </div>
-          <div className="row" style={{ gap: 32 }}>
-            <div><div className="display" style={{ fontSize: 32, fontWeight: 600 }}>{count("jewellery").length}</div><div className="small" style={{ color: "#C9CCD3" }}>sites tracked</div></div>
-            <div><div className="display" style={{ fontSize: 32, fontWeight: 600 }}>{live("jewellery")}</div><div className="small" style={{ color: "#C9CCD3" }}>promotions live</div></div>
-            <div style={{ alignSelf: "center", fontWeight: 600, color: "#5FD3C4" }}>Open →</div>
-          </div>
-        </Link>
-        <h2 style={{ margin: "40px 0 14px", fontSize: 24 }}>Growing coverage</h2>
-        <div className="grid g4">
-          {rest.map((i) => {
-            const n = count(i.slug).length;
-            return (
-              <Link key={i.slug} href={`/industries/${i.slug}`} className="card" style={{ display: "flex", flexDirection: "column", gap: 8, color: "var(--ink)", textDecoration: "none" }}>
-                <span className={`tag${n ? "" : " grey"}`} style={{ alignSelf: "flex-start" }}>{n ? `${n} SITES` : "ADDING SITES"}</span>
-                <div className="display" style={{ fontSize: 20, fontWeight: 600 }}>{i.name}</div>
-                <div className="small muted" style={{ flex: "1 1 auto", lineHeight: 1.5 }}>{i.why}</div>
-                <span className="small" style={{ fontWeight: 600, color: "var(--accent)" }}>{n ? `See ${n} sites →` : "First scans under way →"}</span>
-              </Link>
-            );
-          })}
+        <p className="lede">{sites.length} Australian online stores across {INDUSTRIES.length} industries, compared like for like. Click a column to sort; open an industry for its stores, feed, benchmarks and promotions.</p>
+        <div style={{ marginTop: 28 }}>
+          <SortTable cols={[{ key: "industry", label: "Industry" }, ...STAT_COLUMNS.map(([k, l]) => ({ key: k, label: l, align: k === "topTool" ? "left" as const : "right" as const }))]}
+            rows={rows} minWidth={1080} />
         </div>
-        <p className="small muted" style={{ marginTop: 24 }}>Want an industry that isn't listed? <Link href="/contact" style={{ fontWeight: 600 }}>Tell us</Link>, or suggest a store below.</p>
+        <p className="small muted" style={{ marginTop: 12, lineHeight: 1.6 }}>
+          Across all industries: {all.onSale.text} of stores on sale now, median free-shipping threshold {all.freeShipping.text.toLowerCase()}, median returns window {all.returns.text}.
+          {" "}A median is shown only when at least {Math.round(COVERAGE * 100)}% of an industry's stores publish the value; otherwise it says "Not enough data". "On sale now" counts discounts and gifts seen in the latest weekly scan.
+        </p>
+        <p className="small muted" style={{ marginTop: 8 }}>Want an industry that isn't listed? <Link href="/contact" style={{ fontWeight: 600 }}>Tell us</Link>, or suggest a store below.</p>
       </main>
     </>
   );
