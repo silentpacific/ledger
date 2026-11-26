@@ -1,17 +1,23 @@
 """Settings, read from environment variables (GitHub Actions secrets)."""
 import os
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "")
+
+def _env(name: str, default: str = "") -> str:
+    """Secrets pasted into GitHub often carry stray spaces or line breaks; strip them."""
+    return (os.environ.get(name) or default).strip()
+
+
+SUPABASE_URL = _env("SUPABASE_URL").rstrip("/")
+SUPABASE_SERVICE_KEY = _env("SUPABASE_SERVICE_KEY")
+ANTHROPIC_API_KEY = _env("ANTHROPIC_API_KEY")
+FIRECRAWL_API_KEY = _env("FIRECRAWL_API_KEY")
 
 # AI model used for reading policy/promo text. Override with the CLAUDE_MODEL secret or variable.
-CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-5-5")
+CLAUDE_MODEL = _env("CLAUDE_MODEL", "claude-sonnet-5-5")
 
 # Crawler identity (honest user agent with a contact address)
-CRAWLER_CONTACT = os.environ.get("CRAWLER_CONTACT", "contact@example.com")
-USER_AGENT = f"LedgerBot/0.1 (+mailto:{CRAWLER_CONTACT})"
+CRAWLER_CONTACT = _env("CRAWLER_CONTACT")
+USER_AGENT = f"LedgerBot/0.1 (+mailto:{CRAWLER_CONTACT})" if CRAWLER_CONTACT else "LedgerBot/0.1"
 ROBOTS_AGENT = "LedgerBot"
 
 # Politeness
