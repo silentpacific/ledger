@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       domain:
-        description: "One domain (e.g. zamels.com.au). Leave empty to scan all enabled sites."
+        description: "One domain, or several separated by commas (e.g. zamels.com.au,najo.com.au). Leave empty to scan all enabled sites."
         required: false
         default: ""
       mode:
@@ -61,7 +61,11 @@ jobs:
           DRY=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
           if [ -n "${{ github.event.inputs.domain }}" ]; then
-            python run.py --domain "${{ github.event.inputs.domain }}" --mode "$MODE" $DRY
+            IFS=',' read -ra DOMAINS <<< "${{ github.event.inputs.domain }}"
+            for D in "${DOMAINS[@]}"; do
+              D="$(echo "$D" | xargs)"
+              [ -n "$D" ] && python run.py --domain "$D" --mode "$MODE" $DRY
+            done
           else
             python run.py --all --mode "$MODE"
           fi
