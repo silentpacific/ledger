@@ -26,7 +26,7 @@ def normalise_domain(value: str) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    g = ap.add_mutually_exclusive_group(required=True)
+    g = ap.add_mutually_exclusive_group(required=False)
     g.add_argument("--domain", help="one domain, e.g. zamels.com.au")
     g.add_argument("--all", action="store_true", help="every enabled domain in ledger-db")
     ap.add_argument("--mode", choices=["full", "weekly"], default="full")
@@ -55,6 +55,8 @@ def main() -> int:
         print(f"\nRechecked {len(sites)} switched-off sites, AI cost ~${extract.usage_cost():.3f}")
         return 0
 
+    if not (args.all or args.domain):
+        ap.error("one of --domain, --all or --recheck-refusals is required")
     if args.all:
         targets = db.domains_due(args.limit)
     else:
