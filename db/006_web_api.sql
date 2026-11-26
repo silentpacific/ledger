@@ -1,0 +1,9 @@
+-- Applied 26 Nov 2026 via Supabase MCP (migration "web_api").
+-- Public read API for the website, called with the publishable key:
+--   web_sites()            sites with their quality-checked facts (publishable_facts only)
+--   web_promotions()       promotions with live flag (seen in the site's latest scan)
+--   web_changes(days)      change events, each marked confirmed once a later scan still shows the new value
+--   web_products(domain)   watch-list products with price periods
+--   web_suggest_site(d)    suggest-a-site outcome (tracked / terms_prohibit / blocked / opted_out / new); new ones logged
+--   web_contact(...)       contact and opt-out form messages (contact_messages)
+-- All are SECURITY DEFINER with search_path=''; raw tables stay RLS-locked to anon.
