@@ -37,8 +37,9 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   fashion, beauty, health, homewares, pet, baby-kids, sports-outdoors, electronics.
 
 ## Status (27 Nov 2026)
-- ~190 domains. Overnight run hit the credit limit at ~$2.42 (Haiku $0.79, Sonnet $1.64).
-  65 sites got code-only scans; rescan run 45862860915 started to fill them.
+- 134 sites with full data (jewellery 33, beauty 18, fashion 15, health 14, homewares 12,
+  baby-kids 12, sports 12, electronics 12, pet 6). First 9-industry scan cost ~$5.12 total
+  (Haiku $1.69, Sonnet $3.45): Sonnet escalation is ~2/3 of spend; Rahul may want it capped.
 - ~19 sites failed to load (timeouts / wrong domains) and need cleanup with Rahul.
 - Known gaps: JS-rendered prices (Goldmark, Prouds, Temple & Grace), store finders,
   over-time charts (need more weeks of data), real domain + brand, lawyer review,
