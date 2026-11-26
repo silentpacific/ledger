@@ -102,7 +102,7 @@ def _client():
     return anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
 
-def _tool_for(page_type: str) -> dict:
+def _tool_for(page_type: str, fields: dict | None = None) -> dict:
     if page_type == "promo_terms_or_home":
         return {
             "name": "record_promotions",
@@ -112,7 +112,7 @@ def _tool_for(page_type: str) -> dict:
                 "properties": {k: {} for k in ["name", "promo_type", "discount", "starts", "ends", "live", "placement", "evidence"]},
                 "required": ["name", "evidence"]}}}, "required": ["promotions"]},
         }
-    fields = FIELDS[page_type]
+    fields = fields or FIELDS[page_type]
     return {
         "name": "record_facts",
         "description": "Record the requested facts. Fields:\n" + "\n".join(
@@ -130,8 +130,8 @@ def _tool_for(page_type: str) -> dict:
     }
 
 
-def _ask(page_type: str, url: str, text: str, variant: int) -> list[dict]:
-    tool = _tool_for(page_type)
+def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None = None) -> list[dict]:
+    tool = _tool_for(page_type, fields)
     order = "" if variant == 0 else "\nRead the whole page carefully before answering; check the fine print."
     msg = _client().messages.create(
         model=config.CLAUDE_MODEL,
@@ -184,10 +184,13 @@ def _canon(v):
 
 
 def read_page(page_type: str, url: str, text: str) -> list[dict]:
+    return read_page_custom(FIELDS[page_type], url, text, page_type)
+
+
+def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom") -> list[dict]:
     """Two reads, evidence check, agreement check -> observation dicts for ingest."""
-    fields = FIELDS[page_type]
-    a = {f.get("key"): f for f in _ask(page_type, url, text, 0) if f.get("key") in fields}
-    b = {f.get("key"): f for f in _ask(page_type, url, text, 1) if f.get("key") in fields}
+    a = {f.get("key"): f for f in _ask(page_type, url, text, 0, fields) if f.get("key") in fields}
+    b = {f.get("key"): f for f in _ask(page_type, url, text, 1, fields) if f.get("key") in fields}
     out = []
     for key, meta in fields.items():
         fa, fb = a.get(key), b.get(key)

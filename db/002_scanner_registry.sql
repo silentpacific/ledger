@@ -23,3 +23,19 @@ returns void language sql set search_path = '' as $$
   update public.domains set last_scan_error = left(p_error, 2000) where domain = p_domain;
 $$;
 -- (The 37 jewellery sites were inserted into public.domains at the same time.)
+
+-- Terms gate (applied 26 Nov 2026)
+alter table public.domains
+  add column if not exists terms_checked_at timestamptz,
+  add column if not exists terms_url text,
+  add column if not exists terms_verdict text check (terms_verdict in ('allowed','prohibited','no_terms_found','unclear')),
+  add column if not exists terms_evidence text;
+
+create or replace function public.record_terms_check(p_domain text, p_url text, p_verdict text, p_evidence text)
+returns void language sql set search_path = '' as $$
+  update public.domains
+     set terms_checked_at = now(), terms_url = p_url, terms_verdict = p_verdict,
+         terms_evidence = left(p_evidence, 1000),
+         scan_enabled = case when p_verdict = 'prohibited' then false else scan_enabled end
+   where domain = p_domain;
+$$;

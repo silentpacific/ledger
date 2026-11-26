@@ -50,9 +50,18 @@ def main() -> int:
                   f"products={len(payload['products'])}")
             for issue in payload["issues_found"]:
                 print("  issue:", issue)
+            gate = payload.get("terms_gate") or {}
+            print(f"  terms: {gate.get('verdict')} {gate.get('url') or ''}")
+            if gate.get("evidence") and gate.get("verdict") == "prohibited":
+                print(f"  terms quote: {gate['evidence'][:300]}")
             if not args.dry_run:
-                scan_id = db.ingest(payload)
-                print("  stored scan", scan_id)
+                if gate:
+                    db.record_terms(t["domain"], gate)
+                if payload.get("skip_ingest"):
+                    print("  not stored: stopped by terms gate (site switched off if prohibited)")
+                else:
+                    scan_id = db.ingest(payload)
+                    print("  stored scan", scan_id)
         except Exception as e:
             failures += 1
             msg = f"{type(e).__name__}: {e}"

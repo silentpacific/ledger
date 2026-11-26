@@ -31,7 +31,12 @@ SITEMAP = f"""<?xml version="1.0"?><sitemapindex xmlns="http://www.sitemaps.org/
 PAGES = f"""<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url><loc>{BASE}pages/returns</loc><lastmod>2099-01-01T00:00:00+10:30</lastmod></url>
 <url><loc>{BASE}pages/delivery-information</loc><lastmod>2020-01-01T00:00:00+10:30</lastmod></url>
-<url><loc>{BASE}pages/offer-terms-and-conditions</loc></url></urlset>"""
+<url><loc>{BASE}pages/offer-terms-and-conditions</loc></url>
+<url><loc>{BASE}pages/terms-and-conditions</loc></url></urlset>"""
+
+TERMS_OK = "<html><body>" + "These terms govern your use of our store. Prices are in AUD. " * 20 + "</body></html>"
+TERMS_NO = "<html><body>" + "These terms govern your use of our store. " * 20 + \
+    "You must not use any robot, spider or other automated means to access or copy content from this website." + "</body></html>"
 
 PRODUCTS_SM = f"""<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url><loc>{BASE}products/a</loc></url><url><loc>{BASE}products/b</loc></url></urlset>"""
@@ -51,6 +56,7 @@ ROUTES = {
     "robots.txt": (200, ROBOTS, "text/plain"),
     "": (200, HOME, "text/html"),
     "llms.txt": (404, "not found", "text/html"),
+    "pages/terms-and-conditions": (200, TERMS_OK, "text/html"),
     "sitemap.xml": (200, SITEMAP, "application/xml"),
     "sitemap_pages_1.xml": (200, PAGES, "application/xml"),
     "sitemap_products_1.xml": (200, PRODUCTS_SM, "application/xml"),
@@ -157,3 +163,27 @@ def test_classify_and_categories():
     assert pages["promo_terms"] == [BASE + "pages/offer-terms-and-conditions"]
     cats = discover.top_categories(HOME, BASE, 8)
     assert cats == [BASE + "collections/rings", BASE + "collections/necklaces"]
+
+
+def test_terms_prohibited_stops_scan(fake_http, monkeypatch):
+    monkeypatch.setitem(ROUTES, "pages/terms-and-conditions", (200, TERMS_NO, "text/html"))
+    p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
+    assert p["skip_ingest"] is True and p["terms_gate"]["verdict"] == "prohibited"
+    assert p["facts"] == [] and "robot, spider" in p["terms_gate"]["evidence"]
+    assert not any("products.json" in c for c in fake_http)       # nothing collected after the gate
+
+
+def test_terms_only_behind_robots_is_unclear(fake_http, monkeypatch):
+    from ledger_scanner import terms
+    monkeypatch.setitem(ROUTES, "pages/terms-and-conditions", (404, "nope", "text/html"))
+    monkeypatch.setattr(terms, "UNCLEAR_POLICY", "skip")
+    p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
+    assert p["terms_gate"]["verdict"] == "unclear" and p.get("skip_ingest") is True
+    monkeypatch.setattr(terms, "UNCLEAR_POLICY", "proceed")
+    p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
+    assert p["terms_gate"]["verdict"] == "unclear" and not p.get("skip_ingest") and p["facts"]
+
+
+def test_terms_allowed(fake_http):
+    p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
+    assert p["terms_gate"]["verdict"] == "allowed" and not p.get("skip_ingest")

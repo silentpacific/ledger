@@ -34,3 +34,8 @@ def record_error(domain: str, error: str) -> None:
         _rpc("record_scan_error", {"p_domain": domain, "p_error": error})
     except Exception:
         pass
+
+
+def record_terms(domain: str, gate: dict) -> None:
+    _rpc("record_terms_check", {"p_domain": domain, "p_url": gate.get("url"),
+                                "p_verdict": gate.get("verdict"), "p_evidence": gate.get("evidence") or ""})

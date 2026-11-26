@@ -5,6 +5,11 @@ Scans Australian retail websites and stores structured commerce facts
 in the `ledger-db` Supabase project. Working name; the brand comes later.
 
 ## How it works
+0. **Terms gate.** Before collecting anything, the scanner finds the site's terms of use and checks
+   for anti-scraping / anti-bot clauses. If found: nothing is stored and the site is switched off
+   (`domains.scan_enabled = false`, verdict and quote saved in `domains.terms_*`).
+   If the terms can't be read (e.g. only at a URL robots.txt disallows), `TERMS_UNCLEAR_POLICY`
+   decides: `skip` (default) or `proceed`.
 1. **robots.txt first.** Every URL is checked before it is fetched. Disallowed pages are skipped.
 2. **Code first.** Platform, tech stack, BNPL, payment icons, structured data, sitemaps,
    AI-readiness and Shopify product prices are read by code.
@@ -33,6 +38,7 @@ Each run's raw JSON is kept as a downloadable artifact for 14 days.
 | `FIRECRAWL_API_KEY` | Secret | Firecrawl API key (fallback for JavaScript pages) |
 | `CRAWLER_CONTACT` | Variable | Email shown in the crawler's user agent |
 | `CLAUDE_MODEL` | Variable (optional) | Defaults to `claude-sonnet-5-5` |
+| `TERMS_UNCLEAR_POLICY` | Variable (optional) | `skip` (default) or `proceed` when terms can't be read |
 
 ## Local / Codespaces
 ```

@@ -5,7 +5,7 @@ import statistics
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
-from . import config, detect, discover, extract, shopify
+from . import config, detect, discover, extract, shopify, terms
 from .detect import fact
 from .fetch import Fetcher
 
@@ -40,22 +40,34 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
     if len(home.text) < 400:
         issues.append("homepage text very short; likely built by JavaScript")
 
+    # ---- terms-of-use gate: before any facts are collected ------------------
+    sm = discover.read_sitemaps(f)
+    candidates = [u for u, _ in sm["pages"]] + discover.footer_and_nav_links(home.html, base)
+    gate = terms.check_terms(f, candidates)
+    terms_info = {"verdict": gate.verdict, "url": gate.url, "evidence": gate.evidence,
+                  "unclear_policy": terms.UNCLEAR_POLICY, "blocked_scan": gate.blocks_scan}
+    if gate.blocks_scan:
+        p = _payload(domain, started, "failed", f, [], [], [], [], [f"stopped by terms gate: {gate.verdict}"], mode)
+        p["terms_gate"], p["skip_ingest"] = terms_info, True
+        return p
+
     # ---- code-based facts (always) ----------------------------------------
     tech_facts, detected_platform = detect.detect_tech(home.html, home.url)
     platform = (detected_platform or platform or "").lower() or None
     facts += detect.detect_homepage_signals(home.html, home.text, home.url)
     sd_facts, _ = detect.detect_structured_data(home.html, home.url)
     facts += sd_facts
+    facts.append(fact("policies", "terms_scraping_verdict", gate.verdict, source_url=gate.url,
+                      evidence=gate.evidence if gate.verdict == "prohibited" else None,
+                      method="code" if not config.ANTHROPIC_API_KEY else "ai_text"))
 
-    # ---- sitemaps: content activity + page discovery -----------------------
-    sm = discover.read_sitemaps(f)
+    # ---- sitemaps: content activity --------------------------------------
     facts += _content_facts(sm, base, started)
 
     # ---- promotions (weekly + full) ----------------------------------------
     if ai:
         promos_live += [dict(p, live=True, source="homepage") for p in extract.read_promotions(home.url, home.text)]
-    pages_by_type = discover.classify_pages(
-        [u for u, _ in sm["pages"]] + discover.footer_and_nav_links(home.html, base), base)
+    pages_by_type = discover.classify_pages(candidates, base)
     if ai and pages_by_type.get("promo_terms"):
         pt = f.fetch(pages_by_type["promo_terms"][0])
         if pt.status == 200 and pt.text:
@@ -94,7 +106,7 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         # ---- AI reading of policy / info pages -----------------------------
         if ai:
             budget = config.MAX_INFO_PAGES
-            for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "faq", "stores", "terms"):
+            for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "faq", "stores"):
                 urls = pages_by_type.get(ptype) or []
                 if not urls or budget <= 0:
                     continue
@@ -116,8 +128,10 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
 
     if issues and status == "complete":
         status = "partial"
-    return _payload(domain, started, status, f, _merge(facts), promos_live, promo_history, products, issues, mode,
-                    platform=platform)
+    p = _payload(domain, started, status, f, _merge(facts), promos_live, promo_history, products, issues, mode,
+                 platform=platform)
+    p["terms_gate"] = terms_info
+    return p
 
 
 # -----------------------------------------------------------------------------

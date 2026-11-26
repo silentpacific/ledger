@@ -34,6 +34,7 @@ jobs:
       FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
       CRAWLER_CONTACT: ${{ vars.CRAWLER_CONTACT }}
       CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+      TERMS_UNCLEAR_POLICY: ${{ vars.TERMS_UNCLEAR_POLICY || 'skip' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
