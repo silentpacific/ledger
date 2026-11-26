@@ -16,6 +16,14 @@ from ledger_scanner import db
 from ledger_scanner.scan import scan_site
 
 
+def normalise_domain(value: str) -> str:
+    """Accept 'zamels.com.au', 'https://www.zamels.com.au/', 'zamels.com.au/pages/x' etc."""
+    v = value.strip().lower()
+    v = v.split("://", 1)[-1]
+    v = v.split("/", 1)[0].split("?", 1)[0]
+    return v.removeprefix("www.")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
@@ -27,10 +35,12 @@ def main() -> int:
     ap.add_argument("--no-ai", action="store_true", help="code-based facts only (no Anthropic calls)")
     args = ap.parse_args()
 
+    if args.domain:
+        args.domain = normalise_domain(args.domain)
     if args.all:
         targets = db.domains_due(args.limit)
     else:
-        known = {d["domain"]: d for d in (db.domains_due(1000) if not args.dry_run else [])}
+        known = {normalise_domain(d["domain"]): d for d in (db.domains_due(1000) if not args.dry_run else [])}
         d = known.get(args.domain, {"domain": args.domain, "homepage_url": f"https://{args.domain}/", "platform": None})
         targets = [d]
 
