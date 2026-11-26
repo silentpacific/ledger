@@ -1,0 +1,68 @@
+"""Command line entry point.
+
+  python run.py --domain zamels.com.au            # scan one site (full) and store it
+  python run.py --all --mode weekly               # scan every enabled site (weekly categories)
+  python run.py --domain najo.com.au --dry-run    # scan, print summary, save JSON, don't store
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import sys
+import traceback
+
+from ledger_scanner import db
+from ledger_scanner.scan import scan_site
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    g = ap.add_mutually_exclusive_group(required=True)
+    g.add_argument("--domain", help="one domain, e.g. zamels.com.au")
+    g.add_argument("--all", action="store_true", help="every enabled domain in ledger-db")
+    ap.add_argument("--mode", choices=["full", "weekly"], default="full")
+    ap.add_argument("--limit", type=int, default=100)
+    ap.add_argument("--dry-run", action="store_true", help="don't write to the database")
+    ap.add_argument("--no-ai", action="store_true", help="code-based facts only (no Anthropic calls)")
+    args = ap.parse_args()
+
+    if args.all:
+        targets = db.domains_due(args.limit)
+    else:
+        known = {d["domain"]: d for d in (db.domains_due(1000) if not args.dry_run else [])}
+        d = known.get(args.domain, {"domain": args.domain, "homepage_url": f"https://{args.domain}/", "platform": None})
+        targets = [d]
+
+    out_dir = pathlib.Path("scan-output")
+    out_dir.mkdir(exist_ok=True)
+    failures = 0
+    for t in targets:
+        print(f"\n=== {t['domain']} ({args.mode}) ===", flush=True)
+        try:
+            payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=args.mode, use_ai=not args.no_ai)
+            (out_dir / f"{t['domain']}.json").write_text(json.dumps(payload, indent=2, default=str))
+            facts = payload["facts"]
+            print(f"status={payload['scan']['scan_status']} pages={len(payload['scan']['pages_fetched'])} "
+                  f"facts={len(facts)} verified={sum(1 for x in facts if x.get('evidence_verified'))} "
+                  f"conflicting={sum(1 for x in facts if x['status']=='conflicting')} "
+                  f"promos={len(payload['promotions'])}+{len(payload['promotion_history_from_terms_page'])} "
+                  f"products={len(payload['products'])}")
+            for issue in payload["issues_found"]:
+                print("  issue:", issue)
+            if not args.dry_run:
+                scan_id = db.ingest(payload)
+                print("  stored scan", scan_id)
+        except Exception as e:
+            failures += 1
+            msg = f"{type(e).__name__}: {e}"
+            print("  FAILED:", msg)
+            traceback.print_exc()
+            if not args.dry_run:
+                db.record_error(t["domain"], msg)
+    print(f"\nDone: {len(targets) - failures} ok, {failures} failed")
+    return 1 if failures and failures == len(targets) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
