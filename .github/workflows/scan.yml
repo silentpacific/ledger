@@ -17,6 +17,10 @@ on:
         description: "Optional model override for a test (e.g. claude-haiku-5-5). Empty = normal model."
         required: false
         default: ""
+      budget:
+        description: "Optional: pause once estimated AI spend in this run reaches this many USD (e.g. 3)"
+        required: false
+        default: ""
       dry_run:
         description: "Test only: scan and save the file, but don't store anything in the database"
         required: false
@@ -58,6 +62,8 @@ jobs:
           if [ -z "$MODE" ]; then
             if [ "${{ github.event.schedule }}" = "17 3 1 * *" ]; then MODE=full; else MODE=weekly; fi
           fi
+          BUDGET=""
+          if [ -n "${{ github.event.inputs.budget }}" ]; then BUDGET="--budget ${{ github.event.inputs.budget }}"; fi
           DRY=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
           if [ -n "${{ github.event.inputs.domain }}" ]; then
@@ -67,7 +73,7 @@ jobs:
               [ -n "$D" ] && python run.py --domain "$D" --mode "$MODE" $DRY
             done
           else
-            python run.py --all --mode "$MODE"
+            python run.py --all --mode "$MODE" $BUDGET
           fi
       - name: Keep scan files for 14 days
         if: always()

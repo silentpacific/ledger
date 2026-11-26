@@ -19,6 +19,8 @@ from . import config, extract
 from .fetch import Fetcher
 
 UNCLEAR_POLICY = os.environ.get("TERMS_UNCLEAR_POLICY", "skip").lower()
+# No terms page found at all: nothing prohibits scanning, so scan (robots.txt still obeyed).
+NO_TERMS_POLICY = (os.environ.get("TERMS_NO_TERMS_POLICY") or "scan").lower()
 
 STRONG = re.compile(
     r"[^.\n]{0,200}\b(scrap(e|es|ed|ing|er|ers)|crawl(s|ed|ing|er|ers)?|spider(s|ing)?|data[- ]?mining|"
@@ -43,7 +45,9 @@ class TermsResult:
     def blocks_scan(self) -> bool:
         if self.verdict == "prohibited":
             return True
-        return self.verdict in ("unclear", "no_terms_found") and UNCLEAR_POLICY == "skip"
+        if self.verdict == "no_terms_found":
+            return NO_TERMS_POLICY == "skip"
+        return self.verdict == "unclear" and UNCLEAR_POLICY == "skip"
 
 
 def find_terms_urls(candidates: list[str]) -> list[str]:

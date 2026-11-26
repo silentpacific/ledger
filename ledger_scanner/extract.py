@@ -107,6 +107,11 @@ def reset_usage() -> None:
     USAGE.clear()
 
 
+def usage_cost() -> float:
+    return sum(u["input"] / 1e6 * PRICES.get(m, (0, 0))[0] + u["output"] / 1e6 * PRICES.get(m, (0, 0))[1]
+               for m, u in USAGE.items())
+
+
 def usage_summary() -> str:
     parts, total = [], 0.0
     for m, u in USAGE.items():

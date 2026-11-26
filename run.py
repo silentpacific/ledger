@@ -31,6 +31,8 @@ def main() -> int:
     g.add_argument("--all", action="store_true", help="every enabled domain in ledger-db")
     ap.add_argument("--mode", choices=["full", "weekly"], default="full")
     ap.add_argument("--limit", type=int, default=100)
+    ap.add_argument("--budget", type=float, default=0.0,
+                    help="pause (stop starting new sites) once estimated AI spend in this run reaches this many USD")
     ap.add_argument("--dry-run", action="store_true", help="don't write to the database")
     ap.add_argument("--no-ai", action="store_true", help="code-based facts only (no Anthropic calls)")
     args = ap.parse_args()
@@ -47,9 +49,18 @@ def main() -> int:
     out_dir = pathlib.Path("scan-output")
     out_dir.mkdir(exist_ok=True)
     failures = 0
-    for t in targets:
-        print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
+    spent = 0.0
+    next_site_allowance = 0.20  # a big site can cost ~$0.10-0.15; keep headroom
+    extract.reset_usage()
+    for n, t in enumerate(targets):
+        spent += extract.usage_cost()  # cost of the previous site, even if it failed
         extract.reset_usage()
+        if args.budget and spent + next_site_allowance > args.budget:
+            left = [x["domain"] for x in targets[n:]]
+            print(f"\nPAUSED: estimated AI spend ${spent:.2f} is near the ${args.budget:.2f} budget. "
+                  f"{len(left)} sites not started: {', '.join(left)}")
+            break
+        print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
         try:
             payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=args.mode, use_ai=not args.no_ai)
             (out_dir / f"{t['domain']}.json").write_text(json.dumps(payload, indent=2, default=str))
@@ -62,7 +73,7 @@ def main() -> int:
             for issue in payload["issues_found"]:
                 print("  issue:", issue)
             gate = payload.get("terms_gate") or {}
-            print("  ai usage:", extract.usage_summary())
+            print("  ai usage:", extract.usage_summary(), f"| run total ~${spent + extract.usage_cost():.2f}")
             print(f"  terms: {gate.get('verdict')} {gate.get('url') or ''}")
             if gate.get("evidence") and gate.get("verdict") == "prohibited":
                 print(f"  terms quote: {gate['evidence'][:300]}")
