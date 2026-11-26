@@ -465,3 +465,91 @@ def test_cost_row_counts_rendered_pages_and_conflicts():
     failed = run.cost_row({"domain": "a.com.au"}, "weekly", {"started": datetime.now(timezone.utc),
                           "t0": time.monotonic(), "outcome": "failed", "payload": None, "scan_id": None})
     assert failed["pages_fetched"] is None and failed["outcome"] == "failed"
+
+
+# -- finding policy pages (27 Nov 2026: Amber Sceats and Bevilles were missed) ----
+def test_return_singular_and_shopify_policy_pages_are_candidates():
+    from ledger_scanner import discover
+    b = "https://www.bevilles.com.au/"
+    got = discover.classify_pages([b + "pages/delivery-returns", b + "pages/return-landing"], b)
+    assert b + "pages/return-landing" in got["returns"]
+    a = "https://ambersceats.com/"
+    got = discover.classify_pages([a + "pages/returns-exchanges"] + discover.shopify_policy_urls(a), a)
+    assert a + "policies/refund-policy" in got["returns"] and a + "policies/shipping-policy" in got["shipping"]
+
+
+def test_own_text_strips_shared_boilerplate_and_spots_empty_pages():
+    from ledger_scanner import pagetext
+    home = "FREE SHIPPING OVER $300\nCART 0\nShop\nEarrings\nAll items purchased during our sale are final and not eligible for return"
+    empty_returns = home + "\nReturns & Exchanges\nCART 0"
+    own = pagetext.own_text(empty_returns, pagetext.shared_lines(home))
+    assert own == "Returns & Exchanges" and pagetext.looks_empty(own, "returns")
+    real = home + "\nRefund policy\n" + "We accept returns for unworn items within 7 days of delivery. " * 6
+    own = pagetext.own_text(real, pagetext.shared_lines(home))
+    assert not pagetext.looks_empty(own, "returns") and "CART" not in own
+
+
+def test_homepage_free_shipping_threshold():
+    from ledger_scanner import detect
+    t = "FREE STANDARD DOMESTIC AUSTRALIAN SHIPPING ON ORDERS OVER $300 AUD    SHOP WITH US IN PERSON"
+    assert detect.detect_free_shipping(t, "u")[0]["value"]["amount"] == 300
+    assert detect.detect_free_shipping("You are $202.94 USD away from free shipping.", "u") == []
+    assert detect.detect_free_shipping("Free express shipping over $150", "u") == []
+    assert detect.detect_free_shipping("Free shipping over $50\nFree shipping over $100", "u") == []
+
+
+class _Page:
+    def __init__(self, url, text, html=""):
+        self.url, self.text, self.html, self.status, self.method, self.note = url, text, html, 200, "http", None
+
+
+class _Fetcher:
+    def __init__(self, pages):
+        self.pages_map, self.got = pages, []
+
+    def fetch(self, url, want_text=True):
+        self.got.append(url)
+        return self.pages_map.get(url) or _Page(url, "")
+
+    fetch_rendered = fetch
+
+
+def _fake_read(found_on):
+    def read_page(ptype, url, text, industry=None):
+        if ptype == "returns" and url in found_on:
+            return [{"category": "policies", "key": "returns.period_days", "status": "observed", "value": 14}]
+        return [{"category": "policies", "key": "returns.period_days", "status": "not_observed", "value": None}]
+    return read_page
+
+
+def test_summary_page_is_followed_to_the_full_policy(monkeypatch):
+    from ledger_scanner import extract, scan
+    b = "https://www.bevilles.com.au/"
+    home = _Page(b, "Home\nFREE SHIPPING OVER $80")
+    summary = _Page(b + "pages/delivery-returns", "Delivery & Returns\n" + "You can return an item hassle free to any store. " * 8,
+                    html=f'<a href="{b}pages/return-landing">More information on Returns</a>')
+    full = _Page(b + "pages/return-landing", "Returns\n" + "We offer FREE returns for 14 days of receipt. " * 8)
+    f = _Fetcher({summary.url: summary, full.url: full})
+    monkeypatch.setattr(extract, "read_page", _fake_read({full.url}))
+    issues = []
+    facts = scan._read_info_pages(f, {"returns": [summary.url]}, home, b, "jewellery", issues)
+    assert any(x["status"] == "observed" for x in facts) and full.url in f.got
+
+
+def test_empty_first_candidate_falls_through_to_next(monkeypatch):
+    from ledger_scanner import extract, scan
+    a = "https://ambersceats.com/"
+    home = _Page(a, "CART 0\nShop\nEarrings")
+    empty = _Page(a + "pages/returns-exchanges", "CART 0\nShop\nEarrings\nReturns & Exchanges")
+    policy = _Page(a + "policies/refund-policy", "Refund policy\n" + "Eligible orders must be shipped back within 7 days of delivery for a refund. " * 5)
+    f = _Fetcher({empty.url: empty, policy.url: policy})
+    calls = []
+    def read(ptype, url, text, industry=None):
+        calls.append(url)
+        return _fake_read({policy.url})(ptype, url, text, industry)
+    monkeypatch.setattr(extract, "read_page", read)
+    issues = []
+    facts = scan._read_info_pages(f, {"returns": [empty.url, policy.url]}, home, a, "jewellery", issues)
+    assert calls == [policy.url]  # the empty page cost no AI call
+    assert any(x["status"] == "observed" for x in facts)
+    assert any("no returns content of its own" in i for i in issues)

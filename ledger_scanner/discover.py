@@ -12,7 +12,7 @@ from .fetch import Fetcher, same_site
 # page type -> URL keywords (first match wins, in this order)
 PAGE_TYPES: list[tuple[str, list[str]]] = [
     ("promo_terms", ["offer-terms", "promotion-terms", "promo-terms", "sale-terms", "competition-terms", "offer-t-cs"]),
-    ("returns", ["returns", "refund", "exchange", "return-policy"]),
+    ("returns", ["returns", "refund", "exchange", "return"]),
     ("shipping", ["delivery", "shipping", "postage", "dispatch", "freight"]),
     ("payments", ["payment-options", "payment-methods", "afterpay", "buy-now-pay-later", "payment-plans", "finance", "zip", "humm", "klarna", "layby", "lay-by"]),
     ("loyalty", ["rewards-club", "rewards", "loyalty", "club", "vip", "member"]),
@@ -138,6 +138,23 @@ def classify_pages(urls: list[str], base: str, lastmods: dict[str, str] | None =
         lm = lastmods.get(u, "")[:10]
         return (score, "".join(chr(255 - ord(c)) for c in lm) or "~", len(u))
     return {k: [u for u, _ in sorted(v.items(), key=order)] for k, v in found.items()}
+
+
+# Shopify serves its built-in policy pages at fixed addresses on every store
+SHOPIFY_POLICIES = ["policies/refund-policy", "policies/shipping-policy"]
+
+
+def shopify_policy_urls(base: str) -> list[str]:
+    return [base + p for p in SHOPIFY_POLICIES]
+
+
+def links_of_type(html: str, base: str, ptype: str) -> list[str]:
+    """Links on a page that look like pages of the same type (e.g. "More information on Returns"),
+    ranked like any other candidate. Used to follow a summary page to the full policy."""
+    if not html:
+        return []
+    urls = footer_and_nav_links(html, base)
+    return classify_pages(urls, base, texts=link_texts(html, base)).get(ptype, [])
 
 
 def link_texts(html: str, base: str) -> dict[str, str]:

@@ -5,7 +5,7 @@ import statistics
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
-from . import config, detect, discover, extract, products_generic, promos, shopify, terms
+from . import config, detect, discover, extract, pagetext, products_generic, promos, shopify, terms
 from .detect import fact
 from .fetch import Fetcher
 
@@ -76,6 +76,8 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         except Exception as e:
             issues.append(f"AI read failed for homepage promotions: {type(e).__name__}: {str(e)[:200]}")
     lastmods = {u: lm for u, lm in sm["pages"] if lm}
+    if platform == "shopify":  # built-in policy pages exist on every Shopify store, linked or not
+        candidates = candidates + discover.shopify_policy_urls(base)
     pages_by_type = discover.classify_pages(candidates, base, lastmods, discover.link_texts(home.html, base))
     # no dedicated page: shipping and returns are often answered in the FAQ, else the site terms
     for need in ("shipping", "returns"):
@@ -140,28 +142,11 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         llms = f.fetch("/llms.txt", want_text=True)
         facts += detect.detect_ai_readiness(robots, llms.status, llms.text, base)
 
+        facts += detect.detect_free_shipping(home.text, home.url)
+
         # ---- AI reading of policy / info pages -----------------------------
         if ai:
-            budget = config.MAX_INFO_PAGES
-            fetched: dict[str, object] = {}
-            for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "contact", "faq", "stores"):
-                for url in (pages_by_type.get(ptype) or [])[: (2 if ptype == "payments" else 1)]:
-                    if budget <= 0:
-                        break
-                    page = fetched.get(url)
-                    if page is None:
-                        page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
-                        if page.status == 200 and len(page.text) < 300:
-                            page = f.fetch_rendered(url)
-                        fetched[url] = page
-                    if page.status != 200 or not page.text:
-                        issues.append(f"{ptype} page not readable: {url} ({page.note or page.status})")
-                        continue
-                    budget -= 1
-                    try:
-                        facts += extract.read_page(ptype, page.url, page.text, industry)
-                    except Exception as e:  # one bad page must not sink the scan
-                        issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
+            facts += _read_info_pages(f, pages_by_type, home, base, industry, issues)
         missing = [t for t in ("returns", "shipping") if t not in pages_by_type]
         if missing:
             issues.append(f"no page found for: {', '.join(missing)}")
@@ -176,6 +161,77 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
 
 
 # -----------------------------------------------------------------------------
+# A page type is "answered" once one of these facts is found; until then we keep reading candidates.
+CORE_FACTS = {
+    "returns": ("policies.returns.period_days", "policies.returns.change_of_mind"),
+    "shipping": ("shipping.free_shipping_threshold", "shipping.standard_shipping_cost"),
+}
+MAX_TRIES = 3  # pages read per core type before giving up
+
+
+def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry: str | None,
+                     issues: list[str]) -> list[dict]:
+    """Read policy/info pages with the AI. For returns and shipping: if a page doesn't give the core
+    facts, follow its links to a fuller page of the same type, then try the next candidate
+    (up to MAX_TRIES pages). Pages with no content of their own (empty, or built by JavaScript)
+    are rendered once, and skipped without an AI call if still empty."""
+    facts: list[dict] = []
+    budget = config.MAX_INFO_PAGES
+    home_lines = pagetext.shared_lines(home.text)
+    fetched: dict[str, object] = {}
+    for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "contact", "faq", "stores"):
+        core = CORE_FACTS.get(ptype)
+        queue = list(pages_by_type.get(ptype) or [])
+        if core:  # last resorts: the FAQ, then the general terms
+            queue += (pages_by_type.get("faq") or [])[:1]
+            queue += [u for u in (pages_by_type.get("terms") or []) if terms.is_general_terms(u)][:1]
+        limit = MAX_TRIES if core else (2 if ptype == "payments" else 1)
+        tried: list[str] = []
+        answered = False
+        while queue and len(tried) < limit and budget > 0 and not answered:
+            url = queue.pop(0)
+            if url in tried:
+                continue
+            tried.append(url)
+            page = fetched.get(url)
+            if page is None:
+                page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
+                if page.status == 200 and len(page.text) < 300:
+                    page = f.fetch_rendered(url)
+                fetched[url] = page
+            if page.status != 200 or not page.text:
+                issues.append(f"{ptype} page not readable: {url} ({page.note or page.status})")
+                continue
+            text = pagetext.own_text(page.text, home_lines) if url.rstrip("/") != home.url.rstrip("/") else page.text
+            if core and pagetext.looks_empty(text, ptype) and page.method != "firecrawl":
+                rendered = f.fetch_rendered(url)
+                if rendered.status == 200 and rendered.text:
+                    page, text = rendered, pagetext.own_text(rendered.text, home_lines)
+                    fetched[url] = page
+            if core and pagetext.looks_empty(text, ptype):
+                issues.append(f"{ptype} page has no {ptype} content of its own: {url}")
+                queue = [u for u in discover.links_of_type(page.html, base, ptype) if u not in tried] + queue
+                continue
+            budget -= 1
+            try:
+                got = extract.read_page(ptype, page.url, text, industry)
+            except Exception as e:  # one bad page must not sink the scan
+                issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
+                continue
+            facts += got
+            if not core:
+                if ptype != "payments":
+                    answered = True
+                continue
+            answered = any(f"{x['category']}.{x['key']}" in core and x["status"] in ("observed", "not_offered")
+                           for x in got)
+            if not answered:  # a summary page: try the fuller page it links to first
+                queue = [u for u in discover.links_of_type(page.html, base, ptype) if u not in tried] + queue
+        if core and tried and not answered:
+            issues.append(f"{ptype}: core facts not found after reading {len(tried)} page(s): {', '.join(tried)}")
+    return facts
+
+
 UNION_KEYS = {"payments.bnpl_providers", "payments.payment_icons", "trust_support.support_channels",
               "shipping.carriers", "site_identity.states_with_stores"}
 

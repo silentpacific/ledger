@@ -253,3 +253,27 @@ def _num(v):
         return int(f) if f.is_integer() else f
     except (TypeError, ValueError):
         return None
+
+
+# "FREE SHIPPING OVER $80", "Free standard domestic Australian shipping on orders over $300 AUD"
+FREE_SHIP = re.compile(
+    r"free\s+(?:standard\s+|domestic\s+|australian\s+|australia[- ]wide\s+|au\s+|metro\s+)*(?:shipping|delivery|postage)"
+    r"[^$\n]{0,40}?(?:over|above|when you spend|spend|orders of)\s*(?:a\$|au\$|\$)\s?(\d{1,4}(?:\.\d{2})?)", re.I)
+
+
+def detect_free_shipping(text: str, url: str) -> list[dict]:
+    """Free-shipping threshold stated on the homepage (announcement bar, banners). Code only;
+    used when the shipping page doesn't say. Skipped when the page states more than one threshold."""
+    found = {}
+    segments = [seg for line in text.splitlines() for seg in re.split(r"\s{2,}|\||·|•", line)]
+    for seg in segments:
+        if re.search(r"express|international|new zealand|\bnz\b|united states|\busa\b|\buk\b|worldwide|members?\b", seg, re.I):
+            continue
+        for m in FREE_SHIP.finditer(seg):
+            n = float(m.group(1))
+            found.setdefault(int(n) if n.is_integer() else n, m.group(0))
+    if len(found) != 1:
+        return []
+    amount, quote = next(iter(found.items()))
+    return [fact("shipping", "free_shipping_threshold", {"amount": amount, "currency": "AUD"}, source_url=url,
+                 evidence=quote, confidence="medium", note="Stated on the homepage (e.g. announcement bar)")]

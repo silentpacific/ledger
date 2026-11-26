@@ -32,7 +32,7 @@ REQUEST_TIMEOUT = 30
 # Scope
 MAX_CATEGORIES = 8          # agreed cap
 TOP_PER_CATEGORY = 10       # agreed watch list size
-MAX_INFO_PAGES = 12         # policy / info pages read per scan
+MAX_INFO_PAGES = 16         # policy / info pages read per scan (returns/shipping may take up to 3 each)
 MAX_PAGE_CHARS = 60_000     # text sent to the AI per page
 
 SCHEMA_VERSION = "dcf-spec-v1"
