@@ -2,6 +2,35 @@
 
 Read this first in any new chat about Ledger ("Digital Commerce Facts").
 
+## Read the whole spec before working
+The spec doc (link below) is long, and the Claude Docs tool returns it in pages. Keep reading:
+when a reply says complete='false' or ends in a `<gap cap='true' .../>` with a `next` value, send
+that `next` back as the next read ({"kind": "view", ...next}) until a reply has no `next`. Only
+then start work, and never say the doc was "cut off". Check you saw every section below.
+
+Spec sections (Digital Commerce Facts – Scan Specification v1):
+- Overview: site types; categories and cadence; reliability tiers (A auto, B auto + check, C browser, D other source)
+- Common metadata on every observation: scan record, observation record
+- 1. Site identity & footprint (monthly)
+- 2. Policies (monthly): per policy page; returns and refunds; warranty; subscription and cancellation; T&Cs / privacy
+- 3. Shipping & fulfilment (monthly)
+- 4. Products watch list (weekly): how products are chosen; category setup; top-10 per category; list snapshots; price summary; SaaS plans
+- 5. Promotions (weekly): per promotion; site-level summary; not covered in v1
+- 6. Payment options (monthly): BNPL provider ceilings; BNPL facts per site
+- 7. Tech stack & apps (monthly)
+- 8. Journey, conversion & performance (monthly): homepage, listings, product page, lead forms, PageSpeed/CrUX, Tier C later
+- 9. Trust & support, on-site (monthly)
+- 10. External reviews (monthly)
+- 11. Loyalty & retention (monthly)
+- 12. Content & marketing activity (weekly): catalogue activity, publishing, homepage messaging, SEO footprint
+- 13. AI-readiness (monthly): robots.txt crawler access, AI files, structured data, derived score
+- Choosing the first vertical: criteria, scoring, one-week check
+- Change events and scope: change event record, out-of-scope sources, open questions
+- Front-end website v1: pages, suggest a site, display rules
+- Legal & compliance rules
+- Backlog
+If the doc's headings no longer match this list, update the list.
+
 ## What it is
 A URL-first tool that turns Australian ecommerce sites into dated, sourced commerce facts:
 policies, prices, promotions, payments and tech. Change history is the core intelligence.
