@@ -43,3 +43,16 @@ def record_terms(domain: str, gate: dict) -> None:
 
 def domains_refusing() -> list[dict]:
     return _rpc("domains_refusing", {}) or []
+
+
+def current_facts(domain: str) -> dict[str, dict]:
+    """Latest stored value per fact for one site: {"category.key": {"status", "value"}}."""
+    r = requests.get(
+        f"{config.SUPABASE_URL}/rest/v1/current_facts",
+        params={"domain": f"eq.{domain}", "select": "fact_key,status,value"},
+        headers={"apikey": config.SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {config.SUPABASE_SERVICE_KEY}"},
+        timeout=60,
+    )
+    if not r.ok:
+        raise RuntimeError(f"current_facts failed: {r.status_code} {r.text[:300]}")
+    return {row["fact_key"]: row for row in r.json()}

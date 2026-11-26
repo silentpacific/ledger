@@ -370,3 +370,36 @@ def _values_agree(ftype: str, a, b) -> bool:
     if not ta or not tb:
         return False
     return len(ta & tb) / len(ta | tb) >= 0.4
+
+
+def same_meaning(a, b) -> bool:
+    """Would a reader see these two stored values as the same fact? Used so a reworded
+    reading of an unchanged page doesn't get logged as a change."""
+    if _canon_json(a) == _canon_json(b):
+        return True
+    if isinstance(a, dict) and isinstance(b, dict) and "amount" in a and "amount" in b:
+        return money(a) == money(b)
+    if isinstance(a, (int, float, bool)) or isinstance(b, (int, float, bool)):
+        return False
+    if isinstance(a, list) and isinstance(b, list):
+        if all(isinstance(x, str) for x in a + b):
+            if {_norm(x) for x in a} == {_norm(x) for x in b}:
+                return True
+            # same number of items, each item reworded
+            return len(a) == len(b) and _overlap(a, b) >= 0.6
+        return _canon_json(a) == _canon_json(b)
+    if isinstance(a, str) and isinstance(b, str):
+        # numbers in the text must match exactly; the wording may differ
+        na, nb = re.findall(r"\d+(?:\.\d+)?", a), re.findall(r"\d+(?:\.\d+)?", b)
+        if sorted(set(na)) != sorted(set(nb)) and set(na) and set(nb) and not (set(na) <= set(nb) or set(nb) <= set(na)):
+            return False
+        return _overlap(a, b) >= 0.5
+    if isinstance(a, dict) and isinstance(b, dict):
+        nums = lambda v: sorted(set(re.findall(r"\d+(?:\.\d+)?", json.dumps(v, default=str))))
+        return nums(a) == nums(b)
+    return False
+
+
+def _overlap(a, b) -> float:
+    ta, tb = _tokens(a), _tokens(b)
+    return len(ta & tb) / len(ta | tb) if ta and tb else 0.0

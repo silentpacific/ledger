@@ -13,7 +13,7 @@ import sys
 import traceback
 
 from ledger_scanner import config, extract, db
-from ledger_scanner.scan import recheck_terms, scan_site
+from ledger_scanner.scan import scan_site
 
 
 def normalise_domain(value: str) -> str:
@@ -22,6 +22,24 @@ def normalise_domain(value: str) -> str:
     v = v.split("://", 1)[-1]
     v = v.split("/", 1)[0].split("?", 1)[0]
     return v.removeprefix("www.")
+
+
+def _carry_forward(domain: str, payload: dict) -> int:
+    """If a fact means the same as last time, store last time's exact value so only real changes are logged."""
+    try:
+        prev = db.current_facts(domain)
+    except Exception as e:
+        print("  could not load previous facts:", e)
+        return 0
+    kept = 0
+    for x in payload["facts"]:
+        p = prev.get(f"{x['category']}.{x['key']}")
+        if not p or p["status"] != x["status"] or x.get("value") is None or p.get("value") is None:
+            continue
+        if p["value"] != x["value"] and extract.same_meaning(p["value"], x["value"]):
+            x["value"] = p["value"]
+            kept += 1
+    return kept
 
 
 def main() -> int:
@@ -118,6 +136,9 @@ def main() -> int:
                 if payload.get("skip_ingest"):
                     print("  not stored: stopped by terms gate (site switched off if prohibited)")
                 else:
+                    kept = _carry_forward(t["domain"], payload)
+                    if kept:
+                        print(f"  {kept} facts re-worded but unchanged: previous value kept (no change logged)")
                     scan_id = db.ingest(payload)
                     print("  stored scan", scan_id)
         except Exception as e:

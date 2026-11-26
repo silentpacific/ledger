@@ -286,3 +286,13 @@ def test_terms_general_only():
     got = terms.find_terms_urls(urls)
     assert BASE + "pages/instore-jewellery-cleaning-terms-and-conditions" not in got
     assert set(got) == {BASE + "pages/terms-conditions", BASE + "en-hk/pages/terms", BASE + "pages/policies-terms"}
+
+
+def test_same_meaning():
+    sm = extract.same_meaning
+    assert sm("2-10 business days once shipped, depending on location", "2-10 business days once shipped depending on location and method")
+    assert not sm("within 14 days", "within 30 days")
+    assert not sm(14, 30)
+    assert sm({"amount": 70, "currency": "AUD"}, {"amount": 70})
+    assert not sm(["afterpay", "humm", "latitude", "zip"], ["afterpay", "humm", "zip"])
+    assert sm(["Special orders", "resized items"], ["special orders", "Resized items"])
