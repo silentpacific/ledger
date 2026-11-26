@@ -159,6 +159,9 @@ def _spec_for(page_type: str, fields: dict | None = None) -> tuple[str, dict]:
     return instructions, schema
 
 
+OUT_OF_CREDIT = False  # set when the Anthropic account has no credit left; run.py stops the run
+
+
 def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None = None,
          model: str | None = None) -> list[dict]:
     instructions, schema = _spec_for(page_type, fields)
@@ -166,7 +169,13 @@ def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None 
     req = _request(instructions, schema, url, text, order)
     if model:
         req["model"] = model
-    msg = _client().messages.create(**req)
+    global OUT_OF_CREDIT
+    try:
+        msg = _client().messages.create(**req)
+    except Exception as e:
+        if "credit balance" in str(e).lower():
+            OUT_OF_CREDIT = True
+        raise
     u = getattr(msg, "usage", None)
     if u is not None:
         m = USAGE.setdefault(req["model"], {"calls": 0, "input": 0, "output": 0})

@@ -161,6 +161,12 @@ def main() -> int:
         print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
         try:
             payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=args.mode, use_ai=not args.no_ai)
+            if extract.OUT_OF_CREDIT:
+                left = [x["domain"] for x in targets[n:]]
+                print(f"\nPAUSED: the Anthropic account is out of credit. Nothing stored for {t['domain']}. "
+                      f"{len(left)} sites not done: {', '.join(left)}")
+                paused = True
+                break
             (out_dir / f"{t['domain']}.json").write_text(json.dumps(payload, indent=2, default=str))
             facts = payload["facts"]
             print(f"status={payload['scan']['scan_status']} pages={len(payload['scan']['pages_fetched'])} "
