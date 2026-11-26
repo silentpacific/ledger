@@ -21,7 +21,29 @@ def _rpc(name: str, payload: dict):
     return r.json() if r.text else None
 
 
-def domains_due(limit: int = 100) -> list[dict]:
+def _headers(extra: dict | None = None) -> dict:
+    h = {"apikey": config.SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {config.SUPABASE_SERVICE_KEY}",
+         "Content-Type": "application/json"}
+    h.update(extra or {})
+    return h
+
+
+def record_cost(row: dict) -> None:
+    """One row per scan attempt in scan_costs (the cost index reads from it). Raises on failure."""
+    r = requests.post(f"{config.SUPABASE_URL}/rest/v1/scan_costs", headers=_headers({"Prefer": "return=minimal"}),
+                      json=row, timeout=60)
+    if not r.ok:
+        raise RuntimeError(f"scan_costs insert failed: {r.status_code} {r.text[:300]}")
+
+
+def clear_full_scan_request(domain: str) -> None:
+    r = requests.patch(f"{config.SUPABASE_URL}/rest/v1/domains", params={"domain": f"eq.{domain}"},
+                       headers=_headers({"Prefer": "return=minimal"}), json={"full_scan_requested": False}, timeout=60)
+    if not r.ok:
+        raise RuntimeError(f"clearing full_scan_requested failed: {r.status_code} {r.text[:300]}")
+
+
+def domains_due(limit: int = 1000) -> list[dict]:
     return _rpc("domains_due", {"p_limit": limit}) or []
 
 

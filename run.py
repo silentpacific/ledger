@@ -10,7 +10,9 @@ import argparse
 import json
 import pathlib
 import sys
+import time
 import traceback
+from datetime import datetime, timezone
 
 from ledger_scanner import config, extract, db, promos
 from ledger_scanner.scan import scan_site
@@ -83,13 +85,34 @@ def dedupe_stored_promotions(domain: str, dry: bool) -> int:
     return merged
 
 
+def cost_row(t: dict, mode: str, cost: dict) -> dict:
+    """What this scan attempt used, for scan_costs. Prices and labour weights are applied in the database."""
+    p = cost["payload"] or {}
+    pages = (p.get("scan") or {}).get("pages_fetched")
+    facts = p.get("facts") or []
+    esc = extract.USAGE.get(config.ESCALATION_MODEL, {}) if config.ESCALATION_MODEL else {}
+    return {
+        "domain": t["domain"], "industry": t.get("industry"), "scan_id": cost["scan_id"], "mode": mode,
+        "outcome": cost["outcome"], "started_at": cost["started"].isoformat(),
+        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "runtime_seconds": round(time.monotonic() - cost["t0"], 1),
+        "pages_fetched": len(pages) if pages is not None else None,
+        "rendered_pages": sum(1 for x in pages if x.get("fetch_method") == "firecrawl") if pages is not None else None,
+        "ai_usage": extract.USAGE, "ai_cost_usd": round(extract.usage_cost(), 6),
+        "escalation_calls": esc.get("calls", 0),
+        "conflicting_facts": sum(1 for x in facts if x.get("status") == "conflicting"),
+        "issues": len(p.get("issues_found") or []),
+        "scanner": config.SCANNER_VERSION,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=False)
     g.add_argument("--domain", help="one domain, e.g. zamels.com.au")
     g.add_argument("--all", action="store_true", help="every enabled domain in ledger-db")
     ap.add_argument("--mode", choices=["full", "weekly"], default="full")
-    ap.add_argument("--limit", type=int, default=100)
+    ap.add_argument("--limit", type=int, default=1000)
     ap.add_argument("--budget", type=float, default=0.0,
                     help="pause (stop starting new sites) once estimated AI spend in this run reaches this many USD")
     ap.add_argument("--dry-run", action="store_true", help="don't write to the database")
@@ -145,6 +168,7 @@ def main() -> int:
     out_dir = pathlib.Path("scan-output")
     out_dir.mkdir(exist_ok=True)
     failures = 0
+    cost_failures = 0
     spent = 0.0
     paused = False
     next_site_allowance = 0.20  # a big site can cost ~$0.10-0.15; keep headroom
@@ -158,14 +182,20 @@ def main() -> int:
                   f"{len(left)} sites not started: {', '.join(left)}")
             paused = True
             break
-        print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
+        mode = "full" if args.mode == "weekly" and t.get("full_scan_requested") else args.mode
+        cost = {"started": datetime.now(timezone.utc), "t0": time.monotonic(), "outcome": "failed",
+                "payload": None, "scan_id": None}
+        print(f"\n=== {t['domain']} ({mode}{', full rescan requested' if mode != args.mode else ''}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
         try:
-            payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=args.mode, use_ai=not args.no_ai)
+            payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=mode, use_ai=not args.no_ai,
+                                industry=t.get("industry"))
+            cost["payload"] = payload
             if extract.OUT_OF_CREDIT:
                 left = [x["domain"] for x in targets[n:]]
                 print(f"\nPAUSED: the Anthropic account is out of credit. Nothing stored for {t['domain']}. "
                       f"{len(left)} sites not done: {', '.join(left)}")
                 paused = True
+                cost["outcome"] = "not_stored"
                 break
             (out_dir / f"{t['domain']}.json").write_text(json.dumps(payload, indent=2, default=str))
             facts = payload["facts"]
@@ -201,18 +231,23 @@ def main() -> int:
                     db.record_terms(t["domain"], {"verdict": "blocked", "url": t["homepage_url"],
                                                   "evidence": blocked.replace("homepage not readable: status", "homepage returned") + " to LedgerBot"})
                     print("  site blocks our crawler: switched off and listed in sites_refusing_scraping")
+                    cost["outcome"] = "blocked"
                     continue
                 if gate:
                     db.record_terms(t["domain"], gate)
                 if payload.get("skip_ingest"):
                     print("  not stored: stopped by terms gate (site switched off if prohibited)")
+                    cost["outcome"] = "blocked"
                 else:
                     _match_promotions(t["domain"], payload)
                     kept = _carry_forward(t["domain"], payload)
                     if kept:
                         print(f"  {kept} facts re-worded but unchanged: previous value kept (no change logged)")
                     scan_id = db.ingest(payload)
+                    cost["scan_id"], cost["outcome"] = scan_id, "stored"
                     print("  stored scan", scan_id)
+                    if mode == "full" and t.get("full_scan_requested"):
+                        db.clear_full_scan_request(t["domain"])
         except Exception as e:
             failures += 1
             msg = f"{type(e).__name__}: {e}"
@@ -220,9 +255,20 @@ def main() -> int:
             traceback.print_exc()
             if not args.dry_run:
                 db.record_error(t["domain"], msg)
+        finally:
+            if not args.dry_run:
+                try:
+                    db.record_cost(cost_row(t, mode, cost))
+                except Exception as e:
+                    cost_failures += 1
+                    print("  COST NOT RECORDED:", e)
     print(f"\nDone: {len(targets) - failures} ok, {failures} failed")
+    if cost_failures:
+        print(f"\nERROR: {cost_failures} scans' costs could not be written to scan_costs in Supabase")
     if paused:
         return 3  # marks the GitHub run as failed so GitHub emails you; the log says PAUSED and what's left
+    if cost_failures:
+        return 4  # GitHub emails on a failed run; costs must be in Supabase, not only in this log
     return 1 if failures and failures == len(targets) else 0
 
 

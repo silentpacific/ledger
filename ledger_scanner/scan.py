@@ -13,7 +13,7 @@ AU_TZ = timezone(timedelta(hours=10, minutes=30))
 
 
 def scan_site(domain: str, homepage_url: str, platform: str | None = None,
-              mode: str = "full", use_ai: bool = True) -> dict:
+              mode: str = "full", use_ai: bool = True, industry: str | None = None) -> dict:
     """mode: 'full' (all categories, monthly) or 'weekly' (promotions, products, content only)."""
     started = datetime.now(AU_TZ)
     parsed = urlparse(homepage_url)
@@ -159,7 +159,7 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
                         continue
                     budget -= 1
                     try:
-                        facts += extract.read_page(ptype, page.url, page.text)
+                        facts += extract.read_page(ptype, page.url, page.text, industry)
                     except Exception as e:  # one bad page must not sink the scan
                         issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
         missing = [t for t in ("returns", "shipping") if t not in pages_by_type]

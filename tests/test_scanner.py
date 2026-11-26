@@ -425,3 +425,43 @@ def test_dated_history_twins_merge():
     a = {"name": "Black Friday Cyber Monday Sale", "stated_start": "2025-10-29", "stated_end": "2025-12-01", "first_seen_at": "2026-11-26"}
     b = {"name": "Black Friday Cyber Monday Sale 2025", "stated_start": "2025-10-29", "stated_end": "2025-12-01", "first_seen_at": "2026-11-26"}
     assert promos.same_offer(a, b)
+
+
+# -- industry question sets (27 Nov 2026) -------------------------------------
+def test_jewellery_questions_only_for_jewellery():
+    from ledger_scanner import extract
+    assert "engraving" in extract.fields_for("faq", "jewellery")
+    assert "engraving" in extract.fields_for("faq", None)  # no industry recorded = jewellery
+    for ind in ("fashion", "beauty", "pet", "electronics"):
+        assert "engraving" not in extract.fields_for("faq", ind)
+        assert "free_resizing" not in extract.fields_for("contact", ind)
+    assert "returns.free_exchanges" in extract.fields_for("returns", "fashion")
+    assert "bulky_delivery_fee" in extract.fields_for("shipping", "homewares")
+    assert "subscription_discount" in extract.fields_for("contact", "pet")  # contact pages get FAQ extras
+    assert "returns.period_days" in extract.fields_for("returns", "beauty")  # common set kept
+
+
+def test_industry_fields_use_valid_categories():
+    from ledger_scanner import extract
+    valid = {"site_identity", "policies", "shipping", "products", "promotions", "payments", "tech_stack",
+             "journey_performance", "trust_support", "external_reviews", "loyalty", "content_marketing", "ai_readiness"}
+    for ind, pages in extract.INDUSTRY_FIELDS.items():
+        for ptype, fields in pages.items():
+            assert ptype in extract.FIELDS
+            for meta in fields.values():
+                assert meta["cat"] in valid
+
+
+def test_cost_row_counts_rendered_pages_and_conflicts():
+    import time
+    from datetime import datetime, timezone
+    import run
+    payload = {"scan": {"pages_fetched": [{"fetch_method": "http"}, {"fetch_method": "firecrawl"}]},
+               "facts": [{"status": "observed"}, {"status": "conflicting"}], "issues_found": ["x", "y", "z"]}
+    row = run.cost_row({"domain": "a.com.au", "industry": "pet"}, "full",
+                       {"started": datetime.now(timezone.utc), "t0": time.monotonic(), "outcome": "stored",
+                        "payload": payload, "scan_id": None})
+    assert (row["pages_fetched"], row["rendered_pages"], row["conflicting_facts"], row["issues"]) == (2, 1, 1, 3)
+    failed = run.cost_row({"domain": "a.com.au"}, "weekly", {"started": datetime.now(timezone.utc),
+                          "t0": time.monotonic(), "outcome": "failed", "payload": None, "scan_id": None})
+    assert failed["pages_fetched"] is None and failed["outcome"] == "failed"

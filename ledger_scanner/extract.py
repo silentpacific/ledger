@@ -20,7 +20,7 @@ FIELDS: dict[str, dict[str, dict]] = {
         "returns.return_shipping_payer": {"cat": "policies", "type": "enum:customer|merchant|conditional", "desc": "Who pays return shipping"},
         "returns.in_store_returns": {"cat": "policies", "type": "boolean", "desc": "Can online orders be returned in store"},
         "returns.refund_methods": {"cat": "policies", "type": "list:original_payment|store_credit|exchange|gift_card", "desc": "How refunds are given"},
-        "returns.exclusions": {"cat": "policies", "type": "list of short phrases", "desc": "Items that cannot be returned (e.g. earrings, engraved, sale)"},
+        "returns.exclusions": {"cat": "policies", "type": "list of short phrases", "desc": "Items that cannot be returned (e.g. sale items, personalised items, hygiene items)"},
         "returns.restocking_fee": {"cat": "policies", "type": "boolean", "desc": "Is a restocking fee charged"},
         "returns.acl_mentioned": {"cat": "policies", "type": "boolean", "desc": "Mentions Australian Consumer Law / consumer guarantees"},
         "returns.extended_holiday_returns": {"cat": "policies", "type": "string", "desc": "Extended Christmas/holiday returns window, if any"},
@@ -64,8 +64,6 @@ FIELDS: dict[str, dict[str, dict]] = {
         "support_channels": {"cat": "trust_support", "type": "list:phone|email|live_chat|contact_form|social|sms|whatsapp", "desc": "Customer support channels offered"},
         "support_hours": {"cat": "trust_support", "type": "string", "desc": "Support hours"},
         "response_time": {"cat": "trust_support", "type": "string", "desc": "Stated response time"},
-        "free_resizing": {"cat": "trust_support", "type": "string", "desc": "Ring resizing offer (free? time limit?)"},
-        "engraving": {"cat": "trust_support", "type": "string", "desc": "Engraving service and cost"},
     },
     "stores": {
         "store_count": {"cat": "site_identity", "type": "integer", "desc": "Number of physical stores listed"},
@@ -77,6 +75,92 @@ FIELDS: dict[str, dict[str, dict]] = {
         "card_surcharge": {"cat": "payments", "type": "string", "desc": "Card surcharge stated"},
     },
 }
+
+# Extra questions asked only of sites in one industry: industry -> page type -> fields.
+# Keys follow the spec's names where it has one (e.g. loyalty.subscription_discount).
+INDUSTRY_FIELDS: dict[str, dict[str, dict[str, dict]]] = {
+    "jewellery": {
+        "faq": {
+            "free_resizing": {"cat": "trust_support", "type": "string", "desc": "Ring resizing offer (free? time limit?)"},
+            "engraving": {"cat": "trust_support", "type": "string", "desc": "Engraving service and cost"},
+        },
+    },
+    "fashion": {
+        "returns": {
+            "returns.free_exchanges": {"cat": "policies", "type": "boolean", "desc": "Free exchanges for a different size or colour"},
+        },
+        "faq": {
+            "size_guide": {"cat": "trust_support", "type": "boolean", "desc": "A size guide or fit advice is offered"},
+        },
+    },
+    "beauty": {
+        "returns": {
+            "returns.opened_products": {"cat": "policies", "type": "enum:yes|no|conditional", "desc": "Can opened or used products be returned"},
+        },
+        "faq": {
+            "free_samples": {"cat": "promotions", "type": "string", "desc": "Free samples included with orders (how many, any minimum spend)"},
+            "subscription_discount": {"cat": "loyalty", "type": "string", "desc": "Subscribe / auto-replenish offer and its discount"},
+        },
+    },
+    "health": {
+        "faq": {
+            "subscription_discount": {"cat": "loyalty", "type": "string", "desc": "Subscribe & save / auto-delivery offer and its discount"},
+            "prescriptions_online": {"cat": "trust_support", "type": "boolean", "desc": "Prescriptions can be ordered online"},
+            "pharmacist_advice": {"cat": "trust_support", "type": "boolean", "desc": "Pharmacist or practitioner advice available"},
+        },
+    },
+    "homewares": {
+        "shipping": {
+            "bulky_delivery_fee": {"cat": "shipping", "type": "string", "desc": "Delivery fee or rules for large or bulky items such as furniture"},
+            "assembly_service": {"cat": "shipping", "type": "string", "desc": "Assembly, installation or room-of-choice delivery offered, and its cost"},
+        },
+        "returns": {
+            "returns.large_items": {"cat": "policies", "type": "string", "desc": "Rules or fees for returning furniture or large items"},
+        },
+    },
+    "pet": {
+        "faq": {
+            "subscription_discount": {"cat": "loyalty", "type": "string", "desc": "Autoship / repeat delivery offer and its discount"},
+            "pet_services": {"cat": "trust_support", "type": "list:vet|grooming|pharmacy|training|none", "desc": "Pet services offered"},
+        },
+    },
+    "baby-kids": {
+        "returns": {
+            "returns.opened_items": {"cat": "policies", "type": "enum:yes|no|conditional", "desc": "Can opened or used items be returned"},
+        },
+        "faq": {
+            "gift_registry": {"cat": "loyalty", "type": "boolean", "desc": "Baby or gift registry offered"},
+            "safety_standards_mentioned": {"cat": "trust_support", "type": "boolean", "desc": "Mentions Australian safety standards for the products sold"},
+        },
+    },
+    "sports-outdoors": {
+        "returns": {
+            "returns.used_items": {"cat": "policies", "type": "string", "desc": "Returns of used or worn gear (e.g. a trial period)"},
+        },
+        "faq": {
+            "servicing": {"cat": "trust_support", "type": "string", "desc": "Servicing, fitting or repair offered (e.g. bike servicing, boot fitting)"},
+        },
+    },
+    "electronics": {
+        "returns": {
+            "returns.opened_items": {"cat": "policies", "type": "enum:yes|no|conditional", "desc": "Can opened or activated products be returned"},
+        },
+        "faq": {
+            "trade_in_program": {"cat": "loyalty", "type": "boolean", "desc": "Trade-in or buy-back program offered"},
+            "installation_service": {"cat": "trust_support", "type": "string", "desc": "Installation or setup service offered, and its cost"},
+        },
+    },
+}
+
+
+def fields_for(page_type: str, industry: str | None = None) -> dict[str, dict]:
+    """The questions for one page: the common set plus the site's industry extras.
+    Sites with no industry recorded are treated as jewellery (the first vertical)."""
+    base = dict(FIELDS[page_type])
+    extra_type = "faq" if page_type == "contact" else page_type
+    base.update(INDUSTRY_FIELDS.get(industry or "jewellery", {}).get(extra_type, {}))
+    return base
+
 
 PROMO_INSTRUCTIONS = (
     "List the promotions on this page, most recent first, at most 40. For each: name, promo_type (percent_off, dollar_off, bogo, "
@@ -252,8 +336,8 @@ def _canon(v):
     return v
 
 
-def read_page(page_type: str, url: str, text: str) -> list[dict]:
-    return read_page_custom(FIELDS[page_type], url, text, page_type)
+def read_page(page_type: str, url: str, text: str, industry: str | None = None) -> list[dict]:
+    return read_page_custom(fields_for(page_type, industry), url, text, page_type)
 
 
 def _combine(meta: dict, key: str, fa: dict | None, fb: dict | None, url: str, text: str) -> dict:
