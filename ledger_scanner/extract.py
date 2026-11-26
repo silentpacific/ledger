@@ -133,21 +133,24 @@ def _tool_for(page_type: str, fields: dict | None = None) -> dict:
 def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None = None) -> list[dict]:
     tool = _tool_for(page_type, fields)
     order = "" if variant == 0 else "\nRead the whole page carefully before answering; check the fine print."
-    msg = _client().messages.create(
+    msg = _client().messages.create(**_request(tool, url, text, order))
+    for block in msg.content:
+        if getattr(block, "type", "") == "tool_use":
+            data = block.input or {}
+            return data.get("facts") or data.get("promotions") or []
+    return []
+
+
+def _request(tool: dict, url: str, text: str, order: str) -> dict:
+    return dict(
         model=config.CLAUDE_MODEL,
         max_tokens=4000,
-        temperature=0,
         system=SYSTEM + order,
         tools=[tool],
         tool_choice={"type": "tool", "name": tool["name"]},
         messages=[{"role": "user", "content":
                    f"Page URL: {url}\n\n<page>\n{text[:config.MAX_PAGE_CHARS]}\n</page>"}],
     )
-    for block in msg.content:
-        if getattr(block, "type", "") == "tool_use":
-            data = block.input or {}
-            return data.get("facts") or data.get("promotions") or []
-    return []
 
 
 # -- quality checks -----------------------------------------------------------

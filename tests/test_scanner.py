@@ -187,3 +187,10 @@ def test_terms_only_behind_robots_is_unclear(fake_http, monkeypatch):
 def test_terms_allowed(fake_http):
     p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
     assert p["terms_gate"]["verdict"] == "allowed" and not p.get("skip_ingest")
+
+
+def test_anthropic_request_matches_sdk():
+    import inspect
+    import anthropic
+    params = extract._request(extract._tool_for("returns"), "u", "page text", "")
+    inspect.signature(anthropic.resources.messages.Messages.create).bind(None, **params)

@@ -74,7 +74,10 @@ def check_terms(f: Fetcher, candidates: list[str]) -> TermsResult:
         quote = " ".join(m.group(0).split())[:400]
         if config.ANTHROPIC_API_KEY:
             # AI confirms the keyword hit is really a prohibition (not e.g. "we may crawl...")
-            facts = extract.read_page_custom(PROMPT_FIELDS, page.url, page.text)
+            try:
+                facts = extract.read_page_custom(PROMPT_FIELDS, page.url, page.text)
+            except Exception:
+                facts = []  # AI unavailable: keep the conservative keyword verdict
             f0 = next((x for x in facts if x["key"] == "anti_scraping_clause"), None)
             if f0 and f0["status"] == "observed" and f0["value"] is False and f0.get("evidence_verified"):
                 return TermsResult("allowed", page.url, f"keyword hit judged not a prohibition: {quote}")

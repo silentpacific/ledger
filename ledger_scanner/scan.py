@@ -66,12 +66,20 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
 
     # ---- promotions (weekly + full) ----------------------------------------
     if ai:
-        promos_live += [dict(p, live=True, source="homepage") for p in extract.read_promotions(home.url, home.text)]
+        try:
+            promos_live += [dict(p, live=True, source="homepage") for p in extract.read_promotions(home.url, home.text)]
+        except Exception as e:
+            issues.append(f"AI read failed for homepage promotions: {type(e).__name__}: {str(e)[:200]}")
     pages_by_type = discover.classify_pages(candidates, base)
     if ai and pages_by_type.get("promo_terms"):
         pt = f.fetch(pages_by_type["promo_terms"][0])
-        if pt.status == 200 and pt.text:
-            for p in extract.read_promotions(pt.url, pt.text):
+        try:
+            promo_items = extract.read_promotions(pt.url, pt.text) if pt.status == 200 and pt.text else []
+        except Exception as e:
+            promo_items = []
+            issues.append(f"AI read failed for promo terms: {type(e).__name__}: {str(e)[:200]}")
+        if promo_items:
+            for p in promo_items:
                 if p["live"]:
                     promos_live.append(p)
                 else:
