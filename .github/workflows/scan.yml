@@ -13,6 +13,15 @@ on:
         default: "full"
         type: choice
         options: [full, weekly]
+      model:
+        description: "Optional model override for a test (e.g. claude-haiku-5-5). Empty = normal model."
+        required: false
+        default: ""
+      dry_run:
+        description: "Test only: scan and save the file, but don't store anything in the database"
+        required: false
+        default: false
+        type: boolean
   schedule:
     # Times are UTC. Weekly scan: Monday 02:13 UTC (about 12:43 Adelaide).
     - cron: "13 2 * * 1"
@@ -33,7 +42,7 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
       CRAWLER_CONTACT: ${{ vars.CRAWLER_CONTACT }}
-      CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+      CLAUDE_MODEL: ${{ github.event.inputs.model || vars.CLAUDE_MODEL }}
       TERMS_UNCLEAR_POLICY: ${{ vars.TERMS_UNCLEAR_POLICY || 'skip' }}
     steps:
       - uses: actions/checkout@v4
@@ -48,8 +57,10 @@ jobs:
           if [ -z "$MODE" ]; then
             if [ "${{ github.event.schedule }}" = "17 3 1 * *" ]; then MODE=full; else MODE=weekly; fi
           fi
+          DRY=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
           if [ -n "${{ github.event.inputs.domain }}" ]; then
-            python run.py --domain "${{ github.event.inputs.domain }}" --mode "$MODE"
+            python run.py --domain "${{ github.event.inputs.domain }}" --mode "$MODE" $DRY
           else
             python run.py --all --mode "$MODE"
           fi

@@ -97,6 +97,16 @@ SYSTEM = (
 )
 
 
+USAGE = {"calls": 0, "input": 0, "output": 0}
+
+
+def reset_usage() -> dict:
+    snap = dict(USAGE)
+    for k in USAGE:
+        USAGE[k] = 0
+    return snap
+
+
 def _client():
     import anthropic
     return anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
@@ -135,6 +145,11 @@ def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None 
     instructions, schema = _spec_for(page_type, fields)
     order = "" if variant == 0 else "\nRead the whole page carefully before answering; check the fine print."
     msg = _client().messages.create(**_request(instructions, schema, url, text, order))
+    u = getattr(msg, "usage", None)
+    if u is not None:
+        USAGE["calls"] += 1
+        USAGE["input"] += getattr(u, "input_tokens", 0) or 0
+        USAGE["output"] += getattr(u, "output_tokens", 0) or 0
     raw = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
     return _parse(raw)
 

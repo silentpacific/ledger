@@ -12,7 +12,7 @@ import pathlib
 import sys
 import traceback
 
-from ledger_scanner import db
+from ledger_scanner import config, extract, db
 from ledger_scanner.scan import scan_site
 
 
@@ -48,7 +48,8 @@ def main() -> int:
     out_dir.mkdir(exist_ok=True)
     failures = 0
     for t in targets:
-        print(f"\n=== {t['domain']} ({args.mode}) ===", flush=True)
+        print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}) ===", flush=True)
+        extract.reset_usage()
         try:
             payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=args.mode, use_ai=not args.no_ai)
             (out_dir / f"{t['domain']}.json").write_text(json.dumps(payload, indent=2, default=str))
@@ -61,6 +62,8 @@ def main() -> int:
             for issue in payload["issues_found"]:
                 print("  issue:", issue)
             gate = payload.get("terms_gate") or {}
+            u = extract.USAGE
+            print(f"  ai usage: calls={u['calls']} input_tokens={u['input']} output_tokens={u['output']}")
             print(f"  terms: {gate.get('verdict')} {gate.get('url') or ''}")
             if gate.get("evidence") and gate.get("verdict") == "prohibited":
                 print(f"  terms quote: {gate['evidence'][:300]}")
