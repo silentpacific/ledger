@@ -70,7 +70,8 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
             promos_live += [dict(p, live=True, source="homepage") for p in extract.read_promotions(home.url, home.text)]
         except Exception as e:
             issues.append(f"AI read failed for homepage promotions: {type(e).__name__}: {str(e)[:200]}")
-    pages_by_type = discover.classify_pages(candidates, base)
+    lastmods = {u: lm for u, lm in sm["pages"] if lm}
+    pages_by_type = discover.classify_pages(candidates, base, lastmods)
     if ai and pages_by_type.get("promo_terms"):
         pt = f.fetch(pages_by_type["promo_terms"][0])
         try:
@@ -115,21 +116,20 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         if ai:
             budget = config.MAX_INFO_PAGES
             for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "faq", "stores"):
-                urls = pages_by_type.get(ptype) or []
-                if not urls or budget <= 0:
-                    continue
-                url = urls[0]
-                page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
-                if page.status == 200 and len(page.text) < 300:
-                    page = f.fetch_rendered(url)
-                if page.status != 200 or not page.text:
-                    issues.append(f"{ptype} page not readable: {url} ({page.note or page.status})")
-                    continue
-                budget -= 1
-                try:
-                    facts += extract.read_page(ptype, page.url, page.text)
-                except Exception as e:  # one bad page must not sink the scan
-                    issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
+                for url in (pages_by_type.get(ptype) or [])[: (2 if ptype == "payments" else 1)]:
+                    if budget <= 0:
+                        break
+                    page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
+                    if page.status == 200 and len(page.text) < 300:
+                        page = f.fetch_rendered(url)
+                    if page.status != 200 or not page.text:
+                        issues.append(f"{ptype} page not readable: {url} ({page.note or page.status})")
+                        continue
+                    budget -= 1
+                    try:
+                        facts += extract.read_page(ptype, page.url, page.text)
+                    except Exception as e:  # one bad page must not sink the scan
+                        issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
         missing = [t for t in ("returns", "shipping") if t not in pages_by_type]
         if missing:
             issues.append(f"no page found for: {', '.join(missing)}")
@@ -143,6 +143,10 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
 
 
 # -----------------------------------------------------------------------------
+UNION_KEYS = {"payments.bnpl_providers", "payments.payment_icons", "trust_support.support_channels",
+              "shipping.carriers", "site_identity.states_with_stores"}
+
+
 def _merge(facts: list[dict]) -> list[dict]:
     """One fact per key. Priority: verified + agreed AI read of a dedicated page, then code,
     then everything else. Two strong sources that disagree -> 'conflicting'."""
@@ -157,8 +161,18 @@ def _merge(facts: list[dict]) -> list[dict]:
 
     out = []
     for key, xs in by_key.items():
+        for x in xs:
+            if isinstance(x.get("value"), dict) and "amount" in x["value"]:
+                x["value"] = extract.money(x["value"])
         xs.sort(key=strength, reverse=True)
         best = dict(xs[0])
+        if key in UNION_KEYS:
+            observed = [x for x in xs if x["status"] == "observed" and isinstance(x.get("value"), list)]
+            if observed:
+                best["value"] = sorted({str(v).lower() for x in observed for v in x["value"]})
+                best["note"] = "union of: " + ", ".join(sorted({x["source_url"] or "" for x in observed}))
+            out.append(best)
+            continue
         strong = [x for x in xs if x["status"] == "observed" and x.get("evidence_verified") is True]
         values = {extract._canon_json(x["value"]) for x in strong}
         if len(values) > 1:

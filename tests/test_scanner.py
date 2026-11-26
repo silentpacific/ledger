@@ -213,3 +213,34 @@ def test_structured_output_parse(monkeypatch):
     monkeypatch.setattr(extract, "_client", lambda: C())
     out = extract.read_page("returns", "u", "Return within 14 days of delivery.")
     assert out[0]["value"] == 14 and out[0]["evidence_verified"] is True
+
+
+def test_money_and_union_merge():
+    assert extract.money(70) == {"amount": 70, "currency": "AUD"}
+    assert extract.money("$9.90") == {"amount": 9.9, "currency": "AUD"}
+    a = detect.fact("shipping", "free_shipping_threshold", {"amount": 70, "currency": "AUD"}, source_url="home", evidence="over $70")
+    b = {"category": "shipping", "key": "free_shipping_threshold", "status": "observed", "value": {"amount": 70, "currency": "AUD"},
+         "evidence": "over $70", "evidence_verified": True, "source_url": "ship", "method": "ai_text", "confidence": "high"}
+    assert scan._merge([a, b])[0]["status"] == "observed"
+    c = detect.fact("payments", "bnpl_providers", ["afterpay", "zip", "humm"], source_url="home")
+    d = dict(b, category="payments", key="bnpl_providers", value=["afterpay"], source_url="afterpay-page")
+    assert scan._merge([c, d])[0]["value"] == ["afterpay", "humm", "zip"]
+
+
+def test_free_text_agreement():
+    assert extract._values_agree("string", "Dispatched within 2 business days", "Orders dispatched within two business days")
+    assert not extract._values_agree("integer", 14, 30)
+    assert extract._values_agree("money", 70, {"amount": 70})
+
+
+def test_shopify_icons():
+    html = '<svg aria-labelledby="pi-master"></svg><svg aria-labelledby="pi-american_express"></svg><svg aria-labelledby="pi-shopify_pay"></svg>'
+    out = detect.detect_payments(html, "", "u")
+    icons = next(f for f in out if f["key"] == "payment_icons")["value"]
+    assert icons == ["amex", "mastercard", "shop_pay"]
+
+
+def test_page_choice_prefers_recent():
+    urls = [BASE + "pages/become-a-vip", BASE + "pages/zamels-rewards-club"]
+    lm = {urls[0]: "2024-05-21", urls[1]: "2026-07-22"}
+    assert discover.classify_pages(urls, BASE, lm)["loyalty"][0] == urls[1]

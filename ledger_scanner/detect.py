@@ -77,6 +77,12 @@ PAYMENT_ICON_NAMES = {
     "Afterpay": "afterpay", "Klarna": "klarna", "Zip": "zip",
 }
 
+SHOPIFY_ICON_IDS = {
+    "american_express": "amex", "apple_pay": "apple_pay", "google_pay": "google_pay", "master": "mastercard",
+    "paypal": "paypal", "shopify_pay": "shop_pay", "union_pay": "unionpay", "visa": "visa", "diners_club": "diners",
+    "afterpay": "afterpay", "klarna": "klarna", "zip": "zip", "wechat_pay": "wechat_pay",
+}
+
 AI_BOTS = ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-SearchBot", "Claude-User",
            "PerplexityBot", "Google-Extended", "Applebot-Extended", "CCBot", "Bytespider",
            "Amazonbot", "Meta-ExternalAgent"]
@@ -120,8 +126,10 @@ def detect_payments(html: str, text: str, url: str) -> list[dict]:
     if bnpl:
         facts.append(fact("payments", "bnpl_providers", bnpl, source_url=url,
                           note="Detected in homepage HTML (scripts, widgets, image names, text)"))
-    icons = sorted({v for k, v in PAYMENT_ICON_NAMES.items()
-                    if re.search(rf"\b{re.escape(k)}\b", text) or re.search(rf"aria-labelledby=\"pi-{v}", html)})
+    icons = {v for k, v in PAYMENT_ICON_NAMES.items()
+             if re.search(rf"\b{re.escape(k)}\b", text) or re.search(rf"<title[^>]*>\s*{re.escape(k)}\s*</title>", html, re.I)}
+    icons |= {SHOPIFY_ICON_IDS[m] for m in re.findall(r"pi-([a-z_]+)", html) if m in SHOPIFY_ICON_IDS}
+    icons = sorted(icons)
     if icons:
         facts.append(fact("payments", "payment_icons", icons, source_url=url, method="structured_data"))
     return facts

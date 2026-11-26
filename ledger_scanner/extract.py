@@ -79,7 +79,7 @@ FIELDS: dict[str, dict[str, dict]] = {
 }
 
 PROMO_INSTRUCTIONS = (
-    "List every promotion on this page. For each: name, promo_type (percent_off, dollar_off, bogo, "
+    "List the promotions on this page, most recent first, at most 40. For each: name, promo_type (percent_off, dollar_off, bogo, "
     "free_shipping, gift_with_purchase, bundle, prize_draw, finance_offer, loyalty_bonus, other), "
     "discount (short text), starts (YYYY-MM-DD or null), ends (YYYY-MM-DD or null), "
     "live (true if presented as running now), placement (announcement_bar, hero, tile, page), "
@@ -164,7 +164,7 @@ def _parse(raw: str) -> list[dict]:
 def _request(instructions: str, schema: dict, url: str, text: str, order: str) -> dict:
     return dict(
         model=config.CLAUDE_MODEL,
-        max_tokens=4000,
+        max_tokens=16000,
         system=SYSTEM + order,
         output_config={"format": {"type": "json_schema", "schema": schema}},
         messages=[{"role": "user", "content":
@@ -221,7 +221,7 @@ def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom
         f = fa or fb
         status = f.get("status", "not_observed")
         agree = bool(fa and fb and fa.get("status") == fb.get("status")
-                     and _canon(fa.get("value")) == _canon(fb.get("value")))
+                     and _values_agree(meta["type"], fa.get("value"), fb.get("value")))
         verified = evidence_on_page(f.get("evidence"), text) if status in ("observed", "not_offered") else None
         note = []
         if fa and fb and not agree:
@@ -233,9 +233,12 @@ def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom
         conf = f.get("confidence", "medium")
         if status in ("observed", "not_offered") and not (agree and verified):
             conf = "low"
+        value = f.get("value") if status in ("observed", "not_offered", "conflicting") else None
+        if meta["type"] == "money":
+            value = money(value)
         out.append({
             "category": meta["cat"], "key": key, "status": status,
-            "value": f.get("value") if status in ("observed", "not_offered", "conflicting") else None,
+            "value": value,
             "evidence": (f.get("evidence") or "")[:300] or None,
             "evidence_verified": bool(verified and agree) if verified is not None else None,
             "source_url": url, "method": "ai_text", "confidence": conf,
@@ -267,3 +270,38 @@ def _date(v):
 
 def _canon_json(v) -> str:
     return json.dumps(_canon(v), sort_keys=True, default=str)
+
+
+def money(v):
+    """Normalise money to {"amount": n, "currency": "AUD"}."""
+    if v is None:
+        return None
+    if isinstance(v, dict) and "amount" in v:
+        a = v.get("amount")
+    else:
+        a = v
+    if isinstance(a, str):
+        m = re.search(r"\d+(?:\.\d+)?", a.replace(",", ""))
+        a = float(m.group(0)) if m else None
+    if isinstance(a, (int, float)):
+        a = int(a) if float(a).is_integer() else round(float(a), 2)
+        return {"amount": a, "currency": "AUD"}
+    return v
+
+
+def _tokens(v) -> set:
+    return set(_norm(json.dumps(v, default=str) if not isinstance(v, str) else v).split()) - {"the", "a", "of", "and", "to", "on", "for", "in"}
+
+
+def _values_agree(ftype: str, a, b) -> bool:
+    """Exact match for numbers, booleans, enums and money; wording-tolerant for free text."""
+    if ftype == "money":
+        return money(a) == money(b)
+    if ftype in ("integer", "boolean") or ftype.startswith("enum") or ftype.startswith("list:"):
+        return _canon(a) == _canon(b)
+    if _canon(a) == _canon(b):
+        return True
+    ta, tb = _tokens(a), _tokens(b)
+    if not ta or not tb:
+        return False
+    return len(ta & tb) / len(ta | tb) >= 0.4

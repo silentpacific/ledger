@@ -15,7 +15,7 @@ PAGE_TYPES: list[tuple[str, list[str]]] = [
     ("returns", ["returns", "refund", "exchange"]),
     ("shipping", ["delivery", "shipping"]),
     ("payments", ["payment-options", "payment-methods", "afterpay", "buy-now-pay-later", "payment-plans", "finance", "zip", "humm", "klarna", "layby", "lay-by"]),
-    ("loyalty", ["rewards", "loyalty", "vip", "member", "club"]),
+    ("loyalty", ["rewards-club", "rewards", "loyalty", "club", "vip", "member"]),
     ("warranty", ["warranty", "guarantee", "care-plan", "price-match", "price-promise"]),
     ("faq", ["faq", "help-centre", "help-center", "help", "contact"]),
     ("stores", ["stores", "store-locator", "find-a-store", "locations", "showroom"]),
@@ -81,7 +81,9 @@ def read_sitemaps(f: Fetcher) -> dict:
     return result
 
 
-def classify_pages(urls: list[str], base: str) -> dict[str, list[str]]:
+def classify_pages(urls: list[str], base: str, lastmods: dict[str, str] | None = None) -> dict[str, list[str]]:
+    """Group URLs by page type; within a type, most recently updated first, then shortest."""
+    lastmods = lastmods or {}
     found: dict[str, list[str]] = {}
     for u in urls:
         if not same_site(u, base):
@@ -91,8 +93,9 @@ def classify_pages(urls: list[str], base: str) -> dict[str, list[str]]:
             if any(k in path for k in keys):
                 found.setdefault(ptype, []).append(u)
                 break
-    # prefer shorter, more canonical URLs first
-    return {k: sorted(set(v), key=len) for k, v in found.items()}
+    def order(u):
+        return (lastmods.get(u, "")[:10], -len(u))
+    return {k: sorted(set(v), key=order, reverse=True) for k, v in found.items()}
 
 
 def footer_and_nav_links(html: str, base: str) -> list[str]:
