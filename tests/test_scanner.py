@@ -270,3 +270,10 @@ def test_hub_pages_beat_single_pages():
     got = discover.classify_pages(urls, BASE, lm)
     assert got["stores"][0] == BASE + "pages/stores"
     assert got["contact"][0] == BASE + "pages/contact-us"
+
+
+def test_terms_finder_ignores_offer_terms():
+    from ledger_scanner import terms
+    urls = [BASE + "pages/black-friday-terms-and-conditions", BASE + "pages/click-collect-terms-and-conditions",
+            BASE + "pages/terms-of-use"]
+    assert terms.find_terms_urls(urls) == [BASE + "pages/terms-of-use"]

@@ -53,7 +53,9 @@ class TermsResult:
 def find_terms_urls(candidates: list[str]) -> list[str]:
     pref = ["terms-of-use", "terms-of-service", "terms-and-conditions", "website-terms", "terms"]
     terms = [u for u in candidates if re.search(r"terms|conditions|legal", u, re.I)
-             and not re.search(r"offer|promo|competition|sale|bidit|rewards|email|gift|layby|zip|afterpay|humm|latitude", u, re.I)]
+             and not re.search(r"offer|promo|competition|sale|bidit|rewards|email|gift|layby|zip|afterpay|humm|latitude"
+                               r"|click|collect|friday|cyber|christmas|boxing|giveaway|delivery|shipping|warranty|repair"
+                               r"|care-plan|loyalty|club|vip|wholesale|stockist|trade", u, re.I)]
     return sorted(set(terms), key=lambda u: next((i for i, p in enumerate(pref) if p in u.lower()), 9))
 
 
