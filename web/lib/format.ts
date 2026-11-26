@@ -49,8 +49,9 @@ export function fmt(v: any): string {
   if (typeof v === "object") {
     if ("amount" in v) return money(v) ?? "Not stated";
     if ("protocol" in v) return `Yes (${v.protocol})`;
+    if (Array.isArray((v as any).plans)) return `${(v as any).plans.join(" and ")} plans`;
     if ("provider" in v) return `${label(v.provider)}${v.weeks ? `, ${v.weeks} weeks` : ""}${v.months ? `, ${v.months} months` : ""}`;
-    return Object.entries(v).map(([k, x]) => `${k}: ${x}`).join(", ");
+    return Object.values(v).filter((x) => typeof x === "string" || typeof x === "number").join(", ") || "Yes";
   }
   return String(v);
 }
@@ -107,12 +108,13 @@ export const CARDS: { id: string; title: string; rows: Row[] }[] = [
   { id: "support", title: "Support & services", rows: [
     ["trust_support.support_channels", "Channels"], ["trust_support.support_hours", "Hours"],
     ["trust_support.response_time", "Response time"], ["trust_support.engraving", "Engraving"],
-    ["trust_support.free_resizing", "Resizing"], ["policies.warranty_length", "Warranty"], ["policies.extended_care_plan", "Care plan"]] },
+    ["trust_support.free_resizing", "Resizing"], ["policies.warranty_length", "Warranty"],
+    ["policies.extended_care_plan", "Care plan", (v) => (typeof v === "string" ? fmt(v) : Array.isArray(v?.plans) ? `${v.plans.join(" and ")} plans, priced by item value` : "Offered")]] },
   { id: "tech", title: "Tech & AI readiness", rows: [
     ["tech_stack.platform", "Platform"], ["tech_stack.technologies", "Tools"], ["ai_readiness.llms_txt", "llms.txt"],
     ["ai_readiness.agent_commerce_endpoint", "AI shopping endpoint"], ["ai_readiness.schema_types_homepage", "Structured data"]] },
   { id: "business", title: "The business", rows: [
-    ["site_identity.store_count", "Stores"], ["site_identity.states_with_stores", "States"],
+    ["site_identity.store_count", "Stores"], ["site_identity.states_with_stores", "States", (v) => (Array.isArray(v) ? v.map((x: string) => String(x).toUpperCase()).join(", ") : fmt(v))],
     ["site_identity.product_url_count", "Product pages"], ["site_identity.social_profiles", "Social profiles", (v) => `${v.length}`]] },
 ];
 
