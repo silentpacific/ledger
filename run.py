@@ -50,6 +50,7 @@ def main() -> int:
     out_dir.mkdir(exist_ok=True)
     failures = 0
     spent = 0.0
+    paused = False
     next_site_allowance = 0.20  # a big site can cost ~$0.10-0.15; keep headroom
     extract.reset_usage()
     for n, t in enumerate(targets):
@@ -59,6 +60,7 @@ def main() -> int:
             left = [x["domain"] for x in targets[n:]]
             print(f"\nPAUSED: estimated AI spend ${spent:.2f} is near the ${args.budget:.2f} budget. "
                   f"{len(left)} sites not started: {', '.join(left)}")
+            paused = True
             break
         print(f"\n=== {t['domain']} ({args.mode}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
         try:
@@ -101,6 +103,8 @@ def main() -> int:
             if not args.dry_run:
                 db.record_error(t["domain"], msg)
     print(f"\nDone: {len(targets) - failures} ok, {failures} failed")
+    if paused:
+        return 3  # marks the GitHub run as failed so GitHub emails you; the log says PAUSED and what's left
     return 1 if failures and failures == len(targets) else 0
 
 
