@@ -78,9 +78,9 @@ jobs:
           if [ -z "$MODE" ]; then
             if [ "${{ github.event.schedule }}" = "17 3 1 * *" ]; then MODE=full; else MODE=weekly; fi
           fi
-          # Scheduled runs pause at the RUN_BUDGET_USD variable (default $2) so a run can't drain the balance.
+          # Scheduled runs pause at the RUN_BUDGET_USD variable (default $4) so a run can't drain the balance.
           B="${{ github.event.inputs.budget }}"
-          [ -z "$B" ] && B="${{ vars.RUN_BUDGET_USD || '2' }}"
+          [ -z "$B" ] && B="${{ vars.RUN_BUDGET_USD || '4' }}"
           BUDGET="--budget $B"
           DRY=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
