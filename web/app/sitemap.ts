@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { getSites } from "@/lib/data";
+import { getJewellery, getSites } from "@/lib/data";
+import { INDUSTRIES } from "@/lib/industries";
 import { facets } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
 
@@ -11,9 +12,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fixed = ["", "/sites", "/explore", "/compare", "/benchmarks", "/promotions", "/industries", "/about", "/contact", "/methodology"]
     .map((p) => ({ url: `${SITE_URL}${p}`, lastModified: latest, changeFrequency: "weekly" as const, priority: p === "" ? 1 : 0.7 }));
   const siteUrls = sites.map((s) => ({ url: `${SITE_URL}/sites/${s.domain}`, lastModified: s.last_scanned_at, changeFrequency: "weekly" as const, priority: 0.8 }));
-  const fc = facets(sites);
+  const fc = facets(await getJewellery());
+  const inds = INDUSTRIES.map((i) => ({ url: `${SITE_URL}/industries/${i.slug}`, lastModified: latest, changeFrequency: "weekly" as const, priority: 0.7 }));
   // only lists with enough sites to be useful get indexed
   const lists = Object.entries(fc).flatMap(([k, items]) => items.filter((x: any) => x.n >= 2)
     .map((x) => ({ url: `${SITE_URL}/explore/${k}/${x.value}`, lastModified: latest, changeFrequency: "weekly" as const, priority: 0.6 })));
-  return [...fixed, ...siteUrls, ...lists];
+  return [...fixed, ...inds, ...siteUrls, ...lists];
 }

@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { getPromotions, getSites, Site } from "@/lib/data";
 import { Bars } from "@/components/ui";
+import { industryName } from "@/lib/industries";
 import { isDiscount, list, maxPct, money, num, show, siteName, val } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "Compare Australian jewellery stores side by side",
+  title: "Compare Australian online stores side by side",
   description: "Compare returns, shipping, buy now pay later, loyalty and live promotions across Australian online jewellery stores.",
   alternates: { canonical: "/compare" },
 };
@@ -22,7 +23,8 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
   if (sp.add) chosen.push(sp.add);
   chosen = [...new Set(chosen)].filter((d) => all.some((s) => s.domain === d)).slice(0, 5);
   const exists = (d: string) => all.some((s) => s.domain === d);
-  const fill = [...DEFAULT.filter(exists), ...all.map((s) => s.domain)];
+  const ind = all.find((s) => s.domain === chosen[0])?.industry || "jewellery";
+  const fill = [...(ind === "jewellery" ? DEFAULT.filter(exists) : []), ...all.filter((s) => (s.industry || "jewellery") === ind).map((s) => s.domain)];
   if (chosen.length < 2) chosen = [...new Set([...chosen, ...fill])].slice(0, 4);
   const sites = chosen.map((d) => all.find((s) => s.domain === d)!);
   const headline = (s: Site) => {
@@ -57,7 +59,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     if (xs.length < 2) return undefined;
     return r.better === "low" ? Math.min(...xs) : Math.max(...xs);
   };
-  const others = all.filter((s) => !chosen.includes(s.domain)).sort((a, b) => siteName(a).localeCompare(siteName(b)));
+  const others = all.filter((s) => !chosen.includes(s.domain)).sort((a, b) => (a.industry || "").localeCompare(b.industry || "") || siteName(a).localeCompare(siteName(b)));
   const chartFs = sites.map((s) => ({ label: siteName(s), n: num(s, "shipping.free_shipping_threshold") ?? 0, text: num(s, "shipping.free_shipping_threshold") !== undefined ? money(num(s, "shipping.free_shipping_threshold"))! : "—" }));
   const chartRet = sites.map((s) => ({ label: siteName(s), n: num(s, "policies.returns.period_days") ?? 0, text: num(s, "policies.returns.period_days") !== undefined ? `${num(s, "policies.returns.period_days")} days` : "—" }));
 
@@ -80,7 +82,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
               <label htmlFor="add" className="sr">Add a site</label>
               <select id="add" name="add" className="field" style={{ height: 36, width: 200 }} defaultValue="">
                 <option value="" disabled>+ Add site</option>
-                {others.map((s) => <option key={s.domain} value={s.domain}>{siteName(s)}</option>)}
+                {others.map((s) => <option key={s.domain} value={s.domain}>{siteName(s)} · {industryName(s.industry)}</option>)}
               </select>
               <button className="chip" type="submit" style={{ cursor: "pointer" }}>Add</button>
             </form>

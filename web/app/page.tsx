@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import { Bars, Stat } from "@/components/ui";
-import { getChanges, getPromotions, getSites, Promo } from "@/lib/data";
+import { getChanges, getJewellery as getSites, getJewelleryPromotions as getPromotions, Promo } from "@/lib/data";
 import { dateAU, dayKey, describeChange, facets, list, maxPct, median, num, siteName, slug, isDiscount } from "@/lib/format";
 
 export const revalidate = 3600;

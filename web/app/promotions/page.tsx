@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Stat } from "@/components/ui";
-import { getPromotions, getSites, Promo } from "@/lib/data";
+import { getJewellery as getSites, getJewelleryPromotions as getPromotions, Promo } from "@/lib/data";
 import { PROMO_TYPES, dateAU, dayKey, isDiscount, maxPct, siteName } from "@/lib/format";
 
 export const revalidate = 3600;

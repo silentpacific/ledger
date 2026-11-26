@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
-import { getPromotions, getSites } from "@/lib/data";
+import { getJewellery as getSites, getJewelleryPromotions as getPromotions } from "@/lib/data";
 import { KIND_NAMES, facets, list, maxPct, num, siteName } from "@/lib/format";
 
 export const revalidate = 3600;

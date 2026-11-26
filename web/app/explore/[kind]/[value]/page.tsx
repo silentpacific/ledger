@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Crumbs, JsonLd } from "@/components/ui";
-import { getChanges, getSites, Site } from "@/lib/data";
+import { getChanges, getJewellery as getSites, Site } from "@/lib/data";
 import { KIND_NAMES, describeChange, dateAU, facets, list, money, num, siteName, slug, val, label } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Crumbs } from "@/components/ui";
-import { getSites } from "@/lib/data";
+import { getJewellery as getSites } from "@/lib/data";
 import { KIND_NAMES, facets, label, list, money, num, siteName, val } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Filtered list", robots: { index: false, follow: true } };

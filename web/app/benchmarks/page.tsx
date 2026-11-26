@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Bars, JsonLd } from "@/components/ui";
-import { getSites } from "@/lib/data";
+import { getJewellery as getSites } from "@/lib/data";
 import { dateAU, facets, list, median, money, num, siteName, val } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
 

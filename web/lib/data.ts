@@ -9,7 +9,7 @@ export const REVALIDATE = 3600;
 
 export type Fact = { s: string; v: any; at: string; q: string | null; u: string | null; c: string };
 export type Site = {
-  domain: string; segment: string | null; platform: string | null; homepage_url: string | null;
+  domain: string; industry?: string; segment: string | null; platform: string | null; homepage_url: string | null;
   first_scanned_at: string; last_scanned_at: string; facts: Record<string, Fact>;
 };
 export type Promo = {
@@ -47,6 +47,17 @@ export const getChanges = (days = 90) => rpc<Change[]>("web_changes", { p_days: 
 export const getProducts = (domain: string) => rpc<Product[]>("web_products", { p_domain: domain });
 export const suggestSite = (domain: string) => rpc<{ outcome: string; domain?: string }>("web_suggest_site", { p_domain: domain }, false);
 export const sendContact = (a: Record<string, string>) => rpc<{ ok: boolean; error?: string }>("web_contact", a, false);
+
+/** Jewellery-only views (home feed, benchmarks, explore, promotions) until other industries have enough history. */
+export async function getJewellery(): Promise<Site[]> {
+  return (await getSites()).filter((s) => (s.industry || "jewellery") === "jewellery");
+}
+
+export async function getJewelleryPromotions(): Promise<Promo[]> {
+  const [sites, promos] = await Promise.all([getJewellery(), getPromotions()]);
+  const d = new Set(sites.map((x) => x.domain));
+  return promos.filter((p) => d.has(p.domain));
+}
 
 export async function getSite(domain: string): Promise<Site | undefined> {
   return (await getSites()).find((s) => s.domain === domain);

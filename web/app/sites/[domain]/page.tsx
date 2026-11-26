@@ -6,6 +6,7 @@ import { Crumbs, JsonLd } from "@/components/ui";
 import { getChanges, getProducts, getPromotions, getSite, getSites } from "@/lib/data";
 import { CARDS, dateAU, describeChange, fact, fmt, list, median, money, num, show, siteName, val } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
+import { industryName } from "@/lib/industries";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -42,7 +43,8 @@ export default async function SitePage({ params }: { params: Promise<{ domain: s
   const changes = changesAll.filter((c) => c.domain === domain);
 
   // how it compares with the market
-  const market = (key: string) => median(sites.map((x) => num(x, key)).filter((n): n is number => n !== undefined));
+  const peers = sites.filter((x) => (x.industry || "jewellery") === (s.industry || "jewellery"));
+  const market = (key: string) => median(peers.map((x) => num(x, key)).filter((n): n is number => n !== undefined));
   const cmp = [
     { label: "Free-shipping threshold", key: "shipping.free_shipping_threshold", unit: "$", better: "lower" },
     { label: "Standard delivery fee", key: "shipping.standard_shipping_cost", unit: "$", better: "lower" },
@@ -70,7 +72,7 @@ export default async function SitePage({ params }: { params: Promise<{ domain: s
         { "@type": "ListItem", position: 1, name: "Sites", item: `${SITE_URL}/sites` },
         { "@type": "ListItem", position: 2, name, item: `${SITE_URL}/sites/${s.domain}` }] }} />
       <main className="wrap page">
-        <Crumbs items={[["Sites", "/sites"], [s.segment || "Jewellery", `/sites?segment=${encodeURIComponent(s.segment || "")}`], [name]]} />
+        <Crumbs items={[["Industries", "/industries"], [industryName(s.industry), `/industries/${s.industry || "jewellery"}`], [name]]} />
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", marginTop: 12 }}>
           <div>
             <h1 className="title">{name}</h1>
@@ -132,7 +134,7 @@ export default async function SitePage({ params }: { params: Promise<{ domain: s
                   <div className="display" style={{ fontSize: 28, fontWeight: 600, marginTop: 4 }}>{fmtv(c.mine)}</div>
                   <div className="bar" style={{ marginTop: 10 }}><span className="l" style={{ flexBasis: 70 }}>{name.length > 9 ? "This store" : name}</span><span className="t"><span className="f" style={{ width: `${((c.mine ?? 0) / m) * 100}%`, background: good ? "var(--accent)" : "#D97A1F" }} /></span></div>
                   <div className="bar"><span className="l" style={{ flexBasis: 70 }}>Median</span><span className="t"><span className="f" style={{ width: `${((c.med ?? 0) / m) * 100}%`, background: "#B9B5A8" }} /></span></div>
-                  <div className="tiny muted">Market median {fmtv(c.med)}</div>
+                  <div className="tiny muted">{industryName(s.industry)} median {fmtv(c.med)}</div>
                 </div>
               );
             })}
