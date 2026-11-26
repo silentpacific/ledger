@@ -277,3 +277,12 @@ def test_terms_finder_ignores_offer_terms():
     urls = [BASE + "pages/black-friday-terms-and-conditions", BASE + "pages/click-collect-terms-and-conditions",
             BASE + "pages/terms-of-use"]
     assert terms.find_terms_urls(urls) == [BASE + "pages/terms-of-use"]
+
+
+def test_terms_general_only():
+    from ledger_scanner import terms
+    urls = [BASE + "pages/instore-jewellery-cleaning-terms-and-conditions", BASE + "pages/terms-conditions",
+            BASE + "en-hk/pages/terms", BASE + "pages/policies-terms"]
+    got = terms.find_terms_urls(urls)
+    assert BASE + "pages/instore-jewellery-cleaning-terms-and-conditions" not in got
+    assert set(got) == {BASE + "pages/terms-conditions", BASE + "en-hk/pages/terms", BASE + "pages/policies-terms"}

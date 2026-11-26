@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import re
+from urllib.parse import urlparse
 from dataclasses import dataclass
 
 from . import config, extract
@@ -50,22 +51,52 @@ class TermsResult:
         return self.verdict == "unclear" and UNCLEAR_POLICY == "skip"
 
 
+GENERAL_SLUGS = {"terms", "terms-of-use", "terms-of-service", "terms-and-conditions", "terms-conditions",
+                 "terms-condition", "website-terms", "website-terms-of-use", "website-terms-and-conditions",
+                 "terms-of-sale", "policies-terms", "legal", "general-terms", "conditions-of-use", "tcs", "t-cs"}
+
+
+def is_general_terms(url: str) -> bool:
+    """The site's own terms, not the terms of one offer or service (Black Friday, cleaning, click & collect...)."""
+    path = urlparse(url).path.lower().rstrip("/")
+    slug = path.rsplit("/", 1)[-1]
+    return slug in GENERAL_SLUGS
+
+
 def find_terms_urls(candidates: list[str]) -> list[str]:
+    """General site-terms pages only, best first."""
     pref = ["terms-of-use", "terms-of-service", "terms-and-conditions", "website-terms", "terms"]
-    terms = [u for u in candidates if re.search(r"terms|conditions|legal", u, re.I)
-             and not re.search(r"offer|promo|competition|sale|bidit|rewards|email|gift|layby|zip|afterpay|humm|latitude"
-                               r"|click|collect|friday|cyber|christmas|boxing|giveaway|delivery|shipping|warranty|repair"
-                               r"|care-plan|loyalty|club|vip|wholesale|stockist|trade", u, re.I)]
-    return sorted(set(terms), key=lambda u: next((i for i, p in enumerate(pref) if p in u.lower()), 9))
+    terms = [u for u in candidates if is_general_terms(u)]
+    return sorted(set(terms), key=lambda u: (next((i for i, p in enumerate(pref) if p in u.lower()), 9), len(u)))
+
+
+def _prohibition(page) -> str | None:
+    """Quote of a confirmed anti-scraping clause on this page, or None."""
+    m = STRONG.search(page.text)
+    if not m:
+        return None
+    quote = " ".join(m.group(0).split())[:400]
+    if config.ANTHROPIC_API_KEY:
+        # AI confirms the keyword hit is really a prohibition (not e.g. "we may crawl...")
+        try:
+            facts = extract.read_page_custom(PROMPT_FIELDS, page.url, page.text)
+        except Exception:
+            facts = []  # AI unavailable: keep the conservative keyword verdict
+        f0 = next((x for x in facts if x["key"] == "anti_scraping_clause"), None)
+        if f0 and f0["status"] == "observed" and f0["value"] is False and f0.get("evidence_verified"):
+            return None
+    return quote
 
 
 def check_terms(f: Fetcher, candidates: list[str]) -> TermsResult:
+    """Every readable general terms page is checked (up to 4); any confirmed prohibition wins.
+    'allowed' needs at least one general terms page read with no prohibition."""
     urls = find_terms_urls(candidates)
     shopify_policy = f.base_url.rstrip("/") + "/policies/terms-of-service"
     if shopify_policy not in urls:
         urls.append(shopify_policy)
 
-    read_any, blocked_by_robots = False, []
+    read_ok, blocked_by_robots = None, []
     for url in urls[:4]:
         if not f.allowed(url):
             blocked_by_robots.append(url)
@@ -73,22 +104,13 @@ def check_terms(f: Fetcher, candidates: list[str]) -> TermsResult:
         page = f.fetch(url)
         if page.status != 200 or len(page.text) < 500:
             continue
-        read_any = True
-        m = STRONG.search(page.text)
-        if not m:
-            return TermsResult("allowed", page.url, None)
-        quote = " ".join(m.group(0).split())[:400]
-        if config.ANTHROPIC_API_KEY:
-            # AI confirms the keyword hit is really a prohibition (not e.g. "we may crawl...")
-            try:
-                facts = extract.read_page_custom(PROMPT_FIELDS, page.url, page.text)
-            except Exception:
-                facts = []  # AI unavailable: keep the conservative keyword verdict
-            f0 = next((x for x in facts if x["key"] == "anti_scraping_clause"), None)
-            if f0 and f0["status"] == "observed" and f0["value"] is False and f0.get("evidence_verified"):
-                return TermsResult("allowed", page.url, f"keyword hit judged not a prohibition: {quote}")
-        return TermsResult("prohibited", page.url, quote)
+        quote = _prohibition(page)
+        if quote:
+            return TermsResult("prohibited", page.url, quote)
+        read_ok = read_ok or page.url
 
-    if blocked_by_robots and not read_any:
+    if read_ok:
+        return TermsResult("allowed", read_ok, None)
+    if blocked_by_robots:
         return TermsResult("unclear", blocked_by_robots[0], "terms only at a URL that robots.txt disallows")
     return TermsResult("no_terms_found", None, None)
