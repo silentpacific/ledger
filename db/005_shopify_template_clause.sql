@@ -1,0 +1,6 @@
+-- Applied 26 Nov 2026 (via Supabase MCP). Decision: scan sites whose only restriction is
+-- Shopify's default terms-template clause ("spider, crawl, or scrape"); custom clauses still
+-- switch a site off. See ledger_scanner/terms.py (TEMPLATE_POLICY, SHOPIFY_TEMPLATE).
+-- 1. 'template_clause' added to the verdict checks on domains and terms_checks
+-- 2. sites previously switched off for the template clause re-enabled (8 sites)
+-- 3. sites_refusing_scraping lists them with reason "Shopify template terms ban scraping (scanned anyway, by decision)"

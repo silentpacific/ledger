@@ -51,6 +51,9 @@ def _match_promotions(domain: str, payload: dict) -> None:
         existing = []
     for e in existing:
         e["headline"] = e.get("name")
+    seen = payload["scan"]["scan_started_at"][:10]
+    for p in payload["promotions"]:
+        p["seen_at"] = seen
     promos.assign_keys(payload["promotions"], payload["promotion_history_from_terms_page"], existing)
 
 

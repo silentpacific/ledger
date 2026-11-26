@@ -384,3 +384,37 @@ def test_brand_terms_and_www_dedupe():
     for h in ("gifts-under-20", "diamond-clearance", "past-creations-rings", "configurator"):
         assert shopify.SKIP_COLLECTION.search(h), h
     assert not shopify.SKIP_COLLECTION.search("diamond-rings")
+
+
+def test_promo_years_and_dates_kept_apart():
+    from ledger_scanner import promos
+    same = promos.same_offer
+    assert not same({"name": "Afterpay Day 2025"}, {"name": "Afterpay Day (August)", "stated_start": "2026-08-10"})
+    xmas = {"name": "Christmas 2025 Up to 60% off", "discount": "Up to 60% off", "stated_start": "2025-12-02", "stated_end": "2025-12-31",
+            "first_seen_at": "2026-11-26", "last_seen_at": "2026-11-26"}
+    rings = {"name": "Up to 60% off rings", "discount": "Up to 60% off rings", "promo_type": "percent_off",
+             "first_seen_at": "2026-11-26T06:00:00", "last_seen_at": "2026-11-26T09:00:00"}
+    assert not same(xmas, rings)
+    bf = {"name": "Black Friday is ON", "discount": "Up to 70% off selected stock", "stated_start": "2026-11-04", "stated_end": "2026-12-01"}
+    live = {"headline": "Black Friday Sale", "discount": "Up to 70% off", "type": "percent_off", "seen_at": "2026-11-26"}
+    assert same(bf, live)
+
+
+SHOPIFY_TOS = ("<html><body><h1>Terms of Service</h1>" + "<p>General conditions apply to all purchases. " * 20 +
+               "</p><p>In addition to other prohibitions, you are prohibited from using the site: (h) to collect or track "
+               "the personal information of others; (i) to spam, phish, pharm, pretext, spider, crawl, or scrape; "
+               "(j) for any obscene or immoral purpose.</p></body></html>")
+
+
+def test_shopify_template_clause_scans(fake_http, monkeypatch):
+    monkeypatch.setitem(ROUTES, "pages/terms-and-conditions", (200, SHOPIFY_TOS, "text/html"))
+    p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
+    assert p["terms_gate"]["verdict"] == "template_clause" and not p.get("skip_ingest") and p["facts"]
+    assert "spider, crawl, or scrape" in p["terms_gate"]["evidence"]
+
+
+def test_template_plus_custom_clause_still_blocks(fake_http, monkeypatch):
+    custom = SHOPIFY_TOS.replace("</body>", "<p>You must not use any robot, spider or other automated means to access, copy or extract any content from this website.</p></body>")
+    monkeypatch.setitem(ROUTES, "pages/terms-and-conditions", (200, custom, "text/html"))
+    p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
+    assert p["terms_gate"]["verdict"] == "prohibited" and p.get("skip_ingest") is True

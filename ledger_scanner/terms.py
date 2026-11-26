@@ -22,6 +22,10 @@ from .fetch import Fetcher
 UNCLEAR_POLICY = os.environ.get("TERMS_UNCLEAR_POLICY", "skip").lower()
 # No terms page found at all: nothing prohibits scanning, so scan (robots.txt still obeyed).
 NO_TERMS_POLICY = (os.environ.get("TERMS_NO_TERMS_POLICY") or "scan").lower()
+# Shopify's default terms template bans anyone who would "spider, crawl, or scrape". Decided
+# 26 Nov 2026: scan these sites anyway (robots.txt still obeyed). Custom clauses still block.
+TEMPLATE_POLICY = (os.environ.get("TERMS_TEMPLATE_POLICY") or "scan").lower()
+SHOPIFY_TEMPLATE = re.compile(r"spam,\s*phish,\s*pharm,\s*pretext,\s*spider,\s*crawl,?\s*or\s*scrape", re.I)
 
 STRONG = re.compile(
     r"[^.\n]{0,200}\b(scrap(e|es|ed|ing|er|ers)|crawl(s|ed|ing|er|ers)?|spider(s|ing)?|data[- ]?mining|"
@@ -46,6 +50,8 @@ class TermsResult:
     def blocks_scan(self) -> bool:
         if self.verdict == "prohibited":
             return True
+        if self.verdict == "template_clause":
+            return TEMPLATE_POLICY == "skip"
         if self.verdict == "no_terms_found":
             return NO_TERMS_POLICY == "skip"
         return self.verdict == "unclear" and UNCLEAR_POLICY == "skip"
@@ -100,7 +106,7 @@ def check_terms(f: Fetcher, candidates: list[str]) -> TermsResult:
     if shopify_policy not in urls:
         urls.append(shopify_policy)
 
-    read_ok, blocked_by_robots = None, []
+    read_ok, blocked_by_robots, template = None, [], None
     for url in urls[:4]:
         if not f.allowed(url):
             blocked_by_robots.append(url)
@@ -108,11 +114,23 @@ def check_terms(f: Fetcher, candidates: list[str]) -> TermsResult:
         page = f.fetch(url)
         if page.status != 200 or len(page.text) < 500:
             continue
+        tm = SHOPIFY_TEMPLATE.search(page.text)
+        if tm:
+            # judge the rest of the page without the template clause: a custom clause still blocks
+            rest = page.text[:tm.start()] + page.text[tm.end():]
+            quote = _prohibition(type(page)(**{**page.__dict__, "text": rest})) if STRONG.search(rest) else None
+            if quote:
+                return TermsResult("prohibited", page.url, quote)
+            template = template or TermsResult("template_clause", page.url,
+                                               " ".join(page.text[max(0, tm.start() - 120):tm.end() + 20].split()))
+            continue
         quote = _prohibition(page)
         if quote:
             return TermsResult("prohibited", page.url, quote)
         read_ok = read_ok or page.url
 
+    if template:
+        return template
     if read_ok:
         return TermsResult("allowed", read_ok, None)
     if blocked_by_robots:

@@ -45,10 +45,46 @@ def _type(p: dict):
     return TYPE_GROUPS.get(t) if t and t != "other" else None
 
 
+def _years(p: dict) -> set[str]:
+    ys = set(re.findall(r"\b(20\d\d)\b", _text(p)))
+    for k in ("starts", "stated_start", "ends", "stated_end"):
+        if p.get(k):
+            ys.add(str(p[k])[:4])
+    return ys
+
+
+def _d(v):
+    return str(v)[:10] if v else None
+
+
+def _seen(p: dict) -> tuple:
+    return (_d(p.get("first_seen_at") or p.get("seen_at")), _d(p.get("last_seen_at") or p.get("seen_at")))
+
+
+def _outside(dated: dict, other: dict) -> bool:
+    """True when `other` was seen live clearly outside `dated`'s stated run (7 days' grace)."""
+    from datetime import date, timedelta
+    st, en = _d(dated.get("starts") or dated.get("stated_start")), _d(dated.get("ends") or dated.get("stated_end"))
+    first, last = _seen(other)
+    if not (first or last) or not (st or en):
+        return False
+    grace = timedelta(days=7)
+    if en and first and date.fromisoformat(first) > date.fromisoformat(en) + grace:
+        return True
+    if st and last and date.fromisoformat(last) < date.fromisoformat(st) - grace:
+        return True
+    return False
+
+
 def same_offer(a: dict, b: dict) -> bool:
     sa, sb = _start(a), _start(b)
     if sa and sb and str(sa)[:10] != str(sb)[:10]:
         return False
+    ya, yb = _years(a), _years(b)
+    if ya and yb and not (ya & yb):
+        return False  # Afterpay Day 2025 is not Afterpay Day 2026
+    if _outside(a, b) or _outside(b, a):
+        return False  # seen live long after that sale ended (or before it began)
     ta, tb = _type(a), _type(b)
     if ta and tb and ta != tb:
         return False
