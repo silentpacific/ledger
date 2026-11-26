@@ -418,3 +418,10 @@ def test_template_plus_custom_clause_still_blocks(fake_http, monkeypatch):
     monkeypatch.setitem(ROUTES, "pages/terms-and-conditions", (200, custom, "text/html"))
     p = scan.scan_site("shop.example.com.au", BASE, mode="full", use_ai=False)
     assert p["terms_gate"]["verdict"] == "prohibited" and p.get("skip_ingest") is True
+
+
+def test_dated_history_twins_merge():
+    from ledger_scanner import promos
+    a = {"name": "Black Friday Cyber Monday Sale", "stated_start": "2025-10-29", "stated_end": "2025-12-01", "first_seen_at": "2026-11-26"}
+    b = {"name": "Black Friday Cyber Monday Sale 2025", "stated_start": "2025-10-29", "stated_end": "2025-12-01", "first_seen_at": "2026-11-26"}
+    assert promos.same_offer(a, b)

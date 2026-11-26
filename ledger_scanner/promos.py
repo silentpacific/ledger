@@ -65,6 +65,8 @@ def _outside(dated: dict, other: dict) -> bool:
     """True when `other` was seen live clearly outside `dated`'s stated run (7 days' grace)."""
     from datetime import date, timedelta
     st, en = _d(dated.get("starts") or dated.get("stated_start")), _d(dated.get("ends") or dated.get("stated_end"))
+    if other.get("starts") or other.get("stated_start") or other.get("ends") or other.get("stated_end"):
+        return False  # both dated: the stated dates are compared instead (a terms-page entry's scan date isn't a sighting)
     first, last = _seen(other)
     if not (first or last) or not (st or en):
         return False
