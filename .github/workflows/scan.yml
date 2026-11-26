@@ -54,7 +54,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 355
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -86,11 +86,8 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
           if [ "${{ github.event.inputs.no_ai }}" = "true" ]; then DRY="$DRY --no-ai"; fi
           if [ -n "${{ github.event.inputs.domain }}" ]; then
-            IFS=',' read -ra DOMAINS <<< "${{ github.event.inputs.domain }}"
-            for D in "${DOMAINS[@]}"; do
-              D="$(echo "$D" | xargs)"
-              [ -n "$D" ] && python run.py --domain "$D" --mode "$MODE" $DRY
-            done
+            # one run for the whole list, in order, with the spend budget
+            python run.py --domain-list "${{ github.event.inputs.domain }}" --mode "$MODE" $DRY $BUDGET
           else
             python run.py --all --mode "$MODE" $BUDGET
           fi

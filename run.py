@@ -95,6 +95,7 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="don't write to the database")
     ap.add_argument("--recheck-refusals", action="store_true",
                     help="terms-only recheck of switched-off sites; results go to terms_checks")
+    ap.add_argument("--domain-list", help="comma-separated domains, scanned in this order in one run (budget applies)")
     ap.add_argument("--dedupe-promotions", action="store_true",
                     help="merge duplicate promotions already stored (all enabled sites, or --domain)")
     ap.add_argument("--no-ai", action="store_true", help="code-based facts only (no Anthropic calls)")
@@ -122,9 +123,19 @@ def main() -> int:
         print(f"\n{'Would merge' if args.dry_run else 'Merged'} {total} duplicate promotions across {len(doms)} sites")
         return 0
 
+    if args.domain_list:
+        known = {normalise_domain(d["domain"]): d for d in db.domains_due(5000)}
+        targets = []
+        for raw in args.domain_list.split(","):
+            dn = normalise_domain(raw.strip())
+            if dn:
+                targets.append(known.get(dn, {"domain": dn, "homepage_url": f"https://{dn}/", "platform": None}))
+        args.all = True  # behave like a batch run below
     if not (args.all or args.domain):
         ap.error("one of --domain, --all, --recheck-refusals or --dedupe-promotions is required")
-    if args.all:
+    if args.domain_list:
+        pass
+    elif args.all:
         targets = db.domains_due(args.limit)
     else:
         known = {normalise_domain(d["domain"]): d for d in (db.domains_due(1000) if not args.dry_run else [])}
