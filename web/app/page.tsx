@@ -42,8 +42,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
   const groups = new Map<string, Item[]>();
   shown.sort((a, b) => (a.at < b.at ? 1 : -1)).forEach((i) => { const k = dayKey(i.at); groups.set(k, [...(groups.get(k) || []), i]); });
 
-  const bf = [...new Map(promos.filter((p) => p.live && /black friday|cyber/i.test(`${p.name} ${p.discount}`) && maxPct(p) > 0)
-    .sort((a, b) => maxPct(b) - maxPct(a)).map((p) => [p.domain, p] as const)).values()].slice(0, 6);
+  const bfBest = new Map<string, Promo>();
+  promos.filter((p) => p.live && /black friday|cyber/i.test(`${p.name} ${p.discount}`) && maxPct(p) > 0)
+    .forEach((p) => { const b = bfBest.get(p.domain); if (!b || maxPct(p) > maxPct(b)) bfBest.set(p.domain, p); });
+  const bf = [...bfBest.values()].sort((a, b) => maxPct(b) - maxPct(a)).slice(0, 6);
   const fc = facets(sites);
   const bnplRows = fc.payments.filter((x) => !["apple-pay", "google-pay", "paypal", "shop-pay"].includes(x.value))
     .map((x: any) => ({ label: x.name, n: x.n, href: `/explore/payments/${x.value}` }));
