@@ -62,10 +62,24 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - Website: Next.js 15.5 in web/, Vercel project prj_V1XtQGPACcTPdBQ6DCC7r9qqNOZX
   (team team_JBupfPXHwDsuPQWn9DezvHWE, region syd1). Auto-deploys on push. Pages refresh hourly (ISR).
   Data only via web_* RPCs with the publishable key; raw tables are RLS-locked.
-- Industries: jewellery (full coverage: feed, benchmarks, explore, promotions are jewellery-only),
-  fashion, beauty, health, homewares, pet, baby-kids, sports-outdoors, electronics.
+- Industries: jewellery, fashion, beauty, health, homewares, pet, baby-kids, sports-outdoors, electronics.
+  Every page covers all industries with an industry filter (segment chips appear under a chosen industry).
+  Nav: This week, Industries (sortable stats table), Sites (Explore merged in; /explore redirects), Compare
+  (starts empty, search picker), Benchmarks, Promotions, Tech (/tech, /tech/[tool]; commerce tools only).
+  Industry stats show a median only when >=60% of that industry's sites state the value (lib/stats.ts).
+- Questions per industry: extract.FIELDS (common) + extract.INDUSTRY_FIELDS (extras per industry).
+  domains.full_scan_requested = true makes a weekly run do a full scan of that site, then it clears.
+
+## Cost index (agreed 27 Nov 2026)
+- Every scan attempt writes a row to scan_costs (AI tokens by model, pages, Firecrawl pages, runtime,
+  conflicting facts, issues, outcome). A failed write fails the run (exit 4). Never rely on GitHub logs for costs.
+- Prices, A$100/h labour rate, labour minutes per warning sign and the 1-100 scale live in
+  cost_index_settings (one row). Scale: log, monthly A$0.05 = 1, A$50 = 100.
+- When Rahul asks for the cost index: `select * from cost_index_industries order by median_index desc;`
+  and `select * from cost_index_sites order by cost_index desc;` (typical month = avg full scan + 4.33 x avg weekly).
 
 ## Status (27 Nov 2026)
+- 27 Nov: non-jewellery sites flagged for a full rescan on the Mon 30 Nov weekly run (new industry questions).
 - 134 sites with full data (jewellery 33, beauty 18, fashion 15, health 14, homewares 12,
   baby-kids 12, sports 12, electronics 12, pet 6). First 9-industry scan cost ~$5.12 total
   (Haiku $1.69, Sonnet $3.45): Sonnet escalation is ~2/3 of spend; Rahul may want it capped.
