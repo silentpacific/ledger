@@ -154,14 +154,23 @@ def judge(domain: str, head: str, text: str) -> dict | None:
     import time
     import anthropic
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY, max_retries=6)  # backs off on rate limits
+    schema = {"type": "object", "additionalProperties": False, "required": ["industry", "adult"],
+              "properties": {"industry": {"type": "string", "enum": INDUSTRIES + ["none"]}, "adult": {"type": "boolean"}}}
+    req = dict(model=config.CLAUDE_MODEL, max_tokens=200, system=JUDGE,
+               output_config={"format": {"type": "json_schema", "schema": schema}},
+               messages=[{"role": "user", "content": f"Site: {domain}\nTitle and description: {head[:400]}\nHomepage text: {text[:1800]}"}])
+    no_think = True  # a one-word answer needs no thinking; thinking also used up the small answer allowance
     for attempt in range(3):
         try:
-            msg = client.messages.create(
-                model=config.CLAUDE_MODEL, max_tokens=60, system=JUDGE,
-                messages=[{"role": "user", "content": f"Site: {domain}\nTitle and description: {head[:400]}\nHomepage text: {text[:1800]}"}])
+            msg = client.messages.create(**req, **({"thinking": {"type": "disabled"}} if no_think else {}))
             reply = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")  # skip thinking blocks
             out = json.loads(re.search(r"\{.*\}", reply, re.S).group(0))
             return out if out.get("industry") in INDUSTRIES + ["none"] else None
+        except anthropic.BadRequestError as e:
+            if no_think and "thinking" in str(e).lower():
+                no_think, req["max_tokens"] = False, 2000  # this model won't switch thinking off: give it room instead
+                continue
+            raise
         except Exception as e:
             with _LOCK:
                 k = f"{type(e).__name__}: {str(e)[:120]}"
