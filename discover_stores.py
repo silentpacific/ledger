@@ -50,6 +50,9 @@ INDUSTRY_WORDS = {
     "electronics": "electronics computers laptops gaming phones cameras audio tv appliances headphones tech",
 }
 KW = {k: v.split() for k, v in INDUSTRY_WORDS.items()}
+# shops outside our 9 industries (their title or description gives them away)
+OUT_OF_SCOPE = set("book books bookshop bookstore wine wines liquor beer spirits cellars vinyl records music market markets "
+                   "hardware tools florist flowers grocery groceries printing stationery office party supermarket".split())
 
 
 def tranco_au() -> list[str]:
@@ -106,9 +109,12 @@ def check(domain: str) -> dict | None:
         title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
         desc = re.search(r"<meta[^>]+name=[\"']description[\"'][^>]+content=[\"']([^\"']*)", html, re.I)
         head = f"{title.group(1) if title else ''} {desc.group(1) if desc else ''}"
-        industry = classify(f"{head} {head} {head} " + html_to_text(html)[:6000])  # title + description weigh most
-        if not industry:
+        head_words = set(re.sub(r"[^a-z ]", " ", head.lower()).split())
+        if head_words & OUT_OF_SCOPE:
             return None
+        industry = classify(f"{head} {head} {head} " + html_to_text(html)[:6000])  # title + description weigh most
+        if not industry or not head_words & set(KW[industry]):
+            return None  # the store's own title/description must name its industry
         return {"domain": domain, "homepage_url": base, "industry": industry}
     return None
 
