@@ -34,7 +34,7 @@ If the doc's headings no longer match this list, update the list.
 ## What it is
 A URL-first tool that turns Australian ecommerce sites into dated, sourced commerce facts:
 policies, prices, promotions, payments and tech. Change history is the core intelligence.
-Owner: Rahul. Public site: https://ledger-au.vercel.app. Spec doc: https://claude.ai/artifact/FzXm4hXW3CkSQY7ansgNoG
+Owner: Rahul. Public site: https://au.sentientlogs.com (sentientlogs.com and www. redirect there with a temporary 307 set on the Vercel project domains; the old ledger-au.vercel.app redirects permanently, web/next.config.mjs). Spec doc: https://claude.ai/artifact/FzXm4hXW3CkSQY7ansgNoG
 Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 
 ## Rules Rahul set
