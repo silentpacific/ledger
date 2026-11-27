@@ -91,6 +91,35 @@ BATCH_WAIT_SECONDS = 4 * 3600  # per round
 JOB_SECONDS = 330 * 60         # GitHub stops the job at 355 minutes; leave time to store results
 
 
+WARM_WORKERS = 8               # sites fetched at the same time in batch mode (each site still one request at a time)
+
+
+def warm_up(targets: list[dict], args) -> dict[str, float]:
+    """Batch mode: fetch every site's pages in parallel into the run's fetch cache, so the rounds that follow
+    (one site at a time) mostly read from memory. Anything this collects is thrown away; the rounds redo it.
+    Politeness is unchanged: each site is fetched by one worker, with the usual pause between requests."""
+    from concurrent.futures import ThreadPoolExecutor
+    t0 = time.monotonic()
+
+    took: dict[str, float] = {}
+
+    def one(t):
+        s0 = time.monotonic()
+        try:
+            scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=args.mode if not t.get("full_scan_requested") else "full",
+                      use_ai=not args.no_ai, industry=t.get("industry"), previous=None)
+        except BaseException:  # Pending and anything else: the real round deals with it
+            pass
+        took[t["domain"]] = time.monotonic() - s0
+
+    print(f"\nFETCHING {len(targets)} sites, {WARM_WORKERS} at a time", flush=True)
+    with ThreadPoolExecutor(max_workers=WARM_WORKERS) as pool:
+        list(pool.map(one, targets))
+    batch.BATCH.pending.clear()
+    print(f"FETCHED in {int(time.monotonic() - t0)}s", flush=True)
+    return took  # each site's fetching time, counted in its cost row
+
+
 def cost_row(t: dict, mode: str, cost: dict) -> dict:
     """What this scan attempt used, for scan_costs. Prices and labour weights are applied in the database."""
     p = cost["payload"] or {}
@@ -286,6 +315,9 @@ def main() -> int:
 
     todo = list(targets)
     run_t0 = time.monotonic()
+    if B is not None and len(todo) > 1:
+        for d, secs in warm_up(todo, args).items():
+            started[d] = [datetime.now(timezone.utc), secs]
     for rnd in range(1, (MAX_ROUNDS + 2) if B else 2):
         if B is not None and rnd == MAX_ROUNDS + 1:
             B.closed = True  # last pass: anything still unanswered counts as a failed read, so every site finishes

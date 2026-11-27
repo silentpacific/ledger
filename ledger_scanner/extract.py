@@ -524,7 +524,7 @@ def pick_policy_links(ptype: str, links: dict[str, str]) -> list[str]:
         return []
     global ESCALATION_SPENT, ESCALATION_CALLS_SITE
     what = {"returns": "returns, refunds and exchanges policy", "shipping": "shipping and delivery policy (fees, free-shipping threshold, times)"}[ptype]
-    listing = "\n".join(f"{u} | {t}" for u, t in list(links.items())[:250])
+    listing = "\n".join(f"{u} | {t}" for u, t in list(links.items())[:120])
     schema = {"type": "object", "additionalProperties": False, "required": ["urls"],
               "properties": {"urls": {"type": "array", "items": {"type": "string"}}}}
     before = dict(USAGE.get(config.ESCALATION_MODEL, {}))

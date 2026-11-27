@@ -206,11 +206,12 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
         found: set[str] = set()
         while budget > 0 and not answered:
             if not queue or len(tried) >= limit:
-                if not core or asked_for_links:
-                    break
+                if not core or asked_for_links or any(k in found for k in core):
+                    break  # the stronger model is only asked when none of the core facts was found
                 asked_for_links = True  # last resort: let the stronger model pick from the link list
                 try:
-                    picks = extract.pick_policy_links(ptype, {u: t for u, t in (site_links or {}).items() if u not in tried})
+                    picks = extract.pick_policy_links(ptype, {u: t for u, t in (site_links or {}).items()
+                                                              if u not in tried and not discover.NOT_INFO.search(urlparse(u).path.lower())})
                 except Pending:
                     break
                 if not picks:
@@ -253,12 +254,15 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
                 except Exception as e:  # one bad page must not sink the scan
                     issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
                     continue
+            # the best page wins: a later page in the chain only fills facts still missing, so a true but
+            # different figure elsewhere (e.g. 90-day in-store exchange vs 14-day refund) isn't a conflict
+            got = [x for x in got if f"{x['category']}.{x['key']}" not in found]
             facts += got
+            found |= {f"{x['category']}.{x['key']}" for x in got if x["status"] in ("observed", "not_offered")}
             if not core:
                 if ptype != "payments":
                     answered = True
                 continue
-            found |= {f"{x['category']}.{x['key']}" for x in got if x["status"] in ("observed", "not_offered")}
             answered = all(k in found for k in core)  # keep going (within MAX_TRIES) until every core fact is found
             if not answered:  # a summary page: try the fuller page it links to first
                 queue = [u for u in discover.links_of_type(page.html, base, ptype) if u not in tried] + queue
