@@ -89,6 +89,10 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - Questions per industry: extract.FIELDS (common) + extract.INDUSTRY_FIELDS (extras per industry).
   domains.full_scan_requested = true makes a weekly run do a full scan of that site, then it clears.
 
+## Missing facts (agreed 27 Nov 2026)
+- Views fact_gaps, fact_gaps_summary, fact_coverage (db/009). After each scan: `select * from fact_gaps_summary;`
+  and `select * from fact_coverage;` show which stores miss which key facts and why. Report these with scan results.
+
 ## Cost index (agreed 27 Nov 2026)
 - Every scan attempt writes a row to scan_costs (AI tokens by model, pages, Firecrawl pages, runtime,
   conflicting facts, issues, outcome). A failed write fails the run (exit 4). Never rely on GitHub logs for costs.

@@ -1,0 +1,10 @@
+-- Applied 27 Nov 2026 via Supabase MCP (migration "fact_gaps"). Missing-facts check, views only (no AI cost):
+--   fact_gaps          one row per enabled store x missing key fact, with the likely reason and pages tried
+--   fact_gaps_summary  gaps grouped by reason
+--   fact_coverage      found / stores per industry and key fact
+-- Key facts: returns window, change of mind, free-shipping minimum, standard delivery fee, buy now pay later.
+-- A fact counts as found only if it's in publishable_facts (passed the quality rules).
+-- Reasons come from the latest scan's own issues: never scanned; store not readable; found but failed checks;
+-- built with JavaScript; no returns/shipping page found; AI read did not finish; pages read, fact not stated;
+-- not stated on the pages read.
+-- (Full SQL as applied: see the migration in Supabase; kept in step with this description.)
