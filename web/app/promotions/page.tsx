@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Stat } from "@/components/ui";
 import IndustryFilter from "@/components/IndustryFilter";
-import { filterSites, getPromotions, getSites, industryOf, promotionsFor, Promo } from "@/lib/data";
+import { getCounts, promoCalendar } from "@/lib/data";
 import { industryName } from "@/lib/industries";
-import { PROMO_TYPES, dateAU, dayKey, isDiscount, maxPct, siteName } from "@/lib/format";
+import { PROMO_TYPES, dateAU, dayKey } from "@/lib/format";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
 
@@ -25,10 +25,6 @@ const DAY = 864e5;
 
 export default async function Promotions({ searchParams }: { searchParams: Promise<{ m?: string; type?: string; view?: string; industry?: string; segment?: string }> }) {
   const sp = await searchParams;
-  const [promosAll, all] = await Promise.all([getPromotions(), getSites()]);
-  const sites = filterSites(all, sp.industry, sp.segment);
-  const promos = promotionsFor(promosAll, sites);
-  const indOf = new Map(all.map((s) => [s.domain, industryOf(s)] as const));
   const today = dayKey(new Date().toISOString());
   const month = /^\d{4}-\d{2}$/.test(sp.m || "") ? sp.m! : today.slice(0, 7);
   const [y, mo] = month.split("-").map(Number);
@@ -37,30 +33,12 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const year = sp.view === "year";
   const w0 = year ? Date.UTC(y, 0, 1) : start, w1 = year ? Date.UTC(y + 1, 0, 1) : end, span = w1 - w0;
   const nowT = Date.now();
-
-  const span_ = (p: Promo) => {
-    const a = new Date(p.starts || p.first_seen).getTime();
-    const b = p.ends ? new Date(p.ends).getTime() + DAY : p.live ? nowT : new Date(p.last_seen).getTime() + DAY;
-    return [a, Math.max(b, a + DAY)] as const;
-  };
-  const byType = sp.type && PROMO_TYPES[sp.type];
-  const rows = promos.filter((p) => (byType ? p.type === sp.type : isDiscount(p)))
-    .map((p) => ({ p, s: span_(p) })).filter(({ s }) => s[1] > w0 && s[0] < w1)
-    .sort((a, b) => industryName(indOf.get(a.p.domain)).localeCompare(industryName(indOf.get(b.p.domain))) || siteName(a.p.domain).localeCompare(siteName(b.p.domain)) || maxPct(b.p) - maxPct(a.p));
-  // one row per site in the month view: its deepest offer
-  const shown = year ? rows : [...new Map(rows.map((r) => [r.p.domain, r] as const)).values()]
-    .map((r) => rows.filter((x) => x.p.domain === r.p.domain).sort((a, b) => maxPct(b.p) - maxPct(a.p))[0]);
-
-  const live = promos.filter((p) => p.live);
-  const liveSites = new Set(live.map((p) => p.domain));
-  const discountSites = new Set(live.filter(isDiscount).map((p) => p.domain));
-  const deepest = live.filter(isDiscount).sort((a, b) => maxPct(b) - maxPct(a))[0];
-  const bf = new Set(live.filter((p) => /black friday/i.test(`${p.name} ${p.discount}`)).map((p) => p.domain));
-  // pill counts: stores with that kind of offer running at some point in the month or year being viewed
-  const inWindow = promos.filter((p) => { const s = span_(p); return s[1] > w0 && s[0] < w1; });
-  const storesWith = (f: (p: Promo) => boolean) => new Set(inWindow.filter(f).map((p) => p.domain)).size;
-  const discountCount = storesWith(isDiscount);
-  const typeCounts = Object.entries(PROMO_TYPES).map(([k, n]) => [k, n, storesWith((p) => p.type === k)] as const)
+  const byType = sp.type && PROMO_TYPES[sp.type] ? sp.type : undefined;
+  // worked out in the database (web_promo_calendar): rows to draw (at most 200), pill counts and the stats
+  const [cal, counts] = await Promise.all([promoCalendar(new Date(w0), new Date(w1), sp.industry, byType, year), getCounts()]);
+  const shown = cal.rows.map((p) => ({ p, s: [new Date(p.a).getTime(), new Date(p.b).getTime()] as const }));
+  const discountCount = cal.discount_stores;
+  const typeCounts = Object.entries(PROMO_TYPES).map(([k, n]) => [k, n, cal.types[k] || 0] as const)
     .filter(([k, , c]) => c > 0 || sp.type === k);
   const todayX = ((nowT - w0) / span) * 100;
   const ticks = year ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : Array.from({ length: days }, (_, i) => String(i + 1));
@@ -69,7 +47,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   return (
     <>
       <Header active="/promotions" />
-      <JsonLd data={pageSchema({ type: "CollectionPage", name: "Promotions calendar", path: "/promotions", crumbs: [["Promotions"]], items: [...new Set(shown.map((r) => r.p.domain))].map((d) => ({ name: siteName(d), path: `/sites/${d}` })) })} />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: "Promotions calendar", path: "/promotions", crumbs: [["Promotions"]], items: [...new Map(shown.map((r) => [r.p.domain, r.p.store])).entries()].map(([d, name]) => ({ name, path: `/sites/${d}` })) })} />
       <main className="wrap page">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
@@ -84,13 +62,13 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
           </div>
         </div>
 
-        <IndustryFilter path="/promotions" sites={all} industry={sp.industry} segment={sp.segment} keep={{ m: sp.m, type: sp.type, view: sp.view }} />
+        <IndustryFilter path="/promotions" counts={counts} industry={sp.industry} keep={{ m: sp.m, type: sp.type, view: sp.view }} />
 
         <div className="grid g4" style={{ marginTop: 24 }}>
-          <Stat k="Sites with a promotion live" v={`${liveSites.size} of ${sites.length}`} />
-          <Stat k="Running a discount or gift" v={discountSites.size} />
-          <Stat k="Deepest advertised" v={deepest ? `Up to ${maxPct(deepest)}%` : "—"} sub={deepest ? siteName(deepest.domain) : ""} />
-          <Stat k='Branded "Black Friday"' v={`${bf.size} sites`} />
+          <Stat k="Sites with a promotion live" v={`${cal.live_sites} of ${cal.sites}`} />
+          <Stat k="Running a discount or gift" v={cal.discount_sites} />
+          <Stat k="Deepest advertised" v={cal.deepest ? `Up to ${cal.deepest.pct}%` : "—"} sub={cal.deepest ? cal.deepest.store : ""} />
+          <Stat k='Branded "Black Friday"' v={`${cal.bf_sites} sites`} />
         </div>
 
         <div className="row" style={{ gap: 8, marginTop: 24 }}>
@@ -106,19 +84,20 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
                 <span style={{ flex: "1 1 auto", display: "grid", gridTemplateColumns: `repeat(${ticks.length}, minmax(0,1fr))`, textAlign: year ? "left" : "center" }}>{ticks.map((t) => <span key={t}>{t}</span>)}</span>
                 <span style={{ flex: "0 0 280px", paddingLeft: 14 }}>{year ? "Promotion" : "Headline offer"}</span>
               </div>
-              {shown.slice(0, 200).map(({ p, s }, i) => {
+              {shown.map(({ p, s }, i) => {
                 const a = Math.max(s[0], w0), b = Math.min(s[1], w1);
                 return (
                   <div key={i} style={{ display: "flex", alignItems: "center", height: sp.industry ? 36 : 42, borderBottom: "1px solid #F4F2EC", fontSize: 13 }}>
-                    <Link href={`/sites/${p.domain}`} style={{ flex: "0 0 170px", color: "var(--ink)", fontWeight: 500, lineHeight: 1.15, overflow: "hidden" }}>{siteName(p.domain)}{!sp.industry && <span className="tiny muted" style={{ display: "block", fontWeight: 400 }}>{industryName(indOf.get(p.domain))}</span>}</Link>
+                    <Link href={`/sites/${p.domain}`} style={{ flex: "0 0 170px", color: "var(--ink)", fontWeight: 500, lineHeight: 1.15, overflow: "hidden" }}>{p.store}{!sp.industry && <span className="tiny muted" style={{ display: "block", fontWeight: 400 }}>{industryName(p.industry)}</span>}</Link>
                     <span style={{ flex: "1 1 auto", position: "relative", height: 18 }}>
                       {todayX > 0 && todayX < 100 && <span style={{ position: "absolute", top: -9, bottom: -9, left: `${todayX}%`, width: 2, background: "#D97A1F" }} />}
                       <span title={`${dateAU(s[0])} – ${p.live && !p.ends ? "still running" : dateAU(s[1] - DAY)}`} style={{ position: "absolute", top: 0, height: 18, borderRadius: 4, left: `${((a - w0) / span) * 100}%`, width: `${Math.max(0.8, ((b - a) / span) * 100)}%`, background: p.starts ? "var(--accent)" : "var(--accent-light)" }} />
                     </span>
-                    <span title={p.discount || ""} style={{ flex: "0 0 280px", paddingLeft: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}{p.discount && maxPct(p) && !p.name.includes(String(maxPct(p))) ? ` · ${p.discount}` : ""}</span>
+                    <span title={p.discount || ""} style={{ flex: "0 0 280px", paddingLeft: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}{p.discount && p.pct && !p.name.includes(String(p.pct)) ? ` · ${p.discount}` : ""}</span>
                   </div>
                 );
               })}
+              {cal.shown > shown.length && <div className="tiny muted" style={{ marginTop: 10 }}>Showing the first {shown.length} of {cal.shown}, by industry and store. Pick an industry or a kind of offer to narrow it.</div>}
               <div className="row tiny muted" style={{ gap: 20, marginTop: 12 }}>
                 <span><span style={{ display: "inline-block", width: 14, height: 10, borderRadius: 2, background: "var(--accent)", verticalAlign: "middle" }} /> Dates stated by the store</span>
                 <span><span style={{ display: "inline-block", width: 14, height: 10, borderRadius: 2, background: "var(--accent-light)", verticalAlign: "middle" }} /> Dates from when we saw it (tracking began 26 Nov 2026)</span>

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Crumbs, JsonLd } from "@/components/ui";
-import { getChanges, getProducts, getPromotions, getSite, getSites } from "@/lib/data";
+import { getChanges, getProducts, getPromotions, getSite, getView } from "@/lib/data";
 import { CARDS, dateAU, describeChange, fact, fmt, list, median, money, num, show, siteName, val } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
 import { industryName } from "@/lib/industries";
@@ -13,8 +13,9 @@ import { pageSchema, storeSchema } from "@/lib/schema";
 export const revalidate = 3600;
 export const dynamicParams = true;
 
+// Store pages are built the first time someone opens them (then refreshed hourly), not all at once on every deploy.
 export async function generateStaticParams() {
-  return (await getSites()).map((s) => ({ domain: s.domain }));
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ domain: string }> }): Promise<Metadata> {
@@ -36,17 +37,13 @@ const YEAR_START = (y: number) => Date.UTC(y, 0, 1);
 
 export default async function SitePage({ params }: { params: Promise<{ domain: string }> }) {
   const { domain } = await params;
-  const [sites, promosAll, changesAll] = await Promise.all([getSites(), getPromotions(), getChanges(365)]);
-  const s = sites.find((x) => x.domain === domain);
+  const [s, promos, changes, products, medians] = await Promise.all([getSite(domain), getPromotions([domain]), getChanges(365, [domain]),
+    getProducts(domain), getView<Record<string, Record<string, number | null>>>("medians")]);
   if (!s) notFound();
-  const products = await getProducts(domain);
   const name = siteName(s);
-  const promos = promosAll.filter((p) => p.domain === domain);
-  const changes = changesAll.filter((c) => c.domain === domain);
 
-  // how it compares with the market
-  const peers = sites.filter((x) => (x.industry || "jewellery") === (s.industry || "jewellery"));
-  const market = (key: string) => median(peers.map((x) => num(x, key)).filter((n): n is number => n !== undefined));
+  // how it compares with the market: the industry's medians, worked out after each scan
+  const market = (key: string) => medians?.[s.industry || "jewellery"]?.[key] ?? undefined;
   const cmp = [
     { label: "Free-shipping threshold", key: "shipping.free_shipping_threshold", unit: "$", better: "lower" },
     { label: "Standard delivery fee", key: "shipping.standard_shipping_cost", unit: "$", better: "lower" },

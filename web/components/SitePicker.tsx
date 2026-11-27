@@ -1,11 +1,15 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { findStores, type StoreHit } from "@/lib/client";
+import { industryName } from "@/lib/industries";
 
-type Opt = { domain: string; name: string; industry: string };
+type Opt = { domain: string; name: string };
 
-/** Search box for the Compare page: type to filter, arrows to move, Enter to add, Backspace on an empty box removes the last site. */
-export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[]; chosen: string[]; max?: number }) {
+/** Search box for the Compare page: type to search (stores are looked up as you type, never all loaded), arrows to move,
+ * Enter to add, Backspace on an empty box removes the last site. `chosen` are the stores already picked, with names. */
+export default function SitePicker({ chosen: picked, max = 5 }: { chosen: Opt[]; max?: number }) {
+  const chosen = picked.map((o) => o.domain);
   const router = useRouter();
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -29,12 +33,16 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
     input.current?.focus({ preventScroll: true });
     setOpen(true);
   }, [chosen.join(",")]);
-  const byDomain = useMemo(() => new Map(options.map((o) => [o.domain, o])), [options]);
-  const matches = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    return options.filter((o) => !chosen.includes(o.domain) &&
-      (!t || o.name.toLowerCase().includes(t) || o.domain.includes(t) || o.industry.toLowerCase().includes(t))).slice(0, 12);
-  }, [q, options, chosen]);
+  const byDomain = new Map(picked.map((o) => [o.domain, o]));
+  const [found, setFound] = useState<StoreHit[]>([]);
+  const t = q.trim();
+  useEffect(() => { // matching stores, a moment after typing stops
+    if (!t) { setFound([]); return; }
+    const ac = new AbortController();
+    const h = setTimeout(() => findStores(t, 12 + chosen.length, ac.signal).then(setFound).catch(() => {}), 120);
+    return () => { clearTimeout(h); ac.abort(); };
+  }, [t, chosen.join(",")]);
+  const matches = found.filter((o) => !chosen.includes(o.domain)).slice(0, 12);
   const go = (list: string[]) => {
     try { if (wrap.current) sessionStorage.setItem(KEY, String(wrap.current.getBoundingClientRect().top)); } catch { /* storage unavailable */ }
     router.push(list.length ? `/compare?sites=${list.join(",")}` : "/compare", { scroll: false });
@@ -73,9 +81,9 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
                 e.preventDefault();
                 // text typed before the page finished loading isn't in state yet: read it from the box
                 const typed = e.currentTarget.value;
-                if (typed !== q) { setQ(typed); const t = typed.trim().toLowerCase();
-                  const m = options.find((o) => !chosen.includes(o.domain) && (o.name.toLowerCase().includes(t) || o.domain.includes(t) || o.industry.toLowerCase().includes(t)));
-                  if (m) add(m.domain); return; }
+                if (typed !== q || (t && !matches.length)) { setQ(typed);
+                  findStores(typed, 6).then((xs) => { const m = xs.find((o) => !chosen.includes(o.domain)); if (m) add(m.domain); }).catch(() => {});
+                  return; }
                 const o = pick(); if (o) add(o.domain);
               }
               else if (e.key === "Escape") setOpen(false);
@@ -87,7 +95,7 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
                 <li key={o.domain} id={`${id}-${n}`} role="option" aria-selected={n === i}
                   onMouseDown={(e) => { e.preventDefault(); add(o.domain); }} onMouseEnter={() => setI(n)}
                   className="picker-opt">
-                  <span className="picker-name">{o.name}</span><span className="picker-ind">{o.industry}</span>
+                  <span className="picker-name">{o.name}</span><span className="picker-ind">{industryName(o.industry)}</span>
                 </li>
               ))}
             </ul>

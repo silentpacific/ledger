@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
-import { getPromotions, getSites, Site } from "@/lib/data";
+import { getPromotions, getSitesIn, getView, Site } from "@/lib/data";
+import type { Ref } from "@/lib/views";
 import { Bars } from "@/components/ui";
 import SitePicker from "@/components/SitePicker";
-import { INDUSTRIES, industryName } from "@/lib/industries";
+import { industryName } from "@/lib/industries";
 import { isDiscount, list, maxPct, money, num, show, siteName, val } from "@/lib/format";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
@@ -19,11 +20,12 @@ type RowDef = { label: string; get: (s: Site) => string; score?: (s: Site) => nu
 
 export default async function Compare({ searchParams }: { searchParams: Promise<{ sites?: string; add?: string }> }) {
   const sp = await searchParams;
-  const [all, promos] = await Promise.all([getSites(), getPromotions()]);
-  let chosen = (sp.sites ? sp.sites.split(",") : []).map((d) => d.trim()).filter(Boolean);
-  if (sp.add) chosen.push(sp.add);
-  chosen = [...new Set(chosen)].filter((d) => all.some((s) => s.domain === d)).slice(0, 5);
-  const sites = chosen.map((d) => all.find((s) => s.domain === d)!);
+  let asked = (sp.sites ? sp.sites.split(",") : []).map((d) => d.trim().toLowerCase()).filter(Boolean);
+  if (sp.add) asked.push(sp.add);
+  asked = [...new Set(asked)].slice(0, 5);
+  const [sites, promos, cv] = await Promise.all([getSitesIn(asked), asked.length ? getPromotions(asked) : Promise.resolve([]),
+    getView<{ suggestions: { name: string; sites: Ref[] }[] }>("compare")]);
+  const chosen = sites.map((s) => s.domain);
   const headline = (s: Site) => {
     const p = promos.filter((x) => x.domain === s.domain && x.live && isDiscount(x)).sort((a, b) => maxPct(b) - maxPct(a))[0];
     return p ? `${p.name}${p.discount && !p.name.includes(p.discount) ? `: ${p.discount}` : ""}` : "None seen";
@@ -60,10 +62,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     if (xs.length < 2) return undefined;
     return r.better === "low" ? Math.min(...xs) : Math.max(...xs);
   };
-  const suggestions = INDUSTRIES.map((i) => ({ name: i.name, sites: [...all.filter((x) => (x.industry || "jewellery") === i.slug && x.domain !== "curasept.com.au")]
-      .sort((a, b) => Object.keys(b.facts).length - Object.keys(a.facts).length).slice(0, 3) })).filter((g) => g.sites.length >= 2);
-  const options = [...all].sort((a, b) => siteName(a).localeCompare(siteName(b)))
-    .map((s) => ({ domain: s.domain, name: siteName(s), industry: industryName(s.industry) }));
+  const suggestions = cv?.suggestions ?? [];
   const chartFs = sites.map((s) => ({ label: siteName(s), n: num(s, "shipping.free_shipping_threshold") ?? 0, text: num(s, "shipping.free_shipping_threshold") !== undefined ? money(num(s, "shipping.free_shipping_threshold"))! : "—" }));
   const chartRet = sites.map((s) => ({ label: siteName(s), n: num(s, "policies.returns.period_days") ?? 0, text: num(s, "policies.returns.period_days") !== undefined ? `${num(s, "policies.returns.period_days")} days` : "—" }));
 
@@ -75,7 +74,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
         <div className="eyebrow">Analyse</div>
         <h1 className="title">Compare stores side by side</h1>
         <p className="lede">See how competitors differ on shipping, returns, buy now pay later, loyalty and promotions. Pick up to 5 stores from any industry. Values are the latest quality-checked facts; highlighted cells are the most customer-friendly in the group.</p>
-        <SitePicker options={options} chosen={chosen} />
+        <SitePicker chosen={sites.map((s) => ({ domain: s.domain, name: siteName(s) }))} />
 
         {sites.length === 0 && (
           <div className="grid g2" style={{ marginTop: 24 }}>
@@ -90,7 +89,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
               <h2 style={{ fontSize: 18, margin: "0 0 8px" }}>Or start with one of these</h2>
               {suggestions.map((g) => (
                 <div key={g.name} className="kv">
-                  <span><strong>{g.name}</strong> <span className="muted">· {g.sites.map((x) => siteName(x)).join(", ")}</span></span>
+                  <span><strong>{g.name}</strong> <span className="muted">· {g.sites.map((x) => x.name).join(", ")}</span></span>
                   <Link href={`/compare?sites=${g.sites.map((x) => x.domain).join(",")}`} className="small" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>Compare →</Link>
                 </div>
               ))}

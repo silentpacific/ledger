@@ -1,27 +1,44 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { findStores, rpcClient, type StoreHit } from "@/lib/client";
+import type { Card } from "@/lib/views";
+import { industryName } from "@/lib/industries";
 
-export type Profile = {
-  domain: string; name: string; industry: string; checked: string;
-  rows: [string, string | null][]; peers: string[];
-};
+export type Profile = Card;
 
-/** The homepage hero: type a store, see its record. The highlighted match previews instantly; Enter opens it. */
-export default function StoreLookup({ profiles, start, tryThese, children }: {
-  profiles: Profile[]; start: string; tryThese: { domain: string; name: string }[]; children: React.ReactNode;
+/** The homepage hero: type a store, see its record. Matches and records are fetched as you type (never every store);
+ * the highlighted match previews as soon as its record arrives; Enter opens it. */
+export default function StoreLookup({ start, tryThese, children }: {
+  start: Card | null; tryThese: Card[]; children: React.ReactNode;
 }) {
   const router = useRouter();
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
   const [i, setI] = useState(0);
-  const [shown, setShown] = useState(start);
+  const [shown, setShown] = useState(start?.domain ?? "");
+  const [matches, setMatches] = useState<StoreHit[]>([]);
+  const [searched, setSearched] = useState("");
+  const [cards, setCards] = useState<Record<string, Card>>(() =>
+    Object.fromEntries([start, ...tryThese].filter((c): c is Card => !!c).map((c) => [c.domain, c])));
   const t = q.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "");
-  const matches = useMemo(() => (t ? profiles.filter((p) => p.name.toLowerCase().includes(t) || p.domain.includes(t)).slice(0, 7) : []), [t, profiles]);
-  const p = profiles.find((x) => x.domain === (matches[i]?.domain ?? shown)) ?? profiles[0];
-  const unknown = t.length > 2 && !matches.length;
+  useEffect(() => { // matching stores, a moment after typing stops
+    if (!t) { setMatches([]); setSearched(""); return; }
+    const ac = new AbortController();
+    const h = setTimeout(() => findStores(t, 7, ac.signal).then((m) => { setMatches(m); setSearched(t); }).catch(() => {}), 120);
+    return () => { clearTimeout(h); ac.abort(); };
+  }, [t]);
+  const want = matches[i]?.domain ?? shown;
+  useEffect(() => { // the record for the highlighted store
+    if (!want || cards[want]) return;
+    const ac = new AbortController();
+    rpcClient<Card | null>("web_site_card", { p_domain: want }, ac.signal).then((c) => c && setCards((x) => ({ ...x, [want]: c }))).catch(() => {});
+    return () => ac.abort();
+  }, [want, cards]);
+  const p = cards[want] ?? cards[shown] ?? start;
+  const unknown = t.length > 2 && searched === t && !matches.length;
   const open = (d: string) => router.push(`/sites/${d}`);
 
   return (
@@ -56,7 +73,7 @@ export default function StoreLookup({ profiles, start, tryThese, children }: {
             {matches.map((m, n) => (
               <li key={m.domain} id={`${id}-${n}`} role="option" aria-selected={n === i}
                 onMouseEnter={() => setI(n)} onMouseDown={(e) => { e.preventDefault(); open(m.domain); }}>
-                <span>{m.name}</span><span className="lookup-ind">{m.industry}</span>
+                <span>{m.name}</span><span className="lookup-ind">{industryName(m.industry)}</span>
               </li>
             ))}
           </ul>
@@ -64,7 +81,7 @@ export default function StoreLookup({ profiles, start, tryThese, children }: {
       </div>
 
       <article className="record" aria-live="polite">
-        {unknown ? (
+        {!p ? null : unknown ? (
           <div className="record-empty">
             <h2>We don't track “{q.trim()}” yet</h2>
             <p>Check the spelling, or suggest the store using the form at the bottom of this page. We add stores whose terms allow it.</p>
