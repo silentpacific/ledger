@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 from . import config, detect, discover, extract, pagetext, products_generic, promos, shopify, terms
 from .detect import fact
+from .batch import Pending
 from .fetch import Fetcher
 
 AU_TZ = timezone(timedelta(hours=10, minutes=30))
@@ -76,6 +77,8 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
     if ai:
         try:
             promos_live += [dict(p, live=True, source="homepage") for p in extract.read_promotions(home.url, home.text)]
+        except Pending:
+            pass  # batch mode: answered in a later round
         except Exception as e:
             issues.append(f"AI read failed for homepage promotions: {type(e).__name__}: {str(e)[:200]}")
     lastmods = {u: lm for u, lm in sm["pages"] if lm}
@@ -93,6 +96,8 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         pt = f.fetch(pages_by_type["promo_terms"][0])
         try:
             promo_items = extract.read_promotions(pt.url, pt.text) if pt.status == 200 and pt.text else []
+        except Pending:
+            promo_items = []
         except Exception as e:
             promo_items = []
             issues.append(f"AI read failed for promo terms: {type(e).__name__}: {str(e)[:200]}")
@@ -201,7 +206,10 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
                 if not core or asked_for_links:
                     break
                 asked_for_links = True  # last resort: let the stronger model pick from the link list
-                picks = extract.pick_policy_links(ptype, {u: t for u, t in (site_links or {}).items() if u not in tried})
+                try:
+                    picks = extract.pick_policy_links(ptype, {u: t for u, t in (site_links or {}).items() if u not in tried})
+                except Pending:
+                    break
                 if not picks:
                     break
                 issues.append(f"{ptype}: {config.ESCALATION_MODEL} suggested {', '.join(picks)}")
@@ -237,6 +245,8 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
                 budget -= 1
                 try:
                     got = extract.read_page(ptype, page.url, text, industry, core or ())
+                except Pending:
+                    break  # batch mode: this type continues in the next round
                 except Exception as e:  # one bad page must not sink the scan
                     issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
                     continue

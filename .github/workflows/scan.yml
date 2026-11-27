@@ -41,6 +41,11 @@ on:
         required: false
         default: false
         type: boolean
+      batch:
+        description: "Use the half-price Message Batches API (slower: results come back in rounds)"
+        required: false
+        default: false
+        type: boolean
   schedule:
     # Times are UTC. Weekly scan: Monday 02:13 UTC (about 12:43 Adelaide).
     - cron: "13 2 * * 1"
@@ -64,15 +69,25 @@ jobs:
       CLAUDE_MODEL: ${{ github.event.inputs.model || vars.CLAUDE_MODEL }}
       ESCALATION_MODEL: ${{ vars.ESCALATION_MODEL }}
       TERMS_UNCLEAR_POLICY: ${{ vars.TERMS_UNCLEAR_POLICY || 'skip' }}
+      # Scheduled runs on these UTC dates do nothing (27 Nov 2026: the full scan ran early, so 1 Dec is skipped)
+      SKIP_SCHEDULED_DATES: "2026-12-01"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
+      - name: Skip this scheduled run?
+        id: skip
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && echo ",$SKIP_SCHEDULED_DATES," | grep -q ",$(date -u +%F),"; then
+            echo "Scheduled scan skipped today ($(date -u +%F)) by SKIP_SCHEDULED_DATES"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
       - run: pip install -r requirements.txt
+        if: steps.skip.outputs.skip != 'true'
       - name: Run scanner
-        if: github.event.inputs.recheck_refusals != 'true' && github.event.inputs.dedupe_promotions != 'true'
+        if: steps.skip.outputs.skip != 'true' && github.event.inputs.recheck_refusals != 'true' && github.event.inputs.dedupe_promotions != 'true'
         run: |
           MODE="${{ github.event.inputs.mode }}"
           if [ -z "$MODE" ]; then
@@ -85,6 +100,8 @@ jobs:
           DRY=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
           if [ "${{ github.event.inputs.no_ai }}" = "true" ]; then DRY="$DRY --no-ai"; fi
+          # half-price batches: the run's own switch, or the USE_BATCH variable for scheduled runs
+          if [ "${{ github.event.inputs.batch }}" = "true" ] || { [ "${{ github.event_name }}" = "schedule" ] && [ "${{ vars.USE_BATCH }}" = "true" ]; }; then DRY="$DRY --batch"; fi
           if [ -n "${{ github.event.inputs.domain }}" ]; then
             # one run for the whole list, in order, with the spend budget
             python run.py --domain-list "${{ github.event.inputs.domain }}" --mode "$MODE" $DRY $BUDGET
@@ -92,7 +109,7 @@ jobs:
             python run.py --all --mode "$MODE" $BUDGET
           fi
       - name: Recheck terms of switched-off sites (monthly run only)
-        if: github.event.schedule == '17 3 1 * *' || github.event.inputs.recheck_refusals == 'true'
+        if: steps.skip.outputs.skip != 'true' && (github.event.schedule == '17 3 1 * *' || github.event.inputs.recheck_refusals == 'true')
         run: python run.py --recheck-refusals ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
       - name: Merge duplicate promotions
         if: github.event.inputs.dedupe_promotions == 'true'

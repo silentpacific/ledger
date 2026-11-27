@@ -620,3 +620,129 @@ def test_unchanged_page_reuses_stored_facts(monkeypatch):
     # same text, but the questions changed (another industry's set): read again
     page.text = _Page(b, "x").text or page.text
     assert extract.question_signature("jewellery") != extract.question_signature("fashion")
+
+
+# -- batch mode (27 Nov 2026) ---------------------------------------------------
+class _Msg:
+    def __init__(self, text, inp=1000, out=100):
+        self.content = [type("B", (), {"type": "text", "text": text})()]
+        self.usage = type("U", (), {"input_tokens": inp, "output_tokens": out})()
+
+
+class _FakeBatches:
+    """Answers every request with the same returns-window reading."""
+    def __init__(self, answer):
+        self.answer, self.sent = answer, []
+
+    def create(self, requests):
+        self.sent.append(requests)
+        return type("Bt", (), {"id": f"b{len(self.sent)}", "processing_status": "in_progress"})()
+
+    def retrieve(self, bid):
+        return type("Bt", (), {"id": bid, "processing_status": "ended"})()
+
+    def results(self, bid):
+        for r in self.sent[int(bid[1:]) - 1]:
+            res = type("R", (), {"type": "succeeded", "message": _Msg(self.answer)})()
+            yield type("E", (), {"custom_id": r["custom_id"], "result": res})()
+
+
+def test_batch_rounds_read_page(monkeypatch):
+    from ledger_scanner import batch
+    _reset_escalation()
+    answer = '{"facts": [{"key": "returns.period_days", "status": "observed", "value_json": "14", "evidence": "within 14 days of delivery", "confidence": "high"}]}'
+    fake = type("C", (), {})()
+    fake.messages = type("M", (), {})()
+    fake.messages.batches = _FakeBatches(answer)
+    B = batch.BATCH = batch.Batch()
+    try:
+        B.site = "a.com.au"
+        # round 1: both reads are collected, nothing is answered yet
+        try:
+            extract.read_page("returns", "u", RTEXT, core=CORE_R)
+            assert False, "should be put off"
+        except batch.Pending:
+            pass
+        assert len(B.pending) == 2 and B.waiting("a.com.au")
+        assert B.estimate_pending_usd() > 0
+        sent = B.submit_and_wait(fake, timeout_s=5, poll_s=0, log=lambda *_: None)
+        assert sent == 2 and not B.pending
+        # round 2: the same read is answered from the batch; usage is counted per site at the batch price
+        out = extract.read_page("returns", "u", RTEXT, core=CORE_R)
+        assert out[0]["value"] == 14 and out[0]["evidence_verified"] is True
+        u = B.usage["a.com.au"]["claude-haiku-5-5"]
+        assert u["calls"] == 2 and u["batch"] is True
+        assert abs(B.spent - 2 * (1000 / 1e6 * 0.10 + 100 / 1e6 * 0.50) * 0.5) < 1e-9
+        # closed (last round): an unanswered request fails instead of waiting
+        B.closed = True
+        try:
+            extract.read_page("returns", "u", "a different page with 30 days", core=CORE_R)
+            assert False
+        except RuntimeError:
+            pass
+    finally:
+        batch.BATCH = None
+
+
+def test_pending_is_not_swallowed_by_except_exception():
+    from ledger_scanner import batch
+    try:
+        try:
+            raise batch.Pending("k")
+        except Exception:
+            assert False, "Pending must not be caught as an ordinary error"
+    except batch.Pending:
+        pass
+
+
+def test_fetch_cache_reuses_responses(monkeypatch):
+    from ledger_scanner import fetch
+    calls = []
+    monkeypatch.setattr(fetch.Fetcher, "_get_live", lambda self, url: calls.append(url) or type("R", (), {"status_code": 200, "text": "x"})())
+    fetch.RUN_CACHE = {}
+    try:
+        f1, f2 = fetch.Fetcher("https://a.com.au/"), fetch.Fetcher("https://a.com.au/")
+        f1._get("https://a.com.au/x"); f2._get("https://a.com.au/x")
+        assert calls == ["https://a.com.au/x"]
+    finally:
+        fetch.RUN_CACHE = None
+
+
+def test_run_loop_batch_end_to_end(monkeypatch, tmp_path):
+    """Two sites through run.main --batch: round 1 collects, one batch goes out, round 2 stores both;
+    one cost row per site with batch usage and no time counted for waiting."""
+    import run
+    from ledger_scanner import batch, db, fetch
+    _reset_escalation()
+    monkeypatch.chdir(tmp_path)
+    answer = '{"facts": [{"key": "returns.period_days", "status": "observed", "value_json": "14", "evidence": "within 14 days of delivery", "confidence": "high"}]}'
+    fake = type("C", (), {})()
+    fake.messages = type("M", (), {})()
+    fake.messages.batches = _FakeBatches(answer)
+    monkeypatch.setattr(extract, "_client", lambda: fake)
+    sites = [{"domain": "a.com.au", "homepage_url": "https://a.com.au/", "platform": None, "industry": "pet"},
+             {"domain": "b.com.au", "homepage_url": "https://b.com.au/", "platform": None, "industry": "beauty"}]
+    monkeypatch.setattr(db, "domains_due", lambda limit=1000: sites)
+    stored, costs = [], []
+    monkeypatch.setattr(db, "ingest", lambda p: stored.append(p["scan"]["domain"]) or "scan-id")
+    monkeypatch.setattr(db, "record_cost", lambda row: costs.append(row))
+    monkeypatch.setattr(db, "previous_pages", lambda d: None)
+    monkeypatch.setattr(db, "record_terms", lambda *a: None)
+    monkeypatch.setattr(db, "current_facts", lambda d: {})
+    monkeypatch.setattr(db, "domain_promotions", lambda d: [])
+    monkeypatch.setattr(db, "clear_full_scan_request", lambda d: None)
+    def fake_scan(domain, homepage_url, platform=None, mode="full", use_ai=True, industry=None, previous=None):
+        facts = extract.read_page("returns", "https://" + domain + "/pages/returns", RTEXT, industry, CORE_R)
+        return {"scan": {"domain": domain, "scan_started_at": "2026-11-27T12:00:00+10:30", "scan_status": "complete",
+                         "pages_fetched": [{"fetch_method": "http"}]},
+                "facts": facts, "promotions": [], "promotion_history_from_terms_page": [], "products": [], "issues_found": []}
+    monkeypatch.setattr(run, "scan_site", fake_scan)
+    monkeypatch.setattr("sys.argv", ["run.py", "--all", "--mode", "full", "--batch", "--budget", "1"])
+    try:
+        rc = run.main()
+    finally:
+        batch.BATCH, fetch.RUN_CACHE = None, None
+    assert rc == 0 and sorted(stored) == ["a.com.au", "b.com.au"]
+    assert len(fake.messages.batches.sent) == 1 and len(fake.messages.batches.sent[0]) == 4  # 2 sites x 2 reads, one batch
+    assert len(costs) == 2 and all(c["outcome"] == "stored" for c in costs)
+    assert all(c["ai_usage"]["claude-haiku-5-5"]["batch"] for c in costs) and all(c["ai_cost_usd"] > 0 for c in costs)

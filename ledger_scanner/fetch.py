@@ -13,6 +13,10 @@ import requests
 
 from . import config
 
+# Batch mode scans each site in several rounds; this keeps every response of the run so later
+# rounds don't contact the site again. None outside batch mode.
+RUN_CACHE: dict | None = None
+
 
 @dataclass
 class Page:
@@ -68,6 +72,14 @@ class Fetcher:
 
     # -- fetching -----------------------------------------------------------
     def _get(self, url: str) -> requests.Response:
+        if RUN_CACHE is not None and ("get", url) in RUN_CACHE:
+            return RUN_CACHE[("get", url)]
+        r = self._get_live(url)
+        if RUN_CACHE is not None:
+            RUN_CACHE[("get", url)] = r
+        return r
+
+    def _get_live(self, url: str) -> requests.Response:
         wait = config.SECONDS_BETWEEN_REQUESTS - (time.time() - self._last)
         if wait > 0:
             time.sleep(wait)
@@ -111,6 +123,10 @@ class Fetcher:
             return p
         if not config.FIRECRAWL_API_KEY:
             return self.fetch(url)
+        if RUN_CACHE is not None and ("render", url) in RUN_CACHE:
+            p = Page(**RUN_CACHE[("render", url)].__dict__)
+            self.pages.append(p)
+            return p
         try:
             r = requests.post(
                 "https://api.firecrawl.dev/v2/scrape",
@@ -128,6 +144,8 @@ class Fetcher:
                 p.note = f"firecrawl error {r.status_code}"
         except requests.RequestException as e:
             p = Page(url, None, method="firecrawl", note=f"firecrawl failed: {type(e).__name__}")
+        if RUN_CACHE is not None:
+            RUN_CACHE[("render", url)] = Page(**p.__dict__)
         self.pages.append(p)
         return p
 

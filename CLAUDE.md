@@ -51,7 +51,12 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - Unchanged pages are skipped (agreed 27 Nov 2026): each AI-read page stores a fingerprint "own:<sha256>"
   of its own text + the site's question set + model in scan_pages.content_hash; a full scan that sees the
   same fingerprint reuses that page's stored facts (previous_page_hashes RPC) with no AI call.
-- Batch API (half price) agreed 27 Nov 2026: to be built after the 30 Nov run (see plan in chat).
+- Batch mode (half price, built 27 Nov 2026): `run.py --batch` / workflow input batch=true; scheduled runs use
+  it when the repo variable USE_BATCH=true. Sites are scanned in rounds (ledger_scanner/batch.py): AI requests
+  are collected, sent as one Message Batch, and each site is re-run from a per-run fetch cache until nothing is
+  left to ask (max 5 rounds, then finished with what's answered). Cost rows count each site's active time only.
+- Schedule changes 27 Nov 2026: full scan of all sites run early (27 Nov); weekly 30 Nov (Cyber Monday) kept;
+  1 Dec monthly skipped via SKIP_SCHEDULED_DATES in scan.yml; weekly 7/14/21/28 Dec; monthly from 1 Jan.
 - Scan cadence is the same for every industry: weekly = promotions, products watch list, content;
   monthly (1st) = everything else. The 30 Nov non-jewellery full rescan is a one-off for new questions.
 - Runs pause at a budget (RUN_BUDGET_USD var, default $4) and exit 3 so GitHub emails him.

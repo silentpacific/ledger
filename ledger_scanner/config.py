@@ -22,6 +22,8 @@ if ESCALATION_MODEL.lower() in ("off", "none", "0"):
 # Last-resort caps for the stronger model (27 Nov 2026): per site, and per run in USD.
 ESCALATION_MAX_PER_SITE = int(_env("ESCALATION_MAX_PER_SITE", "2"))
 ESCALATION_RUN_BUDGET_USD = float(_env("ESCALATION_RUN_BUDGET_USD", "0.50"))
+# Message Batches API price, as a share of the normal price
+BATCH_PRICE_FACTOR = 0.5
 
 # Crawler identity (honest user agent with a contact address)
 CRAWLER_CONTACT = _env("CRAWLER_CONTACT")

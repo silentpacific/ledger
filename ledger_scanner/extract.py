@@ -202,18 +202,22 @@ def reset_usage() -> None:
     ESCALATION_CALLS_SITE = 0
 
 
+def _cost(m: str, u: dict) -> float:
+    pin, pout = PRICES.get(m, (0, 0))
+    return (config.BATCH_PRICE_FACTOR if u.get("batch") else 1) * (u["input"] / 1e6 * pin + u["output"] / 1e6 * pout)
+
+
 def usage_cost() -> float:
-    return sum(u["input"] / 1e6 * PRICES.get(m, (0, 0))[0] + u["output"] / 1e6 * PRICES.get(m, (0, 0))[1]
-               for m, u in USAGE.items())
+    """Cost of USAGE in USD; batch entries (marked "batch") at the batch price."""
+    return sum(_cost(m, u) for m, u in USAGE.items())
 
 
 def usage_summary() -> str:
     parts, total = [], 0.0
     for m, u in USAGE.items():
-        pin, pout = PRICES.get(m, (0, 0))
-        cost = u["input"] / 1e6 * pin + u["output"] / 1e6 * pout
+        cost = _cost(m, u)
         total += cost
-        parts.append(f"{m}: calls={u['calls']} in={u['input']} out={u['output']} ~${cost:.3f}")
+        parts.append(f"{m}{' (batch)' if u.get('batch') else ''}: calls={u['calls']} in={u['input']} out={u['output']} ~${cost:.3f}")
     return " | ".join(parts) + f" | total ~${total:.3f}"
 
 
@@ -264,6 +268,16 @@ def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None 
     req = _request(instructions, schema, url, text, order)
     if model:
         req["model"] = model
+    msg = _call(req)
+    raw = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
+    return _parse(raw)
+
+
+def _call(req: dict):
+    """One Messages request: sent now, or (in batch mode) answered from the batch / put off."""
+    from . import batch
+    if batch.BATCH is not None:
+        return batch.BATCH.call(req)
     global OUT_OF_CREDIT
     try:
         msg = _client().messages.create(**req)
@@ -277,8 +291,7 @@ def _ask(page_type: str, url: str, text: str, variant: int, fields: dict | None 
         m["calls"] += 1
         m["input"] += getattr(u, "input_tokens", 0) or 0
         m["output"] += getattr(u, "output_tokens", 0) or 0
-    raw = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
-    return _parse(raw)
+    return msg
 
 
 def _parse(raw: str) -> list[dict]:
@@ -425,6 +438,9 @@ def escalation_allowed() -> bool:
 
 
 def _escalation_cost(before: dict) -> float:
+    from . import batch
+    if batch.BATCH is not None:
+        return 0.0  # counted by the batch when its results arrive
     m = config.ESCALATION_MODEL
     u, b = USAGE.get(m, {}), before or {}
     pin, pout = PRICES.get(m, (0, 0))
@@ -446,8 +462,16 @@ def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom
     """Two reads by the first model, agreement and quote checks. Core facts (e.g. the returns window)
     the two reads can't settle get one re-read by the stronger model, within its caps; that read must
     agree with one of the first two and pass the quote checks."""
-    a = {f.get("key"): f for f in _ask(page_type, url, text, 0, fields) if f.get("key") in fields}
-    b = {f.get("key"): f for f in _ask(page_type, url, text, 1, fields) if f.get("key") in fields}
+    from .batch import Pending
+    reads, waiting = [], None
+    for variant in (0, 1):  # in batch mode both reads go out in the same round
+        try:
+            reads.append({f.get("key"): f for f in _ask(page_type, url, text, variant, fields) if f.get("key") in fields})
+        except Pending as p:
+            waiting = p
+    if waiting:
+        raise waiting
+    a, b = reads
     out = {k: _agree(fields[k], k, a.get(k), b.get(k), url, text, config.CLAUDE_MODEL)
            for k in fields if a.get(k) or b.get(k)}
     todo = [k for k, x in out.items() if _unsettled(x) and f"{fields[k]['cat']}.{k}" in core]
@@ -488,16 +512,10 @@ def pick_policy_links(ptype: str, links: dict[str, str]) -> list[str]:
     before = dict(USAGE.get(config.ESCALATION_MODEL, {}))
     ESCALATION_CALLS_SITE += 1
     try:
-        msg = _client().messages.create(
+        msg = _call(dict(
             model=config.ESCALATION_MODEL, max_tokens=500, system="You help find pages on a website. Use only the list given.",
             output_config={"format": {"type": "json_schema", "schema": schema}},
-            messages=[{"role": "user", "content": LINK_PICK.format(what=what) + "\n\n" + listing}])
-        u = getattr(msg, "usage", None)
-        if u is not None:
-            m = USAGE.setdefault(config.ESCALATION_MODEL, {"calls": 0, "input": 0, "output": 0})
-            m["calls"] += 1
-            m["input"] += getattr(u, "input_tokens", 0) or 0
-            m["output"] += getattr(u, "output_tokens", 0) or 0
+            messages=[{"role": "user", "content": LINK_PICK.format(what=what) + "\n\n" + listing}]))
         raw = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
         urls = json.loads(raw).get("urls") or []
     except Exception:

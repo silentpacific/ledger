@@ -14,7 +14,8 @@ import time
 import traceback
 from datetime import datetime, timezone
 
-from ledger_scanner import config, extract, db, promos
+from ledger_scanner import batch, config, extract, db, promos
+from ledger_scanner.batch import Pending
 from ledger_scanner.scan import scan_site
 
 
@@ -85,6 +86,11 @@ def dedupe_stored_promotions(domain: str, dry: bool) -> int:
     return merged
 
 
+MAX_ROUNDS = 5                 # batch rounds before finishing with what's been answered
+BATCH_WAIT_SECONDS = 4 * 3600  # per round
+JOB_SECONDS = 330 * 60         # GitHub stops the job at 355 minutes; leave time to store results
+
+
 def cost_row(t: dict, mode: str, cost: dict) -> dict:
     """What this scan attempt used, for scan_costs. Prices and labour weights are applied in the database."""
     p = cost["payload"] or {}
@@ -122,6 +128,7 @@ def main() -> int:
     ap.add_argument("--dedupe-promotions", action="store_true",
                     help="merge duplicate promotions already stored (all enabled sites, or --domain)")
     ap.add_argument("--no-ai", action="store_true", help="code-based facts only (no Anthropic calls)")
+    ap.add_argument("--batch", action="store_true", help="send AI requests through the half-price Message Batches API")
     args = ap.parse_args()
 
     if args.domain:
@@ -167,42 +174,47 @@ def main() -> int:
 
     out_dir = pathlib.Path("scan-output")
     out_dir.mkdir(exist_ok=True)
-    failures = 0
-    cost_failures = 0
-    spent = 0.0
-    paused = False
+    state = {"failures": 0, "cost_failures": 0, "spent": 0.0, "paused": False}
     next_site_allowance = 0.20  # a big site can cost ~$0.10-0.15; keep headroom
-    extract.reset_usage()
-    for n, t in enumerate(targets):
-        spent += extract.usage_cost()  # cost of the previous site, even if it failed
-        extract.reset_usage()
-        if args.budget and spent + next_site_allowance > args.budget:
-            left = [x["domain"] for x in targets[n:]]
-            print(f"\nPAUSED: estimated AI spend ${spent:.2f} is near the ${args.budget:.2f} budget. "
-                  f"{len(left)} sites not started: {', '.join(left)}")
-            paused = True
-            break
+    B = None
+    if args.batch:  # half-price Message Batches: sites are scanned in rounds (see ledger_scanner/batch.py)
+        from ledger_scanner import fetch
+        B = batch.BATCH = batch.Batch()
+        fetch.RUN_CACHE = {}
+    started: dict[str, list] = {}   # domain -> [first start time, active seconds so far] (batch rounds)
+    prev_cache: dict[str, dict | None] = {}
+
+    def scan_one(t: dict) -> str | None:
+        """Scan (or, in batch mode, continue scanning) one site. Returns "pending", "stop" or None."""
         mode = "full" if args.mode == "weekly" and t.get("full_scan_requested") else args.mode
-        cost = {"started": datetime.now(timezone.utc), "t0": time.monotonic(), "outcome": "failed",
-                "payload": None, "scan_id": None}
-        print(f"\n=== {t['domain']} ({mode}{', full rescan requested' if mode != args.mode else ''}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
+        extract.reset_usage()
+        if B is not None:
+            B.site = t["domain"]
+        first = started.setdefault(t["domain"], [datetime.now(timezone.utc), 0.0])
+        # runtime = this site's own working time across rounds, not the time spent waiting for batches
+        cost = {"started": first[0], "t0": time.monotonic() - first[1], "outcome": "failed", "payload": None, "scan_id": None}
+        print(f"\n=== {t['domain']} ({mode}{', full rescan requested' if mode != args.mode else ''}, model {config.CLAUDE_MODEL}, "
+              f"escalation {config.ESCALATION_MODEL or 'off'}{', batch' if B else ''}) ===", flush=True)
         try:
-            previous = None
-            if mode == "full":  # unchanged policy pages reuse their stored facts (no AI read)
+            previous = prev_cache.get(t["domain"])
+            if mode == "full" and t["domain"] not in prev_cache:  # unchanged policy pages reuse stored facts (no AI read)
                 try:
                     previous = db.previous_pages(t["domain"])
                 except Exception as e:
                     print("  could not load previous pages (everything will be read):", str(e)[:150])
+                prev_cache[t["domain"]] = previous
             payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=mode, use_ai=not args.no_ai,
                                 industry=t.get("industry"), previous=previous)
+            if B is not None:
+                if B.waiting(t["domain"]):
+                    return "pending"  # answers come back with the next batch
+                extract.USAGE.update(B.usage.get(t["domain"], {}))
             cost["payload"] = payload
             if extract.OUT_OF_CREDIT:
-                left = [x["domain"] for x in targets[n:]]
-                print(f"\nPAUSED: the Anthropic account is out of credit. Nothing stored for {t['domain']}. "
-                      f"{len(left)} sites not done: {', '.join(left)}")
-                paused = True
+                print(f"\nPAUSED: the Anthropic account is out of credit. Nothing stored for {t['domain']}.")
+                state["paused"] = True
                 cost["outcome"] = "not_stored"
-                break
+                return "stop"
             (out_dir / f"{t['domain']}.json").write_text(json.dumps(payload, indent=2, default=str))
             facts = payload["facts"]
             print(f"status={payload['scan']['scan_status']} pages={len(payload['scan']['pages_fetched'])} "
@@ -213,7 +225,7 @@ def main() -> int:
             for issue in payload["issues_found"]:
                 print("  issue:", issue)
             gate = payload.get("terms_gate") or {}
-            print("  ai usage:", extract.usage_summary(), f"| run total ~${spent + extract.usage_cost():.2f}")
+            print("  ai usage:", extract.usage_summary(), f"| run total ~${(B.spent if B else state["spent"] + extract.usage_cost()):.2f}")
             print(f"  terms: {gate.get('verdict')} {gate.get('url') or ''}")
             if gate.get("evidence") and gate.get("verdict") == "prohibited":
                 print(f"  terms quote: {gate['evidence'][:300]}")
@@ -238,7 +250,7 @@ def main() -> int:
                                                   "evidence": blocked.replace("homepage not readable: status", "homepage returned") + " to LedgerBot"})
                     print("  site blocks our crawler: switched off and listed in sites_refusing_scraping")
                     cost["outcome"] = "blocked"
-                    continue
+                    return None
                 if gate:
                     db.record_terms(t["domain"], gate)
                 if payload.get("skip_ingest"):
@@ -254,28 +266,77 @@ def main() -> int:
                     print("  stored scan", scan_id)
                     if mode == "full" and t.get("full_scan_requested"):
                         db.clear_full_scan_request(t["domain"])
+        except Pending:
+            return "pending"  # e.g. the terms check is waiting for its batch answer
         except Exception as e:
-            failures += 1
+            state["failures"] += 1
             msg = f"{type(e).__name__}: {e}"
             print("  FAILED:", msg)
             traceback.print_exc()
             if not args.dry_run:
                 db.record_error(t["domain"], msg)
         finally:
-            if not args.dry_run:
+            if not args.dry_run and not (B is not None and B.waiting(t["domain"])):
                 try:
                     db.record_cost(cost_row(t, mode, cost))
                 except Exception as e:
-                    cost_failures += 1
+                    state["cost_failures"] += 1
                     print("  COST NOT RECORDED:", e)
-    print(f"\nDone: {len(targets) - failures} ok, {failures} failed")
-    if cost_failures:
-        print(f"\nERROR: {cost_failures} scans' costs could not be written to scan_costs in Supabase")
-    if paused:
+        return None
+
+    todo = list(targets)
+    run_t0 = time.monotonic()
+    for rnd in range(1, (MAX_ROUNDS + 2) if B else 2):
+        if B is not None and rnd == MAX_ROUNDS + 1:
+            B.closed = True  # last pass: anything still unanswered counts as a failed read, so every site finishes
+            print(f"\nROUND {rnd}: finishing {len(todo)} sites with what has been answered")
+        elif B is not None:
+            print(f"\nROUND {rnd}: {len(todo)} sites")
+        still = []
+        for t in todo:
+            if B is None:
+                state["spent"] += extract.usage_cost()  # cost of the previous site, even if it failed
+                if args.budget and state["spent"] + next_site_allowance > args.budget:
+                    left = [x["domain"] for x in todo[todo.index(t):]]
+                    print(f"\nPAUSED: estimated AI spend ${state['spent']:.2f} is near the ${args.budget:.2f} budget. "
+                          f"{len(left)} sites not started: {', '.join(left)}")
+                    state["paused"] = True
+                    break
+            t_round = time.monotonic()
+            r = scan_one(t)
+            if t["domain"] in started:
+                started[t["domain"]][1] += time.monotonic() - t_round
+            if r == "stop":
+                break
+            if r == "pending":
+                still.append(t)
+        if B is None or not still or state["paused"]:
+            break
+        estimate = B.estimate_pending_usd()
+        if args.budget and B.spent + estimate > args.budget:
+            print(f"\nPAUSED: AI spend ${B.spent:.2f} plus this round's estimate ${estimate:.2f} would pass the "
+                  f"${args.budget:.2f} budget. {len(still)} sites not finished (nothing stored for them): "
+                  f"{', '.join(x['domain'] for x in still)}")
+            state["paused"] = True
+            break
+        try:
+            left_s = JOB_SECONDS - (time.monotonic() - run_t0)  # stop waiting before GitHub ends the job
+            B.submit_and_wait(extract._client(), timeout_s=max(60, min(BATCH_WAIT_SECONDS, left_s)))
+        except Exception as e:
+            print(f"\nBATCH FAILED: {type(e).__name__}: {e}. {len(still)} sites not finished (nothing stored for them).")
+            state["failures"] += len(still)
+            break
+        todo = still
+    if B is not None:
+        print(f"\nBatch AI spend ~${B.spent:.3f} (batch price) in {len(B.batches)} batches: {', '.join(B.batches)}")
+    print(f"\nDone: {len(targets) - state['failures']} ok, {state['failures']} failed")
+    if state["cost_failures"]:
+        print(f"\nERROR: {state['cost_failures']} scans' costs could not be written to scan_costs in Supabase")
+    if state["paused"]:
         return 3  # marks the GitHub run as failed so GitHub emails you; the log says PAUSED and what's left
-    if cost_failures:
+    if state["cost_failures"]:
         return 4  # GitHub emails on a failed run; costs must be in Supabase, not only in this log
-    return 1 if failures and failures == len(targets) else 0
+    return 1 if state["failures"] and state["failures"] == len(targets) else 0
 
 
 if __name__ == "__main__":
