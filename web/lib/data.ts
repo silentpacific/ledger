@@ -1,10 +1,11 @@
 // Data access: the site reads only through the public web_* functions in ledger-db,
 // with the publishable key (safe to expose). Pages refresh hourly (ISR).
-import fs from "node:fs";
-import path from "node:path";
 
-const URL_ = process.env.SUPABASE_URL || "https://iqxscslcntachstcdeve.supabase.co";
-const KEY = process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_G06fs18qVltKMOEfi6uhbA_jKa2_uKN";
+import { PUBLISHABLE_KEY, SUPABASE_URL } from "./client";
+import type { StoreRow } from "./views";
+
+const URL_ = process.env.SUPABASE_URL || SUPABASE_URL;
+const KEY = process.env.SUPABASE_PUBLISHABLE_KEY || PUBLISHABLE_KEY;
 export const REVALIDATE = 3600;
 
 export type Fact = { s: string; v: any; at: string; q: string | null; u: string | null; c: string };
@@ -25,9 +26,7 @@ export type Product = {
   prices: { price: number | null; compare_at: number | null; available: boolean | null; from: string; to: string | null }[];
 };
 
-// One download per build worker / server instance, shared by every page. web_sites is over Next's 2 MB data-cache
-// limit (3 MB+ by 27 Nov 2026), so without this every one of ~300 pages fetched it again during the build and
-// Supabase timed out (statement timeout 57014), failing the deploy.
+// One download per build worker / server instance, shared by every page that asks for the same thing.
 const MEMO = new Map<string, { at: number; p: Promise<unknown> }>();
 
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}, revalidate: number | false = REVALIDATE): Promise<T> {
@@ -45,10 +44,7 @@ async function rpc<T>(fn: string, args: Record<string, unknown> = {}, revalidate
 
 async function rpcOnce<T>(fn: string, args: Record<string, unknown>, revalidate: number | false): Promise<T> {
   const fixture = process.env.LEDGER_FIXTURE_DIR;
-  if (fixture) {
-    const f = path.join(fixture, `${fn}.json`);
-    return (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : []) as T;
-  }
+  if (fixture) return (await import("./fixture")).fixture(fixture, fn, args) as T;
   for (let attempt = 1; ; attempt++) {
     try {
       return await rpcFetch<T>(fn, args, revalidate);
@@ -86,6 +82,8 @@ function clean(s: Site): Site {
   return { ...s, facts };
 }
 
+/** Every store with every fact. Only the page-data builder (scripts/build-views.ts) calls this: pages read their
+ * own worked-out view (getView) or the few stores they show, so no page downloads every store. */
 export async function getSites(): Promise<Site[]> {
   const raw = (await rpc<Site[]>("web_sites")).map(clean);
   const sites = SEGMENTS_ENABLED ? raw : raw.map((s) => ({ ...s, segment: null }));
@@ -94,16 +92,16 @@ export async function getSites(): Promise<Site[]> {
   return sites;
 }
 /** "live" = seen in the site's latest scan AND not past its advertised end date, for every page. */
-export async function getPromotions(): Promise<Promo[]> {
+export async function getPromotions(domains?: string[]): Promise<Promo[]> {
   const today = new Date().toISOString().slice(0, 10);
-  return (await rpc<Promo[]>("web_promotions")).map((p) => ({ ...p, live: p.live && (!p.ends || p.ends.slice(0, 10) >= today) }));
+  return (await rpc<Promo[]>("web_promotions", domains ? { p_domains: domains } : {})).map((p) => ({ ...p, live: p.live && (!p.ends || p.ends.slice(0, 10) >= today) }));
 }
 /** Changes by stores. Differences found while the starting record was being built (see BASELINE_UNTIL)
  * are improvements in our reading, not changes by the store, so they're left out everywhere. */
-export async function getChanges(days = 90): Promise<Change[]> {
+export async function getChanges(days = 90, domains?: string[]): Promise<Change[]> {
   const { BASELINE_UNTIL } = await import("./schedule");
   const cut = new Date(BASELINE_UNTIL).getTime();
-  return (await rpc<Change[]>("web_changes", { p_days: days })).filter((c) => new Date(c.at).getTime() > cut);
+  return (await rpc<Change[]>("web_changes", domains ? { p_days: days, p_domains: domains } : { p_days: days })).filter((c) => new Date(c.at).getTime() > cut);
 }
 export const getProducts = (domain: string) => rpc<Product[]>("web_products", { p_domain: domain });
 export const suggestSite = (domain: string) => rpc<{ outcome: string; domain?: string }>("web_suggest_site", { p_domain: domain }, false);
@@ -123,6 +121,39 @@ export function promotionsFor(promos: Promo[], sites: Site[]): Promo[] {
   return promos.filter((p) => d.has(p.domain));
 }
 
+const noSegments = (s: Site): Site => (SEGMENTS_ENABLED ? s : { ...s, segment: null });
+/** One store with all its facts, or undefined. */
 export async function getSite(domain: string): Promise<Site | undefined> {
-  return (await getSites()).find((s) => s.domain === domain);
+  const s = await rpc<Site | null>("web_site", { p_domain: domain });
+  return s ? noSegments(clean(s)) : undefined;
 }
+/** A few stores (at most 10) with all their facts, in the order asked. */
+export async function getSitesIn(domains: string[]): Promise<Site[]> {
+  if (!domains.length) return [];
+  const xs = (await rpc<Site[]>("web_sites_in", { p_domains: domains.slice(0, 10) })).map(clean).map(noSegments);
+  return domains.map((d) => xs.find((s) => s.domain === d)).filter((s): s is Site => !!s);
+}
+/** One page's worked-out numbers (lib/views.ts), refreshed after each scan. */
+export async function getView<T = any>(key: string): Promise<T | null> {
+  return rpc<T | null>("web_view", { p_key: key });
+}
+export type View = Awaited<ReturnType<typeof getView>>;
+/** The counts behind the industry tabs and page intros. */
+export type Counts = { all: number; ind: Record<string, number>; industries: number; latest: string };
+export const getCounts = async (): Promise<Counts> => (await getView<Counts>("counts")) ?? { all: 0, ind: {}, industries: 0, latest: "" };
+/** One page of a stores table: filtered by industry and list tags ("payments:afterpay") and search words. */
+export const PAGE_SIZE = 50;
+export async function listSites(o: { industry?: string; tags?: string[]; words?: string[]; page?: number; size?: number }) {
+  const size = o.size ?? PAGE_SIZE, page = Math.max(1, o.page || 1);
+  return rpc<{ total: number; rows: StoreRow[] }>("web_site_list", {
+    p_industry: o.industry || null, p_tags: o.tags || [], p_words: o.words || [], p_limit: size, p_offset: (page - 1) * size });
+}
+export const getSitemap = () => rpc<{ domain: string; last_scanned_at: string }[]>("web_sitemap");
+export type CalendarRow = { domain: string; store: string; industry: string; name: string; discount: string | null; starts: string | null;
+  ends: string | null; live: boolean; pct: number; a: string; b: string };
+export type Calendar = { rows: CalendarRow[]; shown: number; discount_stores: number; types: Record<string, number>; sites: number;
+  live_sites: number; discount_sites: number; deepest: { pct: number; domain: string; store: string } | null; bf_sites: number };
+export const promoCalendar = (from: Date, to: Date, industry?: string, type?: string, year = false) =>
+  rpc<Calendar>("web_promo_calendar", { p_from: from.toISOString(), p_to: to.toISOString(), p_industry: industry || null, p_type: type || null, p_year: year });
+export const promoSearch = (words: string[]) =>
+  rpc<{ domain: string; store: string; name: string; discount: string | null; starts: string | null; ends: string | null; live: boolean; last_seen: string }[]>("web_promo_search", { p_words: words });
