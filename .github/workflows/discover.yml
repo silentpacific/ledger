@@ -16,6 +16,15 @@ on:
       budget:
         description: "AI spend cap per scan run, USD"
         default: "4"
+      source:
+        description: "Where to find stores: commoncrawl or tranco"
+        default: "commoncrawl"
+      max_check:
+        description: "Most candidate sites to check"
+        default: "6000"
+      dry_run:
+        description: "Only report what would be added (true/false)"
+        default: "false"
       review_since:
         description: "Instead of discovering: re-judge stores added since this UTC time (e.g. 2026-11-27T10:35)"
         default: ""
@@ -27,7 +36,7 @@ permissions:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -46,9 +55,9 @@ jobs:
         run: python discover_stores.py --review-since "${{ inputs.review_since }}"
       - name: Find stores
         if: inputs.review_since == ''
-        run: python discover_stores.py --target "${{ inputs.target }}" --chunks "${{ inputs.chunks }}" --per-industry "${{ inputs.per_industry }}"
+        run: python discover_stores.py --target "${{ inputs.target }}" --chunks "${{ inputs.chunks }}" --per-industry "${{ inputs.per_industry }}" --source "${{ inputs.source }}" --max-check "${{ inputs.max_check }}" ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
       - name: Start a full scan for each chunk
-        if: inputs.review_since == ''
+        if: inputs.review_since == '' && inputs.dry_run != 'true'
         run: |
           for f in chunk_*.txt; do
             gh workflow run scan.yml --ref main -f domain="$(cat "$f")" -f mode=full -f budget="${{ inputs.budget }}" -f batch=true

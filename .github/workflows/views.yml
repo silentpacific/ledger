@@ -1,4 +1,4 @@
-# Works out every page's numbers after each scan (web/scripts/build-views.ts) and stores them in the database,
+# Applies the quality rule for new stores (quality_gate.py), then works out every page's numbers after each scan (web/scripts/build-views.ts) and stores them in the database,
 # so website pages read only what they show. Also runs every 6 hours (offers end, "this week" moves on)
 # and when the page logic changes.
 name: page data
@@ -10,7 +10,7 @@ on:
     - cron: "41 */6 * * *"
   push:
     branches: [main]
-    paths: ["web/lib/**", "web/scripts/**", ".github/workflows/views.yml"]
+    paths: ["web/lib/**", "web/scripts/**", ".github/workflows/views.yml", "quality_gate.py"]
   workflow_dispatch: {}
 concurrency:
   group: page-data
@@ -24,6 +24,16 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Quality rule for new stores (at least 2 of 4 key facts)
+        working-directory: .
+        run: pip install -r requirements.txt && python quality_gate.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
