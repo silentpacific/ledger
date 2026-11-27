@@ -309,13 +309,15 @@ def review(since: str, dry: bool) -> int:
         return r, judge(r["domain"], f"{title.group(1) if title else ''} {desc.group(1) if desc else ''}", html_to_text(html))
 
     moved = off = unjudged = 0
-    with ThreadPoolExecutor(8) as ex:
+    rows = [r for r in rows if r]
+    with ThreadPoolExecutor(3) as ex:  # gentle: more at once hits the AI's rate limit
         for r, v in ex.map(one, rows):
-            if not v:
-                unjudged += 1
-                continue
             patch = None
-            if v.get("adult") or v["industry"] == "none":
+            if not v:  # strict: a store the AI can't confirm isn't kept (data kept; review again later to restore)
+                unjudged += 1
+                patch = {"scan_enabled": False, "full_scan_requested": False,
+                         "last_scan_error": "switched off by discovery review: not confirmed as a store by the AI check"}
+            elif v.get("adult") or v["industry"] == "none":
                 patch = {"scan_enabled": False, "full_scan_requested": False,
                          "last_scan_error": "switched off by discovery review: " + ("adult store" if v.get("adult") else "outside our 9 industries")}
                 off += 1
