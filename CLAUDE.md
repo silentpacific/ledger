@@ -88,6 +88,16 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   full_scan_requested and starts N parallel scan.yml runs (manual scan runs no longer share one concurrency
   group). Test runs 27 Nov: first version let in news sites (fixed), second misfiled books/liquor (fixed); the
   bad test additions are switched off with a reason in last_scan_error.
+- Discovery from Common Crawl (27 Nov 2026 night, now the default --source commoncrawl): the latest crawl's columnar
+  URL index (parquet on data.commoncrawl.org, read with DuckDB; their search API rate-limits bulk use) gives .com.au
+  sites with /products/, /collections/ or /product/ pages: 56,491 in CC-MAIN-2026-47 (shuffled with a fixed seed so
+  runs continue in the same order). Repeats skipped: tracked domains, the address a site redirects to, and the same
+  store name (og:site_name / title) as a tracked store. JavaScript-only homepages (<400 chars text) skipped while
+  Firecrawl is out. Test yield: ~1 in 8 checked sites qualifies.
+- Quality rule for new stores (Rahul, 27 Nov 2026, quality_gate.py, run at the start of every "page data"
+  workflow): a store created from QUALITY_SINCE (2026-11-27T13:00Z) with a finished scan stays on the site only if it
+  has at least 2 of the 4 key facts (returns window, change of mind, free-shipping minimum, delivery fee); otherwise
+  scan_enabled=false with the reason in last_scan_error (data kept). Existing stores aren't affected.
 - Terms: scan sites with no terms page. The Shopify template anti-scraping clause is ignored
   (verdict template_clause, site scanned). Custom anti-scraping clauses block (Michael Hill,
   Paspaley, By Charlotte...). Blocked/prohibited sites are switched off and listed in the
@@ -207,6 +217,9 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   free 2,000/month used in Nov; batch mode idles while waiting so a store costs ~1-2 runner minutes), Supabase
   free 500 MB (67 MB at ~565 stores, raw_payload is most of it), Vercel (solved 27 Nov by page data, above), and a new store source (Tranco .au is used up; Common Crawl
   index next). Decisions put to Rahul 27 Nov.
+- 28 Nov ~00:15 Adelaide: Rahul asked for as many quality stores as possible by morning at half price, with only
+  ~US$7 Anthropic credit. Discovery run 46008912929: up to 800 stores, 8 batch scan runs capped at US$0.50 each
+  (~US$4) + ~US$1 store checks, ~US$2 kept for the 30 Nov Cyber Monday scan. More stores need more credit.
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
 - Waiting on Rahul: privacy policy, terms, opt-out response time, a crawler contact email on sentientlogs.com
