@@ -781,6 +781,7 @@ def test_reading_continues_until_every_core_fact_is_found(monkeypatch):
     orig = f.fetch
     f.fetch = lambda url, want_text=True: order.append(url) or orig(url)
     facts = scan._read_info_pages(f, {"shipping": [pol.url, own.url]}, home, b, "fashion", [], {}, None)
+    order = [u for u in order if "://www." in u]  # (help.<store> is probed for the missing returns pages)
     assert order[0] == own.url  # the store's own page first, Shopify's built-in page after
     assert {x["key"] for x in facts} == {"free_shipping_threshold", "standard_shipping_cost"}
 
@@ -820,7 +821,7 @@ def test_firecrawl_mode_when_site_rejects_direct_requests(monkeypatch):
     monkeypatch.setattr(cfg, "FIRECRAWL_API_KEY", "x")
     monkeypatch.setattr(cfg, "SECONDS_BETWEEN_REQUESTS", 0)
     monkeypatch.setattr(fm, "RUN_CACHE", None)
-    f = fm.Fetcher("https://shop.example/")
+    f = fm.Fetcher("https://www.shop.example/")
 
     def boom(url):
         raise rq.ConnectTimeout("dropped")
@@ -839,12 +840,12 @@ def test_firecrawl_mode_when_site_rejects_direct_requests(monkeypatch):
         return R({"rawHtml": "<html><body><h1>Shop</h1><p>Free shipping over $99</p></body></html>",
                   "metadata": {"statusCode": 200, "contentType": "text/html"}})
     monkeypatch.setattr(fm.requests, "post", post)
-    home = f.fetch_home("https://shop.example/")
+    home = f.fetch_home("https://www.shop.example/")
     assert f.via_firecrawl and home.status == 200 and "Free shipping over $99" in home.text
     assert "read through Firecrawl" in home.note
-    assert not f.allowed("https://shop.example/checkout")          # robots read through Firecrawl
+    assert not f.allowed("https://www.shop.example/checkout")          # robots read through Firecrawl
     blocked = f.fetch("/checkout")
-    assert blocked.robots_allowed is False and "https://shop.example/checkout" not in calls
+    assert blocked.robots_allowed is False and "https://www.shop.example/checkout" not in calls
     page = f.fetch("/pages/returns")
     assert page.method == "firecrawl" and page.status == 200
 
@@ -889,3 +890,83 @@ def test_bare_domain_falls_back_to_www(monkeypatch):
     monkeypatch.setattr(f, "_get_live", get)
     home = f.fetch_home("https://shop.example/")
     assert home.status == 200 and f.base_url == "https://www.shop.example/" and not f.via_firecrawl
+
+
+def _fake_fetcher(monkeypatch, pages):
+    from ledger_scanner import fetch as fm
+    f = fm.Fetcher("https://www.shop.example/")
+    seen = []
+
+    def fake(url, want_text=True):
+        from urllib.parse import urljoin
+        url = urljoin(f.base_url, url)
+        seen.append(url)
+        body = pages.get(url)
+        if body is None:
+            return fm.Page(url, 404)
+        return fm.Page(url, 200, html=body, text=fm.html_to_text(body) if body.lstrip().startswith("<") else body)
+    monkeypatch.setattr(f, "fetch", fake)
+    return f, seen
+
+
+def test_help_centre_found_from_link_and_zendesk_search(monkeypatch):
+    import json
+    from ledger_scanner import helpcentre
+    home = '<a href="https://help.shop.example/hc/en-au">Help</a><a href="/about">About</a>'
+    assert helpcentre.find_help_centres("https://www.shop.example/", helpcentre.all_links(home, "https://www.shop.example/")) \
+        == ["https://help.shop.example/hc/en-au/"]
+    api = "https://help.shop.example/api/v2/help_center/articles/search.json?query=return&per_page=10"
+    f, _ = _fake_fetcher(monkeypatch, {
+        "https://help.shop.example/hc/en-au/": "<html>zendesk help centre</html>",
+        api: json.dumps({"results": [
+            {"title": "What is your returns policy?", "html_url": "https://help.shop.example/hc/en-au/articles/111"},
+            {"title": "How do I log in?", "html_url": "https://help.shop.example/hc/en-au/articles/222"}]})})
+    assert helpcentre.articles_for(f, "https://help.shop.example/hc/en-au/", "returns") == \
+        ["https://help.shop.example/hc/en-au/articles/111"]
+
+
+def test_help_centre_articles_from_section_links(monkeypatch):
+    from ledger_scanner import helpcentre
+    start = "https://shop.gorgias.help/"
+    f, _ = _fake_fetcher(monkeypatch, {
+        start: '<a href="/en-US/collections/12-orders-and-delivery">Orders & Delivery</a>'
+               '<a href="/en-US/collections/13-my-account">My account</a>',
+        "https://shop.gorgias.help/en-US/collections/12-orders-and-delivery":
+            '<a href="/en-US/articles/how-long-does-delivery-take-55">How long does delivery take?</a>'
+            '<a href="/en-US/articles/change-my-address-56">Change my address</a>'})
+    got = helpcentre.articles_for(f, start, "shipping")
+    assert got == ["https://shop.gorgias.help/en-US/articles/how-long-does-delivery-take-55"]
+
+
+def test_help_centre_ignores_unrelated_hosts():
+    from ledger_scanner import helpcentre
+    links = ["https://www.instagram.com/shop", "https://www.shop.example/pages/faq", "https://shop.zendesk.com/hc/en-us"]
+    assert helpcentre.find_help_centres("https://www.shop.example/", links) == ["https://shop.zendesk.com/hc/en-us/"]
+
+
+def test_js_built_homepage_switches_to_render_mode(monkeypatch):
+    from ledger_scanner import fetch as fm, config as cfg
+    monkeypatch.setattr(cfg, "FIRECRAWL_API_KEY", "x")
+    monkeypatch.setattr(fm, "RUN_CACHE", None)
+    f = fm.Fetcher("https://www.shop.example/")
+    f.load_robots = lambda: ""
+    import urllib.robotparser
+    f._robots = urllib.robotparser.RobotFileParser(); f._robots.parse([])
+
+    class R:
+        status_code, content, headers = 200, b"x", {"content-type": "text/html"}
+        text = "<html><body><div id=app></div>Loading</body></html>"
+    monkeypatch.setattr(f, "_get_live", lambda url: R())
+    rendered = []
+
+    def fc(url, want_text=True, record=True):
+        rendered.append(url)
+        return fm.Page(url, 200, html="<p>" + "Free delivery over $99. " * 30 + "</p>",
+                       text="Free delivery over $99. " * 30, method="firecrawl")
+    monkeypatch.setattr(f, "_firecrawl_page", fc)
+    home = f.fetch_home("https://www.shop.example/")
+    assert f.render_html and home.method == "firecrawl" and "built by JavaScript" in home.note
+    f.fetch("/sitemap.xml", want_text=False); f.fetch("/products.json", want_text=False)
+    assert rendered == ["https://www.shop.example/"]          # data files are fetched directly, not rendered
+    f.fetch("/pages/returns")
+    assert rendered[-1] == "https://www.shop.example/pages/returns"

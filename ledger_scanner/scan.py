@@ -5,7 +5,7 @@ import statistics
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
-from . import config, detect, discover, extract, pagetext, products_generic, promos, shopify, terms
+from . import helpcentre, config, detect, discover, extract, pagetext, products_generic, promos, shopify, terms
 from .detect import fact
 from .batch import Pending
 from .fetch import Fetcher
@@ -42,7 +42,7 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         issues.append(f"homepage not readable: status {home.status} {home.note or ''}".strip())
         return _payload(domain, started, status, f, facts, promos_live, promo_history, products, issues, mode)
 
-    if f.via_firecrawl or f.base_url != f"{parsed.scheme}://{parsed.netloc}/":
+    if f.via_firecrawl or f.render_html or f.base_url != f"{parsed.scheme}://{parsed.netloc}/":
         issues.append(f"homepage: {home.note}")
     if len(home.text) < 400:
         issues.append("homepage text very short; likely built by JavaScript")
@@ -194,6 +194,7 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
     budget = config.MAX_INFO_PAGES
     home_lines = pagetext.shared_lines(home.text)
     fetched: dict[str, object] = {}
+    help_cache: dict = {}
     for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "contact", "faq", "stores"):
         core = CORE_FACTS.get(ptype)
         queue = list(pages_by_type.get(ptype) or [])
@@ -206,9 +207,18 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
         tried: list[str] = []
         answered = False
         asked_for_links = False
+        asked_help_centre = False
         found: set[str] = set()
         while budget > 0 and not answered:
             if not queue or len(tried) >= limit:
+                if core and not asked_help_centre and not all(k in found for k in core):
+                    asked_help_centre = True  # policies kept in a help centre or FAQ app (Zendesk, Gorgias...)
+                    picks = _help_centre_articles(f, base, home, ptype, help_cache)
+                    picks = [u for u in picks if u not in tried]
+                    if picks:
+                        issues.append(f"{ptype}: read from help centre: {', '.join(picks)}")
+                        queue, limit = picks, len(tried) + len(picks)
+                        continue
                 if not core or asked_for_links or any(k in found for k in core):
                     break  # the stronger model is only asked when none of the core facts was found
                 asked_for_links = True  # last resort: let the stronger model pick from the link list
@@ -272,6 +282,23 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
         if core and tried and not answered:
             issues.append(f"{ptype}: core facts not found after reading {len(tried)} page(s): {', '.join(tried)}")
     return facts
+
+
+def _help_centre_articles(f: Fetcher, base: str, home, ptype: str, cache: dict) -> list[str]:
+    """Returns/shipping articles in the store's help centre: linked ones first, else help./support.<store>."""
+    if "starts" not in cache:
+        starts = helpcentre.find_help_centres(base, helpcentre.all_links(home.html, base))
+        if not starts:  # not linked from the homepage: try the usual addresses (two requests)
+            for guess in helpcentre.guess_help_centres(base):
+                page = f.fetch(guess)
+                if page.status == 200 and page.html:
+                    starts = helpcentre.find_help_centres(base, [page.url or guess]) or [guess]
+                    break
+        cache["starts"] = starts
+    out: list[str] = []
+    for start in cache["starts"][:2]:
+        out += [u for u in helpcentre.articles_for(f, start, ptype) if u not in out]
+    return out[:helpcentre.MAX_ARTICLES]
 
 
 def _unchanged_facts(previous: dict | None, url: str, fp: str) -> list[dict] | None:

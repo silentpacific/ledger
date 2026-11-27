@@ -66,6 +66,13 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   stealth) for the whole scan; robots.txt is re-read through Firecrawl and the terms gate still runs. Costs
   ~US$0.10/site/month. Used for Petstock, Pet Circle, PetPost. Bare domains that don't answer are retried
   on www. first (Bonds, Sheridan now read that way, no Firecrawl needed).
+- JavaScript-built sites (27 Nov 2026): a homepage with <400 characters of text switches the site to render
+  mode (Fetcher.render_html): HTML pages through Firecrawl, sitemaps/robots/JSON fetched directly.
+- Help centres (27 Nov 2026, ledger_scanner/helpcentre.py): when returns/shipping core facts are still missing
+  after the store's own pages, the scanner looks for a help centre linked from the homepage (help./support.
+  subdomains, Zendesk, Gorgias, Intercom, Freshdesk...) or tries help.<store> and support.<store>, then reads up to
+  3 matching articles (Zendesk search API, else article links by title). Runs before Sonnet's link-picking.
+  Each help-centre host's own robots.txt is respected (Fetcher._other_host_robots).
 - Site cleanup 27 Nov 2026: domains fixed (wilsonandfrenchy.com.au, pe-nation.com, au.citta.com, peto.com.au
   = ex My Pet Warehouse, savour-life.com.au); switched off (scan_enabled=false, reason in last_scan_error, data kept):
   wireless1.com.au, kohepets.com.au, milandirect.com.au.

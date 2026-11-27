@@ -65,6 +65,8 @@ class Fetcher:
     _robots: urllib.robotparser.RobotFileParser | None = None
     _last: float = 0.0
     via_firecrawl: bool = False   # whole site read through Firecrawl (direct requests rejected)
+    render_html: bool = False     # JS-built site: HTML pages rendered through Firecrawl, data files fetched directly
+    _host_robots: dict = field(default_factory=dict)
 
     def __post_init__(self):
         self.session = requests.Session()
@@ -90,7 +92,27 @@ class Fetcher:
     def allowed(self, url: str) -> bool:
         if self._robots is None:
             self.load_robots()
+        host = urlparse(url).netloc.lower()
+        if host and host != urlparse(self.base_url).netloc.lower():
+            return self._other_host_robots(url).can_fetch(config.ROBOTS_AGENT, url)
         return self._robots.can_fetch(config.ROBOTS_AGENT, url)
+
+    def _other_host_robots(self, url: str) -> urllib.robotparser.RobotFileParser:
+        """A help centre on another host (help.x.com, x.zendesk.com) has its own robots.txt."""
+        p = urlparse(url)
+        host = p.netloc.lower()
+        if host not in self._host_robots:
+            rp = urllib.robotparser.RobotFileParser()
+            robots_url = f"{p.scheme}://{p.netloc}/robots.txt"
+            try:
+                r = self._get(robots_url)
+                rp.parse(r.text.splitlines() if r.status_code == 200 else [])
+                self.pages.append(Page(robots_url, r.status_code, method="http"))
+            except requests.RequestException as e:
+                rp.parse([])
+                self.pages.append(Page(robots_url, None, note=f"robots fetch failed: {type(e).__name__}"))
+            self._host_robots[host] = rp
+        return self._host_robots[host]
 
     # -- fetching -----------------------------------------------------------
     def _get(self, url: str) -> requests.Response:
@@ -118,7 +140,7 @@ class Fetcher:
             p = Page(url, None, robots_allowed=False, note="skipped: disallowed by robots.txt")
             self.pages.append(p)
             return p
-        if self.via_firecrawl:
+        if self.via_firecrawl or (self.render_html and want_text and not _is_data_url(url)):
             return self._firecrawl_page(url, want_text)
         try:
             r = self._get(url)
@@ -145,7 +167,7 @@ class Fetcher:
             p = Page(url, None, robots_allowed=False, note="skipped: disallowed by robots.txt")
             self.pages.append(p)
             return p
-        if not config.FIRECRAWL_API_KEY or self.via_firecrawl:
+        if not config.FIRECRAWL_API_KEY or self.via_firecrawl or self.render_html:
             return self.fetch(url)
         if RUN_CACHE is not None and ("render", url) in RUN_CACHE:
             p = Page(**RUN_CACHE[("render", url)].__dict__)
@@ -174,6 +196,15 @@ class Fetcher:
         """Fetch the homepage; if the site rejects direct requests, switch this site to Firecrawl."""
         home = self.fetch(url)
         if home.status == 200 and home.html:
+            if len(home.text) < JS_SHELL_CHARS and config.FIRECRAWL_API_KEY:
+                # Built by JavaScript: the page arrives nearly empty. Render HTML pages from here on.
+                self.render_html = True
+                rendered = self.fetch(url)
+                if rendered.status == 200 and len(rendered.text) > len(home.text):
+                    rendered.note = (f"built by JavaScript ({len(home.text)} characters without it); "
+                                     "HTML pages rendered through Firecrawl")
+                    return rendered
+                self.render_html = False
             return home
         # A bare domain that doesn't answer at all usually lives on www. (Bonds, Sheridan): try that first.
         host = urlparse(url).netloc
@@ -240,6 +271,17 @@ class Fetcher:
         if record:
             self.pages.append(p)
         return p
+
+
+JS_SHELL_CHARS = 400  # a homepage with less visible text than this is built by JavaScript
+
+_DATA = ("sitemap", ".xml", ".json", ".txt", "/api/")
+
+
+def _is_data_url(url: str) -> bool:
+    """Sitemaps, robots, llms.txt and JSON APIs need no rendering: fetch them directly (no Firecrawl cost)."""
+    u = url.lower().split("?")[0]
+    return any(k in u for k in _DATA)
 
 
 def _unwrap_pre(raw: str) -> str:
