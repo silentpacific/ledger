@@ -4,6 +4,8 @@ import SortTable from "@/components/SortTable";
 import { filterSites, getSites } from "@/lib/data";
 import { KIND_HOME, facetHref, facets } from "@/lib/format";
 import { INDUSTRIES, industryName } from "@/lib/industries";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
 
@@ -26,6 +28,7 @@ export default async function FacetIndex({ kind, title, lede, label, industry }:
   return (
     <>
       <Header active={KIND_HOME[kind]} />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: title, path: KIND_HOME[kind], crumbs: [[title]], items: options.map((o) => ({ name: o.name, path: facetHref(kind, o.value) })) })} />
       <main className="wrap page">
         <div className="eyebrow">Explore</div>
         <h1 className="title">{title}</h1>

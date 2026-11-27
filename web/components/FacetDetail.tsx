@@ -6,6 +6,7 @@ import { KIND_HOME, KIND_NAMES, facetHref, describeChange, dateAU, facets, label
 import { INDUSTRIES, industryName } from "@/lib/industries";
 import { SITE_URL } from "@/lib/site";
 import { techCategory } from "@/lib/tech";
+import { pageSchema } from "@/lib/schema";
 
 export async function loadFacet(kind: string, value: string, industry?: string) {
   const all = await getSites();
@@ -42,8 +43,9 @@ export default async function FacetDetail({ kind, value, industry }: { kind: str
   return (
     <>
       <Header active={KIND_HOME[kind]} />
-      <JsonLd data={{ "@context": "https://schema.org", "@type": "ItemList", name: f.name, numberOfItems: matching.length,
-        itemListElement: matching.map((s, i) => ({ "@type": "ListItem", position: i + 1, name: siteName(s), url: `${SITE_URL}/sites/${s.domain}` })) }} />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: facetTitle(kind, f.name), path: base,
+        crumbs: kind === "tech" ? [section, [techCategory(f.name), "/tech"], [f.name]] : [section, [f.name]],
+        items: matching.map((s) => ({ name: siteName(s), path: `/sites/${s.domain}` })) })} />
       <main className="wrap page">
         <Crumbs items={kind === "tech" ? [section, [techCategory(f.name), "/tech"], [f.name]] : [section, [f.name]]} />
         <h1 className="title" style={{ fontSize: 40 }}>{facetTitle(kind, f.name)}</h1>

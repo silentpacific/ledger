@@ -11,6 +11,8 @@ import { nextMonthly, nextWeekly, TRACKING_BEGAN } from "@/lib/schedule";
 import { COVERAGE, groupStats } from "@/lib/stats";
 import { PLUMBING, TECH_ORDER, techCategory } from "@/lib/tech";
 import { dateAU, dayKey, describeChange, facets, label, list, maxPct, median, money, num, show, siteName, isDiscount, val } from "@/lib/format";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const revalidate = 3600;
 
@@ -157,6 +159,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
   return (
     <>
       <Header />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: "How Australian online stores sell", path: "/" })} />
       <main className="wrap page">
         <StoreLookup profiles={profiles} start={start} tryThese={tryThese}>
           <h1>Look up how any Australian online store sells.</h1>

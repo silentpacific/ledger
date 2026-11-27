@@ -8,6 +8,7 @@ import { CARDS, dateAU, describeChange, fact, fmt, list, median, money, num, sho
 import { SITE_URL } from "@/lib/site";
 import { industryName } from "@/lib/industries";
 import { BRAND } from "@/lib/brand";
+import { pageSchema, storeSchema } from "@/lib/schema";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -69,9 +70,9 @@ export default async function SitePage({ params }: { params: Promise<{ domain: s
   return (
     <>
       <Header active="/sites" />
-      <JsonLd data={{ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Sites", item: `${SITE_URL}/sites` },
-        { "@type": "ListItem", position: 2, name, item: `${SITE_URL}/sites/${s.domain}` }] }} />
+      <JsonLd data={pageSchema({ type: "ProfilePage", name: `${name}: returns, shipping, payments and promotions`, path: `/sites/${s.domain}`,
+        crumbs: [["Industries", "/industries"], [industryName(s.industry), `/industries/${s.industry || "jewellery"}`], [name]],
+        dateModified: s.last_scanned_at, extra: [{ ...storeSchema(s, name), mainEntityOfPage: { "@id": `${SITE_URL}/sites/${s.domain}#page` } }] })} />
       <main className="wrap page">
         <Crumbs items={[["Industries", "/industries"], [industryName(s.industry), `/industries/${s.industry || "jewellery"}`], [name]]} />
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end", marginTop: 12 }}>

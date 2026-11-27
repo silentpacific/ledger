@@ -6,6 +6,8 @@ import { Bars } from "@/components/ui";
 import SitePicker from "@/components/SitePicker";
 import { INDUSTRIES, industryName } from "@/lib/industries";
 import { isDiscount, list, maxPct, money, num, show, siteName, val } from "@/lib/format";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Compare Australian online stores side by side",
@@ -68,6 +70,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
   return (
     <>
       <Header active="/compare" />
+      <JsonLd data={pageSchema({ name: "Compare stores side by side", path: "/compare", crumbs: [["Compare"]], items: sites.map((s) => ({ name: siteName(s), path: `/sites/${s.domain}` })) })} />
       <main className="wrap page">
         <div className="eyebrow">Analyse</div>
         <h1 className="title">Compare stores side by side</h1>

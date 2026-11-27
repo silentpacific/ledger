@@ -6,6 +6,8 @@ import { Bars, Crumbs, Stat } from "@/components/ui";
 import { getPromotions, getSites, industryOf } from "@/lib/data";
 import { INDUSTRIES } from "@/lib/industries";
 import { dateAU, isDiscount, label, list, maxPct, median, money, num, siteName, val } from "@/lib/format";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const revalidate = 3600;
 export const dynamicParams = false;
@@ -44,6 +46,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <Header active="/industries" />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: ind.name, path: `/industries/${slug}`, crumbs: [["Industries", "/industries"], [ind.name]], items: sites.map((s) => ({ name: siteName(s), path: `/sites/${s.domain}` })) })} />
       <main className="wrap page">
         <Crumbs items={[["Industries", "/industries"], [ind.name]]} />
         <h1 className="title">{ind.name}</h1>

@@ -25,12 +25,39 @@ export type Product = {
   prices: { price: number | null; compare_at: number | null; available: boolean | null; from: string; to: string | null }[];
 };
 
+// One download per build worker / server instance, shared by every page. web_sites is over Next's 2 MB data-cache
+// limit (3 MB+ by 27 Nov 2026), so without this every one of ~300 pages fetched it again during the build and
+// Supabase timed out (statement timeout 57014), failing the deploy.
+const MEMO = new Map<string, { at: number; p: Promise<unknown> }>();
+
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}, revalidate: number | false = REVALIDATE): Promise<T> {
+  if (revalidate === false) return rpcOnce<T>(fn, args, revalidate);
+  const key = fn + JSON.stringify(args);
+  const hit = MEMO.get(key);
+  if (hit && Date.now() - hit.at < revalidate * 1000) return hit.p as Promise<T>;
+  const p = rpcOnce<T>(fn, args, revalidate);
+  MEMO.set(key, { at: Date.now(), p });
+  p.catch(() => MEMO.delete(key)); // never keep a failure
+  return p;
+}
+
+async function rpcOnce<T>(fn: string, args: Record<string, unknown>, revalidate: number | false): Promise<T> {
   const fixture = process.env.LEDGER_FIXTURE_DIR;
   if (fixture) {
     const f = path.join(fixture, `${fn}.json`);
     return (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : []) as T;
   }
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await rpcFetch<T>(fn, args, revalidate);
+    } catch (e) {
+      if (attempt >= 3 || !/ (500|502|503|504) /.test(String(e))) throw e;
+      await new Promise((r) => setTimeout(r, 2000 * attempt)); // the database was briefly busy: try again
+    }
+  }
+}
+
+async function rpcFetch<T>(fn: string, args: Record<string, unknown>, revalidate: number | false): Promise<T> {
   const res = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
     method: "POST",
     headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },

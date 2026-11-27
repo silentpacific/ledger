@@ -150,9 +150,13 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   prompt (compare). No all-caps labels. Product name lives only in web/lib/brand.ts (BRAND) for the rename;
   the crawler name LedgerBot is separate (ledger_scanner/config.py USER_AGENT).
 - SEO: app/sitemap.ts is generated automatically and refreshed hourly; lastmod = each store's last scan for
-  store pages, the latest scan overall for everything else (approximate for static pages). Structured data is
-  only on store pages (BreadcrumbList), list pages (ItemList) and benchmarks (Dataset); no site-wide
-  Organization/WebSite, no breadcrumbs elsewhere (offered to Rahul 27 Nov).
+  store pages, the latest scan for list pages, STATIC_UPDATED (in sitemap.ts; bump it when editing them) for
+  About/Contact/Methodology. Structured data (lib/schema.ts): Organization + WebSite with SearchAction on every
+  page (layout); every page has its page type + BreadcrumbList; list pages an ItemList; store pages a ProfilePage
+  with the store as OnlineStore (+ MerchantReturnPolicy from observed returns facts only); benchmarks a Dataset.
+- Build data (27 Nov): web_sites is >3 MB (over Next's 2 MB data cache), so lib/data.ts memoises each RPC per
+  build worker/server instance and retries 5xx; without it every page refetched and Supabase timed out (57014),
+  which failed the deploys of the /payments and /platforms changes.
 - Opt-out proposal (27 Nov, awaiting Rahul): robots.txt Disallow for our crawler = stop tracking (already works);
   removal of past data only after proof of control (code in /.well-known/ file or DNS TXT), checked automatically,
   confirmation sent to a role address (legal@/privacy@); email alone is never enough. Needs a schema change

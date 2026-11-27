@@ -6,6 +6,8 @@ import IndustryFilter from "@/components/IndustryFilter";
 import { filterSites, getPromotions, getSites, industryOf, promotionsFor, Promo } from "@/lib/data";
 import { industryName } from "@/lib/industries";
 import { PROMO_TYPES, dateAU, dayKey, isDiscount, maxPct, siteName } from "@/lib/format";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -67,6 +69,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   return (
     <>
       <Header active="/promotions" />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: "Promotions calendar", path: "/promotions", crumbs: [["Promotions"]], items: [...new Set(shown.map((r) => r.p.domain))].map((d) => ({ name: siteName(d), path: `/sites/${d}` })) })} />
       <main className="wrap page">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>

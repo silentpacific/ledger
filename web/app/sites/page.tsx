@@ -7,6 +7,8 @@ import { filterSites, getPromotions, getSites, promotionsFor, Site } from "@/lib
 import { KIND_NAMES, KIND_SINGULAR, facetHref, dateAU, facets, label, list, money, num, siteName, val } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { BRAND } from "@/lib/brand";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -46,6 +48,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
   return (
     <>
       <Header active="/sites" />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: "Australian online stores we track", path: "/sites", crumbs: [["Stores"]], items: sites.map((s) => ({ name: siteName(s), path: `/sites/${s.domain}` })) })} />
       <main className="wrap page">
         <div className="eyebrow">Sites{q.industry ? ` · ${industryName(q.industry)}` : ""}</div>
         <h1 className="title">Stores we track</h1>

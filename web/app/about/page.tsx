@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import SuggestSite from "@/components/SuggestSite";
 import { BRAND } from "@/lib/brand";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: `About ${BRAND}`,
@@ -18,6 +20,7 @@ export default function About() {
   return (
     <>
       <Header />
+      <JsonLd data={pageSchema({ type: "AboutPage", name: `About ${BRAND}`, path: "/about", crumbs: [["About"]] })} />
       <main className="narrow page">
         <div className="eyebrow">About us</div>
         <h1 className="title" style={{ fontSize: 48, maxWidth: 820 }}>The record of how Australian online stores sell, and how that changes</h1>

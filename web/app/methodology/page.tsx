@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import ContactForm from "@/components/ContactForm";
 import { BRAND } from "@/lib/brand";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: `How ${BRAND} works: methodology, quality rules and opt-out`,
@@ -18,6 +20,7 @@ export default function Methodology() {
   return (
     <>
       <Header />
+      <JsonLd data={pageSchema({ name: `How ${BRAND} works`, path: "/methodology", crumbs: [["Methodology"]] })} />
       <div className="wrap page" style={{ display: "flex", flexWrap: "wrap", gap: 40, alignItems: "flex-start" }}>
         <nav aria-label="On this page" style={{ flex: "1 1 200px", maxWidth: 240, display: "flex", flexDirection: "column", gap: 10, fontSize: 14 }}>
           <div className="tiny muted" style={{ fontWeight: 600 }}>On this page</div>

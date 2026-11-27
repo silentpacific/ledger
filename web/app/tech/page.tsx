@@ -7,6 +7,8 @@ import { filterSites, getChanges, getSites } from "@/lib/data";
 import { dateAU, describeChange, facets, siteName, val } from "@/lib/format";
 import { INDUSTRIES, industryName } from "@/lib/industries";
 import { TECH_ORDER, techCategory } from "@/lib/tech";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -46,6 +48,7 @@ export default async function Tech({ searchParams }: { searchParams: Promise<{ i
   return (
     <>
       <Header active="/tech" />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: "Technology used by Australian online stores", path: "/tech", crumbs: [["Technology"]] })} />
       <main className="wrap page">
         <div className="eyebrow">Tech{industry ? ` · ${industryName(industry)}` : ""}</div>
         <h1 className="title">The tools stores sell with</h1>

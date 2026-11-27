@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import ContactForm from "@/components/ContactForm";
 import { BRAND } from "@/lib/brand";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Contact us", description: `Questions about the data, a fact that looks wrong, or early access to ${BRAND}.`, alternates: { canonical: "/contact" } };
 
@@ -11,6 +13,7 @@ export default async function Contact({ searchParams }: { searchParams: Promise<
   return (
     <>
       <Header />
+      <JsonLd data={pageSchema({ type: "ContactPage", name: "Contact us", path: "/contact", crumbs: [["Contact"]] })} />
       <main className="narrow page" style={{ display: "flex", flexWrap: "wrap", gap: 40, alignItems: "flex-start" }}>
         <div style={{ flex: "1 1 300px", minWidth: 0 }}>
           <div className="eyebrow">Contact us</div>

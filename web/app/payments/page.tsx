@@ -7,6 +7,8 @@ import { Bars, Stat } from "@/components/ui";
 import { filterSites, getChanges, getSites, industryOf } from "@/lib/data";
 import { WALLETS, dateAU, describeChange, facets, label, list, siteName, slug } from "@/lib/format";
 import { INDUSTRIES, industryName } from "@/lib/industries";
+import { pageSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/ui";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -54,6 +56,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
   return (
     <>
       <Header active="/payments" />
+      <JsonLd data={pageSchema({ type: "CollectionPage", name: "How Australian online stores take payment", path: "/payments", crumbs: [["Payments"]], items: options.map((o) => ({ name: o.name, path: `/payments/${o.value}` })) })} />
       <main className="wrap page">
         <div className="eyebrow">Explore</div>
         <h1 className="title">How Australian online stores take payment</h1>
