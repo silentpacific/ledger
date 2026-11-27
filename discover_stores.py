@@ -27,9 +27,14 @@ from ledger_scanner.fetch import html_to_text
 
 TRANCO = "https://tranco-list.eu/top-1m.csv.zip"
 SKIP_SUFFIX = (".gov.au", ".edu.au", ".org.au", ".net.au", ".asn.au", ".id.au", ".csiro.au", ".nsw.gov.au")
-SKIP_WORDS = re.compile(r"(news|bank|insurance|realestate|jobs|council|casino|lotto|loans?|weather|forum|airline)", re.I)
-PLATFORM = re.compile(r"cdn\.shopify\.com|Shopify\.theme|woocommerce|bigcommerce|cdn11\.bigcommerce|Magento|mage/cookies|"
-                      r"neto\.com\.au|netostatic|maropost|demandware|shopware|prestashop", re.I)
+SKIP_WORDS = re.compile(r"(news|bank|insurance|realestate|jobs|council|casino|lotto|loans?|weather|forum|airline|"
+                        r"telstra|optus|aldi|woolworths|coles|kotaku|zdnet|choice|nowtolove|bandt|gizmodo|cashconverters)", re.I)
+# The store's own page code loads the platform's files (a news article that merely mentions Shopify doesn't count)
+PLATFORM = re.compile(r"(src|href)=[\"'][^\"']*(cdn\.shopify\.com/(s|extensions)/|/wp-content/plugins/woocommerce/|"
+                      r"cdn11\.bigcommerce\.com/s-|/static/version\d+/frontend/|mage/cookies|assets\.netostatic\.com|"
+                      r"demandware\.static|/bundles/storefront/)", re.I)
+PRODUCT = re.compile(r"\"@type\"\s*:\s*\"Product\"|og:type[\"'][^>]+product|add[ -_]to[ -_](cart|bag)|data-product-id|product-card", re.I)
+MEDIA = re.compile(r"og:type[\"'][^>]+content=[\"']article|\"@type\"\s*:\s*\"(NewsArticle|NewsMediaOrganization)\"", re.I)
 CART = re.compile(r"add[ -_]to[ -_](cart|bag)|/cart\b|shopping[ -]bag", re.I)
 PRICE = re.compile(r"\$\s?\d{1,4}(\.\d{2})?")
 
@@ -95,7 +100,7 @@ def check(domain: str) -> dict | None:
         if r.status_code != 200 or "html" not in r.headers.get("content-type", ""):
             continue
         html = r.text[:400_000]
-        is_store = bool(PLATFORM.search(html)) or (bool(CART.search(html)) and len(PRICE.findall(html)) >= 3)
+        is_store = bool(PLATFORM.search(html)) and bool(PRODUCT.search(html)) and not MEDIA.search(html)
         if not is_store:
             return None
         title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
