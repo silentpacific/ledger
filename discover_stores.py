@@ -159,7 +159,8 @@ def judge(domain: str, head: str, text: str) -> dict | None:
             msg = client.messages.create(
                 model=config.CLAUDE_MODEL, max_tokens=60, system=JUDGE,
                 messages=[{"role": "user", "content": f"Site: {domain}\nTitle and description: {head[:400]}\nHomepage text: {text[:1800]}"}])
-            out = json.loads(re.search(r"\{.*\}", msg.content[0].text, re.S).group(0))
+            reply = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")  # skip thinking blocks
+            out = json.loads(re.search(r"\{.*\}", reply, re.S).group(0))
             return out if out.get("industry") in INDUSTRIES + ["none"] else None
         except Exception as e:
             with _LOCK:
