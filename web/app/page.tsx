@@ -162,8 +162,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "How Australian online stores sell", path: "/" })} />
       <main className="wrap page">
         <StoreLookup profiles={profiles} start={start} tryThese={tryThese}>
-          <h1>Look up how any Australian online store sells.</h1>
-          <p>Shipping costs, returns rules, payment options, offers and tools for {all.length} stores in {new Set(all.map(industryOf)).size} industries.
+          <h1>Australian eCommerce Intelligence</h1>
+          <p>Store policies, delivery costs, promotions and technology for {all.length} stores in {new Set(all.map(industryOf)).size} industries all in one place.
             Every fact is dated and quoted from the store's own site, and every change is recorded.</p>
           <p className="hero-note">
             Offers are checked every week (next {dateAU(weekly, { weekday: "long", day: "numeric", month: "short" })}), everything else monthly.
