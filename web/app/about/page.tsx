@@ -33,8 +33,6 @@ export default function About() {
             <li><strong style={{ color: "var(--ink)" }}>Agencies</strong> preparing audits, pitches and benchmarks for Australian clients.</li>
             <li><strong style={{ color: "var(--ink)" }}>Payment, app and platform providers</strong> looking for stores that use, or have just dropped, a product like theirs.</li>
           </ul>
-          <h2>Our story</h2>
-          <p>[Founder story: who started Ledger, the experience behind it in conversion optimisation and analytics, and why this data didn't exist for Australia.]</p>
           <h2>How we work</h2>
           <p>We read public pages only, follow each site's robots.txt, identify our crawler, and stop tracking any site whose owner asks. The full rules are on the <Link href="/methodology">methodology page</Link>.</p>
         </div>

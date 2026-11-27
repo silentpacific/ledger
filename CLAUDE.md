@@ -111,8 +111,8 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   "how it's calculated", findings, a compare entry, top changes, then the full feed; Explore/Analyse nav;
   store names from og:site_name / page title (lib/format displayName); offers past their end date are not live;
   schedule line from lib/schedule.ts (mirror of scan.yml). Curasept is never used in suggested comparisons.
-- Waiting on Rahul: privacy policy, terms, opt-out response time, founder story, final brand name.
+- Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name. (No founder story: Rahul doesn't want one.)
 - ~19 sites failed to load (timeouts / wrong domains) and need cleanup with Rahul.
 - Known gaps: JS-rendered prices (Goldmark, Prouds, Temple & Grace), store finders,
   over-time charts (need more weeks of data), real domain + brand, lawyer review,
-  placeholders (email, city, ABN, founder story, privacy, terms).
+  placeholders (email, city, ABN, privacy, terms).
