@@ -91,7 +91,7 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   `sites_refusing_scraping` view; never re-enable them automatically.
 - Secrets live only in GitHub secrets. Never paste the Supabase secret key anywhere.
   Don't use Rahul's personal email. Delete data only with his approval.
-- Curasept (curasept.com.au) is Rahul's client; it's in the health list. Ask before featuring it.
+- Ask Rahul before featuring any individual store (homepage, examples, marketing).
 
 ## Pieces
 - Repo: github.com/silentpacific/ledger (main). Scanner = Python in ledger_scanner/, run.py.
