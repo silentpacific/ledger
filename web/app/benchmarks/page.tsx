@@ -105,7 +105,7 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
           <section id="pay" className="card">
             <div className="row" style={{ justifyContent: "space-between" }}><h2>Buy now, pay later</h2><span className="small muted">{bnplSites.length} of {sites.length} offer it</span></div>
             <div style={{ marginTop: 14 }}>
-              <Bars color="var(--blue)" max={bnplSites.length} rows={bnpl.map((x: any) => ({ label: x.name, n: x.n, text: `${pct(x.n, bnplSites.length)}%`, href: `/explore/payments/${x.value}${industry ? `?industry=${industry}` : ""}` }))} />
+              <Bars color="var(--blue)" max={bnplSites.length} rows={bnpl.map((x: any) => ({ label: x.name, n: x.n, text: `${pct(x.n, bnplSites.length)}%`, href: `/payments/${x.value}${industry ? `?industry=${industry}` : ""}` }))} />
             </div>
             <p className="small muted" style={{ margin: "6px 0 0" }}>Share of stores with BNPL that offer each provider. Average: {avgProviders} providers per store.</p>
             {!industry && <div style={{ marginTop: 14 }}><Bars rows={groups.map(({ i, xs }) => { const b = xs.filter((s) => list(s, "payments.bnpl_providers").length).length; return { label: i.name, n: pct(b, xs.length), text: `${pct(b, xs.length)}% · ${b} of ${xs.length}`, href: `/benchmarks?industry=${i.slug}#pay` }; })} max={100} /><div className="tiny muted" style={{ marginTop: 6 }}>Share of each industry's stores offering any BNPL.</div></div>}

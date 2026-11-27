@@ -7,9 +7,9 @@ export type SortRow = { id: string; cells: Record<string, SortCell> };
 export type SortCol = { key: string; label: string; align?: "left" | "right" };
 
 /** A table whose every column sorts on click (again to reverse). Rows without a value always sort last. */
-export default function SortTable({ cols, rows, initial, minWidth = 900 }: { cols: SortCol[]; rows: SortRow[]; initial?: string; minWidth?: number }) {
+export default function SortTable({ cols, rows, initial, initialDesc = false, minWidth = 900 }: { cols: SortCol[]; rows: SortRow[]; initial?: string; initialDesc?: boolean; minWidth?: number }) {
   const [by, setBy] = useState(initial || cols[0].key);
-  const [desc, setDesc] = useState(false);
+  const [desc, setDesc] = useState(initialDesc);
   const sorted = [...rows].sort((a, b) => {
     const x = a.cells[by]?.sort ?? null, y = b.cells[by]?.sort ?? null;
     if (x === null && y === null) return 0;

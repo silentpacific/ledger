@@ -49,7 +49,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
     ? { text: `${newOffers.size} ${newOffers.size === 1 ? "store has an offer" : "stores have offers"} we first saw in the last 7 days. With tracking this new, some may have been running before we started.`, href: "/promotions" }
     : deepest ? { text: `Deepest discount advertised right now: up to ${maxPct(deepest)}% at ${siteName(deepest.domain)}.`, href: `/sites/${deepest.domain}` }
     : { text: "No discounts are running at the moment.", href: "/promotions" });
-  if (bnplSites.length) findings.push({ text: `Afterpay is the most common buy now, pay later option: ${Math.round((100 * afterpay) / bnplSites.length)}% of stores where we found one.`, href: "/explore/payments/afterpay" });
+  if (bnplSites.length) findings.push({ text: `Afterpay is the most common buy now, pay later option: ${Math.round((100 * afterpay) / bnplSites.length)}% of stores where we found one.`, href: "/payments/afterpay" });
 
   // ---- the activity feed (filterable) ----
   const scoped = filterSites(all, industry, segment);
@@ -101,7 +101,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
     .map((g) => ({ name: g.i.name, sites: richest(g.xs) })).filter((g) => g.sites.length >= 2);
   const fc = facets(all);
   const bnplRows = fc.payments.filter((x) => !["apple-pay", "google-pay", "paypal", "shop-pay"].includes(x.value))
-    .map((x: any) => ({ label: x.name, n: x.n, text: `${x.n} of ${bnplSites.length}`, href: `/explore/payments/${x.value}` }));
+    .map((x: any) => ({ label: x.name, n: x.n, text: `${x.n} of ${bnplSites.length}`, href: `/payments/${x.value}` }));
   const tools = fc.tech.filter((x) => !PLUMBING.has(techCategory(x.name))).slice(0, 8);
   const weekly = nextWeekly(), monthly = nextMonthly();
 

@@ -33,7 +33,7 @@ export default function Methodology() {
           <ul style={{ paddingLeft: 22 }}>
             <li>Public pages only. We never log in, fill in checkouts or get around a block.</li>
             <li>We follow each site's robots.txt, wait between requests, and identify ourselves as LedgerBot.</li>
-            <li>Before collecting anything, we read the site's terms, and stop if they contain an anti-scraping clause written by the site. We record when a site only uses its platform's standard template wording.</li>
+            <li>Before collecting anything, we read the site's terms, and stop if they contain an anti-scraping clause written by the site.</li>
             <li>We keep facts and short quotes, never copies of pages, and we leave out personal information.</li>
           </ul>
           <h2 id="check">How we check facts</h2>

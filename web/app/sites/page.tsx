@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import IndustryFilter from "@/components/IndustryFilter";
 import FilterSelect from "@/components/FilterSelect";
 import { filterSites, getPromotions, getSites, promotionsFor, Site } from "@/lib/data";
-import { KIND_NAMES, dateAU, facets, label, list, money, num, siteName, val } from "@/lib/format";
+import { KIND_NAMES, KIND_SINGULAR, facetHref, dateAU, facets, label, list, money, num, siteName, val } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { BRAND } from "@/lib/brand";
 
@@ -35,7 +35,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
   const n = (kind: string, v: string) => (fc[kind]?.find((x) => x.value === v) as any)?.n || 0;
   const bf = new Set(promos.filter((p) => p.live && /black friday|cyber/i.test(`${p.name} ${p.discount}`)).map((p) => p.domain));
   const ready = [
-    { n: scoped.filter((s) => has(s, "afterpay") && has(s, "zip") && !has(s, "humm")).length, title: "Afterpay and Zip, but no Humm", href: "/explore/payments/humm#prospects" },
+    { n: scoped.filter((s) => has(s, "afterpay") && has(s, "zip") && !has(s, "humm")).length, title: "Afterpay and Zip, but no Humm", href: "/payments/humm#prospects" },
     { n: n("payments", "klarna"), title: "Offer Klarna", href: link({ payments: "klarna" }) },
     { n: bf.size, title: "Running Black Friday or Cyber Monday", href: `/promotions${q.industry ? `?industry=${q.industry}` : ""}` },
     { n: n("policy", "30-day-returns"), title: "30-day returns or longer", href: link({ policy: "30-day-returns" }) },
@@ -55,7 +55,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
           keep={{ payments: q.payments, tech: q.tech, platform: q.platform, policy: q.policy }}
           extra={<>
             {KINDS.map((k) => (
-              <FilterSelect key={k} label={KIND_NAMES[k].replace(/s$/, "")} param={k} value={q[k]} path="/sites" query={{ ...q }} width={190}
+              <FilterSelect key={k} label={KIND_SINGULAR[k]} param={k} value={q[k]} path="/sites" query={{ ...q }} width={190}
                 options={[{ value: "", label: "Any" }, ...fc[k].map((x: any) => ({ value: x.value, label: `${x.name} (${x.n})` }))]} />
             ))}
             {chosen.length > 0 && <Link scroll={false} className="small" href={link({ payments: undefined, tech: undefined, platform: undefined, policy: undefined })}>Clear filters</Link>}
@@ -74,7 +74,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
 
         <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline", marginTop: 24 }}>
           <h2 style={{ margin: 0, fontSize: 22 }}>{sites.length} {sites.length === 1 ? "store" : "stores"}{chosen.length ? ` · ${chosen.map((f) => f.name).join(" · ")}` : ""}</h2>
-          {chosen.length === 1 && <Link className="small" href={chosen[0].kind === "tech" ? `/tech/${chosen[0].value}` : `/explore/${chosen[0].kind}/${chosen[0].value}`} style={{ fontWeight: 600 }}>Who added or dropped it →</Link>}
+          {chosen.length === 1 && <Link className="small" href={facetHref(chosen[0].kind, chosen[0].value)} style={{ fontWeight: 600 }}>Who added or dropped it →</Link>}
         </div>
         <div className="card scroll" style={{ padding: 0, marginTop: 12 }}>
           <table className="t" style={{ minWidth: 900 }}>

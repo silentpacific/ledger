@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import FacetDetail, { facetTitle, loadFacet } from "@/components/FacetDetail";
 import { facets } from "@/lib/format";
@@ -10,7 +10,7 @@ export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const fc = facets(await getSites());
-  return Object.entries(fc).filter(([k]) => k !== "tech").flatMap(([kind, items]) => items.map((x) => ({ kind, value: x.value })));
+  return Object.entries(fc).filter(([k]) => k !== "tech" && k !== "payments").flatMap(([kind, items]) => items.map((x) => ({ kind, value: x.value })));
 }
 
 type P = { params: Promise<{ kind: string; value: string }>; searchParams: Promise<{ industry?: string }> };
@@ -33,6 +33,7 @@ export async function generateMetadata({ params, searchParams }: P): Promise<Met
 export default async function ExploreList({ params, searchParams }: P) {
   const { kind, value } = await params;
   const { industry } = await searchParams;
+  if (kind === "payments") permanentRedirect(`/payments/${value}${industry ? `?industry=${industry}` : ""}`);
   if (kind === "tech") redirect(`/tech/${value}${industry ? `?industry=${industry}` : ""}`);
   const page = await FacetDetail({ kind, value, industry });
   if (!page) notFound();

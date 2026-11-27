@@ -3,7 +3,7 @@ import { BRAND } from "@/lib/brand";
 
 // Grouped by what people come to do: look around the market, or analyse it.
 const GROUPS = [
-  ["Explore", [["/industries", "Industries"], ["/sites", "Stores"], ["/promotions", "Promotions"]]],
+  ["Explore", [["/industries", "Industries"], ["/sites", "Stores"], ["/promotions", "Promotions"], ["/payments", "Payments"]]],
   ["Analyse", [["/compare", "Compare"], ["/benchmarks", "Benchmarks"], ["/tech", "Technology"]]],
 ] as const;
 

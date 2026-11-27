@@ -162,7 +162,7 @@ export const POLICIES: Omit<Facet, "kind">[] = [
   { value: "ai-shopping-endpoint", name: "AI shopping endpoint", test: (s) => !!val(s, "ai_readiness.agent_commerce_endpoint") },
   { value: "llms-txt", name: "Has llms.txt", test: (s) => val(s, "ai_readiness.llms_txt") === true },
 ];
-const WALLETS = ["apple_pay", "google_pay", "paypal", "shop_pay"];
+export const WALLETS = ["apple_pay", "google_pay", "paypal", "shop_pay"];
 
 export function facets(sites: Site[]): Record<string, Facet[]> {
   const out: Record<string, Facet[]> = { payments: [], tech: [], platform: [], segment: [], policy: [] };
@@ -187,6 +187,10 @@ export function facets(sites: Site[]): Record<string, Facet[]> {
   return out;
 }
 export const KIND_NAMES: Record<string, string> = { payments: "Payment options", tech: "Technologies", platform: "Platforms", segment: "Segments", policy: "Policies" };
+export const KIND_SINGULAR: Record<string, string> = { payments: "Payment option", tech: "Technology", platform: "Platform", segment: "Segment", policy: "Policy" };
+/** Where one payment option, technology, platform or policy lives on the site. */
+export const facetHref = (kind: string, value: string) =>
+  kind === "tech" ? `/tech/${value}` : kind === "payments" ? `/payments/${value}` : `/explore/${kind}/${value}`;
 
 // ---------- stats ----------
 export const median = (xs: number[]) => {

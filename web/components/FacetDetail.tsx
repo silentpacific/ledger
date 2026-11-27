@@ -2,7 +2,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { Bars, Crumbs, JsonLd } from "@/components/ui";
 import { filterSites, getChanges, getSites, industryOf, Site } from "@/lib/data";
-import { KIND_NAMES, describeChange, dateAU, facets, label, list, money, num, siteName, slug, val } from "@/lib/format";
+import { KIND_NAMES, facetHref, describeChange, dateAU, facets, label, list, money, num, siteName, slug, val } from "@/lib/format";
 import { INDUSTRIES, industryName } from "@/lib/industries";
 import { SITE_URL } from "@/lib/site";
 import { techCategory } from "@/lib/tech";
@@ -22,7 +22,7 @@ export function facetTitle(kind: string, name: string) {
 export default async function FacetDetail({ kind, value, industry }: { kind: string; value: string; industry?: string }) {
   const { all, sites, f } = await loadFacet(kind, value, industry);
   if (!f) return null;
-  const base = kind === "tech" ? `/tech/${value}` : `/explore/${kind}/${value}`;
+  const base = facetHref(kind, value);
   const matching = sites.filter(f.test).sort((a, b) => siteName(a).localeCompare(siteName(b)));
   const dom = new Set(sites.map((s) => s.domain));
   const changes = (await getChanges(365)).filter((c) => dom.has(c.domain)).filter((c) => {
@@ -37,15 +37,15 @@ export default async function FacetDetail({ kind, value, industry }: { kind: str
     return { label: i.name, n: xs.length ? Math.round((100 * m) / xs.length) : 0, text: `${m} of ${xs.length}`, href: `${base}?industry=${i.slug}` };
   }).filter((r) => r.text !== "0 of 0");
   const scope = industry ? `${industryName(industry).toLowerCase()} stores` : "stores";
-  const section = kind === "tech" ? ["Tech", "/tech"] as [string, string] : ["Sites", "/sites"] as [string, string];
+  const section = kind === "tech" ? ["Tech", "/tech"] as [string, string] : kind === "payments" ? ["Payments", "/payments"] as [string, string] : ["Sites", "/sites"] as [string, string];
 
   return (
     <>
-      <Header active={kind === "tech" ? "/tech" : "/sites"} />
+      <Header active={kind === "tech" ? "/tech" : kind === "payments" ? "/payments" : "/sites"} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "ItemList", name: f.name, numberOfItems: matching.length,
         itemListElement: matching.map((s, i) => ({ "@type": "ListItem", position: i + 1, name: siteName(s), url: `${SITE_URL}/sites/${s.domain}` })) }} />
       <main className="wrap page">
-        <Crumbs items={[section, kind === "tech" ? [techCategory(f.name), "/tech"] : [KIND_NAMES[kind], "/sites"], [f.name]]} />
+        <Crumbs items={kind === "payments" ? [section, [f.name]] : [section, kind === "tech" ? [techCategory(f.name), "/tech"] : [KIND_NAMES[kind], "/sites"], [f.name]]} />
         <h1 className="title" style={{ fontSize: 40 }}>{facetTitle(kind, f.name)}</h1>
         <p className="lede">{matching.length} of the {sites.length} Australian {scope} we track{kind === "payments" ? ` show ${f.name} as a payment option` : kind === "tech" ? ` use ${f.name}` : kind === "platform" ? ` run on ${f.name}` : " match"}.</p>
         <div className="row" style={{ gap: 8, marginTop: 16 }}>

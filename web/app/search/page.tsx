@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { getPromotions, getSites } from "@/lib/data";
-import { KIND_NAMES, dateAU, facets, siteName } from "@/lib/format";
+import { KIND_NAMES, facetHref, dateAU, facets, siteName } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Search", robots: { index: false, follow: true } };
 
@@ -37,9 +37,9 @@ export default async function Search({ searchParams }: { searchParams: Promise<{
           <H id="lists">Lists &amp; pages</H>
           <div className="grid g2">
             {facetHits.map((f: any) => (
-              <Link key={f.kind + f.value} href={`/explore/${f.kind}/${f.value}`} className="card" style={{ color: "var(--ink)", textDecoration: "none" }}>
+              <Link key={f.kind + f.value} href={facetHref(f.kind, f.value)} className="card" style={{ color: "var(--ink)", textDecoration: "none" }}>
                 <div style={{ fontWeight: 600 }}>{f.name} · {f.n} {f.n === 1 ? "site" : "sites"}</div>
-                <div className="small muted" style={{ marginTop: 4 }}>{KIND_NAMES[f.kind]} · Explore list</div>
+                <div className="small muted" style={{ marginTop: 4 }}>{KIND_NAMES[f.kind]}</div>
               </Link>
             ))}
           </div>

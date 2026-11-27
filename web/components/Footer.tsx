@@ -18,7 +18,7 @@ export default function Footer() {
           <p style={{ margin: "8px 0 20px", lineHeight: 1.55, maxWidth: 420 }}>Dated, sourced facts on how Australian online stores sell: policies, prices, promotions, payments and the tools behind them, tracked over time.</p>
           <SuggestSite />
         </div>
-        {col("Product", [["/", "This week"], ["/industries", "Industries"], ["/explore", "Explore"], ["/compare", "Compare"], ["/benchmarks", "Benchmarks"], ["/promotions", "Promotions calendar"]])}
+        {col("Product", [["/", "This week"], ["/industries", "Industries"], ["/sites", "Stores"], ["/payments", "Payments"], ["/compare", "Compare"], ["/benchmarks", "Benchmarks"], ["/promotions", "Promotions calendar"]])}
         {col("Company", [["/about", "About us"], ["/contact", "Contact us"], ["/methodology", "Methodology"]])}
         {col("Site owners & legal", [["/methodology#opt-out", "Opt out of tracking"], ["/contact?topic=wrong-fact", "Report a wrong fact"], ["/methodology#privacy", "Privacy"], ["/methodology#terms", "Terms of use"]])}
       </div>

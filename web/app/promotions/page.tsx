@@ -54,7 +54,12 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const discountSites = new Set(live.filter(isDiscount).map((p) => p.domain));
   const deepest = live.filter(isDiscount).sort((a, b) => maxPct(b) - maxPct(a))[0];
   const bf = new Set(live.filter((p) => /black friday/i.test(`${p.name} ${p.discount}`)).map((p) => p.domain));
-  const typeCounts = Object.entries(PROMO_TYPES).map(([k, n]) => [k, n, new Set(live.filter((p) => p.type === k).map((p) => p.domain)).size] as const).filter(([, , c]) => c > 0);
+  // pill counts: stores with that kind of offer running at some point in the month or year being viewed
+  const inWindow = promos.filter((p) => { const s = span_(p); return s[1] > w0 && s[0] < w1; });
+  const storesWith = (f: (p: Promo) => boolean) => new Set(inWindow.filter(f).map((p) => p.domain)).size;
+  const discountCount = storesWith(isDiscount);
+  const typeCounts = Object.entries(PROMO_TYPES).map(([k, n]) => [k, n, storesWith((p) => p.type === k)] as const)
+    .filter(([k, , c]) => c > 0 || sp.type === k);
   const todayX = ((nowT - w0) / span) * 100;
   const ticks = year ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : Array.from({ length: days }, (_, i) => String(i + 1));
   const q = (o: Record<string, string | undefined>) => "/promotions?" + new URLSearchParams(Object.entries({ m: month, type: sp.type, view: sp.view, industry: sp.industry, segment: sp.segment, ...o }).filter(([, v]) => v) as [string, string][]).toString();
@@ -86,7 +91,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
         </div>
 
         <div className="row" style={{ gap: 8, marginTop: 24 }}>
-          <Link scroll={false} className={`chip${!sp.type ? " on" : ""}`} href={q({ type: undefined })}>Discounts &amp; gifts</Link>
+          <Link scroll={false} className={`chip${!sp.type ? " on" : ""}`} href={q({ type: undefined })}>Discounts &amp; gifts · {discountCount}</Link>
           {typeCounts.map(([k, n, c]) => <Link scroll={false} key={k} className={`chip${sp.type === k ? " on" : ""}`} href={q({ type: k })}>{n} · {c}</Link>)}
         </div>
 

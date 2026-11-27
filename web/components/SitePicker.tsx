@@ -40,10 +40,12 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
     router.push(list.length ? `/compare?sites=${list.join(",")}` : "/compare", { scroll: false });
   };
   const add = (d: string) => {
-    try { sessionStorage.setItem(QKEY, q); } catch { /* storage unavailable */ }
-    setI((x) => Math.max(0, Math.min(x, matches.length - 2)));
+    setQ(""); setI(0);
+    if (input.current) input.current.value = "";
     go([...chosen, d]);
   };
+  // the store to add on Enter: the highlighted one, else an exact name match, else the first match
+  const pick = () => matches[i] || matches.find((o) => o.name.toLowerCase() === q.trim().toLowerCase()) || matches[0];
   const full = chosen.length >= max;
 
   return (
@@ -67,7 +69,15 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setI((x) => Math.min(x + 1, matches.length - 1)); }
               else if (e.key === "ArrowUp") { e.preventDefault(); setI((x) => Math.max(x - 1, 0)); }
-              else if (e.key === "Enter") { e.preventDefault(); if (matches[i]) add(matches[i].domain); }
+              else if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                // text typed before the page finished loading isn't in state yet: read it from the box
+                const typed = e.currentTarget.value;
+                if (typed !== q) { setQ(typed); const t = typed.trim().toLowerCase();
+                  const m = options.find((o) => !chosen.includes(o.domain) && (o.name.toLowerCase().includes(t) || o.domain.includes(t) || o.industry.toLowerCase().includes(t)));
+                  if (m) add(m.domain); return; }
+                const o = pick(); if (o) add(o.domain);
+              }
               else if (e.key === "Escape") setOpen(false);
               else if (e.key === "Backspace" && !q && chosen.length) go(chosen.slice(0, -1));
             }} />
