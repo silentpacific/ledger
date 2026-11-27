@@ -60,7 +60,10 @@ async function rpcOnce<T>(fn: string, args: Record<string, unknown>, revalidate:
 async function rpcFetch<T>(fn: string, args: Record<string, unknown>, revalidate: number | false): Promise<T> {
   const res = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
     method: "POST",
-    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+    // X-Ledger-Data versions Vercel's shared data cache key. web_sites outgrew the 2 MB cache limit, so fresh copies
+    // can't be stored and an old one (144 stores, saved while it was still small) kept being served. Bump this if a
+    // stale cached copy ever sticks again.
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", "X-Ledger-Data": "2" },
     body: JSON.stringify(args),
     ...(revalidate === false ? { cache: "no-store" as const } : { next: { revalidate, tags: ["ledger"] } }),
   });
