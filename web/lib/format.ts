@@ -190,7 +190,10 @@ export const KIND_NAMES: Record<string, string> = { payments: "Payment options",
 export const KIND_SINGULAR: Record<string, string> = { payments: "Payment option", tech: "Technology", platform: "Platform", segment: "Segment", policy: "Policy" };
 /** Where one payment option, technology, platform or policy lives on the site. */
 export const facetHref = (kind: string, value: string) =>
-  kind === "tech" ? `/tech/${value}` : kind === "payments" ? `/payments/${value}` : `/explore/${kind}/${value}`;
+  kind === "tech" ? `/tech/${value}` : kind === "payments" ? `/payments/${value}` : kind === "platform" ? `/platforms/${value}`
+    : kind === "policy" ? `/policies/${value}` : `/sites`;
+/** The overview page for a kind of facet. */
+export const KIND_HOME: Record<string, string> = { payments: "/payments", tech: "/tech", platform: "/platforms", policy: "/policies", segment: "/sites" };
 
 // ---------- stats ----------
 export const median = (xs: number[]) => {

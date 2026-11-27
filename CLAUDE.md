@@ -102,8 +102,8 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   Segments are switched off (27 Nov 2026, web/lib/data.ts SEGMENTS_ENABLED=false): overlapping, single-store and
   not industry-standard. Data kept in domains.segment. Revisit later with an industry-standard scheme.
   Nav: This week, Industries (sortable stats table), Sites, Payments (/payments overview, /payments/[provider];
-  /explore/payments/* redirect there permanently; /explore itself is gone, platform/policy lists still at
-  /explore/[kind]/[value]), Compare
+  also /platforms + /platforms/[value], /policies + /policies/[value]; all old /explore/[kind]/[value] addresses
+  redirect permanently (lib/format facetHref is the one place that maps a list to its address), /explore is gone), Compare
   (starts empty, search picker), Benchmarks, Promotions, Tech (/tech, /tech/[tool]; commerce tools only).
   Industry stats show a median only when >=60% of that industry's sites state the value (lib/stats.ts).
 - Questions per industry: extract.FIELDS (common) + extract.INDUSTRY_FIELDS (extras per industry).
