@@ -64,9 +64,10 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - Firecrawl mode (Rahul, 27 Nov 2026): when a site's homepage rejects our direct requests (connection dropped,
   429, 202 holding page, 403/503), Fetcher.fetch_home switches that site to Firecrawl's standard fetch (never
   stealth) for the whole scan; robots.txt is re-read through Firecrawl and the terms gate still runs. Costs
-  ~US$0.10/site/month. Used for Bonds, Sheridan, Healthylife, Petstock, Pet Circle, PetPost, Snowy's.
+  ~US$0.10/site/month. Used for Petstock, Pet Circle, PetPost. Bare domains that don't answer are retried
+  on www. first (Bonds, Sheridan now read that way, no Firecrawl needed).
 - Site cleanup 27 Nov 2026: domains fixed (wilsonandfrenchy.com.au, pe-nation.com, au.citta.com, peto.com.au
-  = ex My Pet Warehouse); switched off (scan_enabled=false, reason in last_scan_error, data kept):
+  = ex My Pet Warehouse, savour-life.com.au); switched off (scan_enabled=false, reason in last_scan_error, data kept):
   wireless1.com.au, kohepets.com.au, milandirect.com.au.
 - Terms: scan sites with no terms page. The Shopify template anti-scraping clause is ignored
   (verdict template_clause, site scanned). Custom anti-scraping clauses block (Michael Hill,
@@ -119,7 +120,8 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   store names from og:site_name / page title (lib/format displayName); offers past their end date are not live;
   schedule line from lib/schedule.ts (mirror of scan.yml). Curasept is never used in suggested comparisons.
 - Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name. (No founder story: Rahul doesn't want one.)
-- Still unreadable: myprotein.com.au (503 even via Firecrawl), anaconda.com.au (Firecrawl proxy errors).
+- Switched off by their own terms once readable (27 Nov): snowys.com.au, healthylife.com.au.
+- Still unreadable: myprotein.com.au (503 even via Firecrawl), anaconda.com.au (no answer even on www).
 - Known gaps: JS-rendered prices (Goldmark, Prouds, Temple & Grace), store finders,
   over-time charts (need more weeks of data), real domain + brand, lawyer review,
   placeholders (email, city, ABN, privacy, terms).
