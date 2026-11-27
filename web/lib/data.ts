@@ -72,8 +72,17 @@ async function rpcFetch<T>(fn: string, args: Record<string, unknown>, revalidate
  * an industry standard. The data stays in the database; set this to true to show them again. */
 export const SEGMENTS_ENABLED = false;
 
+/** Lists from the scanner can contain empty entries (null, ""); drop them once here so no page can trip on one. */
+function clean(s: Site): Site {
+  const facts: Record<string, Fact> = {};
+  for (const [k, f] of Object.entries(s.facts || {})) {
+    facts[k] = Array.isArray(f?.v) ? { ...f, v: f.v.filter((x: unknown) => x != null && !(typeof x === "string" && !x.trim())) } : f;
+  }
+  return { ...s, facts };
+}
+
 export async function getSites(): Promise<Site[]> {
-  const raw = await rpc<Site[]>("web_sites");
+  const raw = (await rpc<Site[]>("web_sites")).map(clean);
   const sites = SEGMENTS_ENABLED ? raw : raw.map((s) => ({ ...s, segment: null }));
   const { rememberNames } = await import("./format");
   rememberNames(sites); // so pages that only have a domain (feeds, promotions) show the store's real name

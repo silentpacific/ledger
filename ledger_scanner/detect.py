@@ -155,7 +155,9 @@ def detect_structured_data(html: str, url: str) -> tuple[list[dict], list[dict]]
                 facts.append(fact("site_identity", "trading_name", o["name"], source_url=url, method="structured_data"))
             same = o.get("sameAs")
             if same:
-                facts.append(fact("site_identity", "social_profiles", sorted(set(same if isinstance(same, list) else [same])),
+                links = [x.strip() for x in (same if isinstance(same, list) else [same]) if isinstance(x, str) and x.strip()]
+                if links:
+                    facts.append(fact("site_identity", "social_profiles", sorted(set(links)),
                                   source_url=url, method="structured_data"))
         agg = o.get("aggregateRating")
         if isinstance(agg, dict) and agg.get("ratingValue"):

@@ -14,7 +14,7 @@ const NAMES: Record<string, string> = {
   "shjewellery.com.au": "SH Jewellery", "templeandgrace.com.au": "Temple & Grace", "wanderlustandco.com": "Wanderlust + Co",
 };
 const KNOWN = new Map<string, string>(); // domain -> display name, filled by rememberNames() when sites load
-const alnum = (x: string) => x.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+const alnum = (x: string) => String(x ?? "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 
 /** The store's own name: our list, then its schema.org / og:site_name name, then the part of its page title
  * that matches the domain ("Coco & Eve | Official Store" for cocoandeve.com), then the domain itself. */
@@ -49,7 +49,7 @@ const LABELS: Record<string, string> = {
   customer: "Customer", retailer: "The store", store: "The store", free: "Free",
   auspost: "Australia Post", australia_post: "Australia Post", startrack: "StarTrack", dhl: "DHL", couriers_please: "CouriersPlease",
 };
-export const label = (v: string) => LABELS[v] ?? LABELS[v.toLowerCase?.()] ?? (v.charAt(0).toUpperCase() + v.slice(1)).replace(/_/g, " ");
+export const label = (v: string) => { v = String(v ?? ""); return LABELS[v] ?? LABELS[v.toLowerCase()] ?? (v.charAt(0).toUpperCase() + v.slice(1)).replace(/_/g, " "); };
 export const money = (v: any) => {
   const a = v && typeof v === "object" ? v.amount : v;
   if (typeof a !== "number") return null;
@@ -94,7 +94,8 @@ export const num = (s: Site, key: string): number | undefined => {
 };
 export const list = (s: Site, key: string): string[] => {
   const v = val(s, key);
-  return Array.isArray(v) ? v.map((x) => String(x).toLowerCase()) : [];
+  // empty entries (null, "") are dropped: one bad list item must never break a page or the build
+  return Array.isArray(v) ? v.filter((x) => x != null && String(x).trim()).map((x) => String(x).toLowerCase()) : [];
 };
 
 // ---------- profile cards ----------
@@ -148,7 +149,7 @@ export const dateAU = (d: string | Date | number, o: Intl.DateTimeFormatOptions 
 export const dayKey = (d: string) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date(d));
 
 // ---------- explore ----------
-export const slug = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+export const slug = (s: string) => String(s ?? "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 export type Facet = { kind: string; value: string; name: string; test: (s: Site) => boolean };
 export const POLICIES: Omit<Facet, "kind">[] = [
