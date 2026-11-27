@@ -869,3 +869,23 @@ def test_firecrawl_rate_limit_is_retried(monkeypatch):
         def __init__(self, code): self.status_code, self.ok, self.headers = code, code == 200, {}
     monkeypatch.setattr(fm.requests, "post", lambda *a, **k: R(answers.pop(0)))
     assert fm.firecrawl_post({"url": "x"}).status_code == 200 and not answers
+
+
+def test_bare_domain_falls_back_to_www(monkeypatch):
+    import requests as rq
+    from ledger_scanner import fetch as fm, config as cfg
+    monkeypatch.setattr(cfg, "SECONDS_BETWEEN_REQUESTS", 0)
+    monkeypatch.setattr(fm, "RUN_CACHE", None)
+    f = fm.Fetcher("https://shop.example/")
+
+    class R:
+        status_code, content, headers = 200, b"x", {"content-type": "text/html"}
+        text = "<html><body>Welcome to the shop</body></html>"
+
+    def get(url):
+        if "://www." not in url:
+            raise rq.ConnectTimeout("apex does not answer")
+        return R()
+    monkeypatch.setattr(f, "_get_live", get)
+    home = f.fetch_home("https://shop.example/")
+    assert home.status == 200 and f.base_url == "https://www.shop.example/" and not f.via_firecrawl

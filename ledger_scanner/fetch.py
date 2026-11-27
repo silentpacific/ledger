@@ -175,6 +175,18 @@ class Fetcher:
         home = self.fetch(url)
         if home.status == 200 and home.html:
             return home
+        # A bare domain that doesn't answer at all usually lives on www. (Bonds, Sheridan): try that first.
+        host = urlparse(url).netloc
+        if home.status is None and home.robots_allowed and not host.startswith("www."):
+            p = urlparse(url)
+            www_url = p._replace(netloc="www." + host).geturl()
+            self.base_url = f"{p.scheme}://www.{host}/"
+            self.load_robots()
+            again = self.fetch(www_url)
+            if again.status == 200 and again.html:
+                again.note = f"{host} did not answer; read www.{host}"
+                return again
+            url, home = www_url, again
         rejected = home.status in (None, 202, 403, 429, 503) and home.robots_allowed
         if not rejected or not config.FIRECRAWL_API_KEY:
             return home
