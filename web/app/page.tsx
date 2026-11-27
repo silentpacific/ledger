@@ -8,7 +8,7 @@ import { filterSites, getChanges, getPromotions, getSites, industryOf, promotion
 import { INDUSTRIES, industryName } from "@/lib/industries";
 import { nextMonthly, nextWeekly, TRACKING_BEGAN } from "@/lib/schedule";
 import { COVERAGE, groupStats } from "@/lib/stats";
-import { PLUMBING, techCategory } from "@/lib/tech";
+import { PLUMBING, TECH_ORDER, techCategory } from "@/lib/tech";
 import { dateAU, dayKey, describeChange, facets, label, list, maxPct, median, money, num, show, siteName, isDiscount, val } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -105,7 +105,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
   const profiles: Profile[] = [...all].sort((a, b) => siteName(a).localeCompare(siteName(b))).map((s) => {
     const fs = num(s, "shipping.free_shipping_threshold"), rd = num(s, "policies.returns.period_days");
     const offer = liveBest.get(s.domain);
-    const tech = ((val(s, "tech_stack.technologies") as string[] | undefined) || []).filter((t) => !PLUMBING.has(techCategory(t)));
+    const tech = ((val(s, "tech_stack.technologies") as string[] | undefined) || []).filter((t) => !PLUMBING.has(techCategory(t)))
+      .sort((a, b) => TECH_ORDER.indexOf(techCategory(a)) - TECH_ORDER.indexOf(techCategory(b))); // commerce tools before ad pixels
     const opt = (v: string) => (v === "Not stated" ? null : v);
     const peers = all.filter((x) => x.domain !== s.domain && industryOf(x) === industryOf(s) && !NOT_FEATURED.has(x.domain))
       .sort((a, b) => coreCount(b) - coreCount(a)).slice(0, 2).map((x) => x.domain);
