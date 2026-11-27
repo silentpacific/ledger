@@ -106,8 +106,8 @@ class Fetcher:
             self.load_robots()
         host = urlparse(url).netloc.lower()
         if host and host != urlparse(self.base_url).netloc.lower():
-            return self._other_host_robots(url).can_fetch(config.ROBOTS_AGENT, url)
-        return self._robots.can_fetch(config.ROBOTS_AGENT, url)
+            return config.robots_ok(self._other_host_robots(url), url)
+        return config.robots_ok(self._robots, url)
 
     def _other_host_robots(self, url: str) -> urllib.robotparser.RobotFileParser:
         """A help centre on another host (help.x.com, x.zendesk.com) has its own robots.txt."""

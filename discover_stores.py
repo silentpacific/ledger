@@ -120,7 +120,7 @@ def check(domain: str) -> dict | None:
             rp = urllib.robotparser.RobotFileParser()
             rr = s.get(base + "robots.txt", timeout=10)
             rp.parse(rr.text.splitlines() if rr.status_code == 200 else [])
-            if not rp.can_fetch(config.ROBOTS_AGENT, base):
+            if not config.robots_ok(rp, base):
                 return None  # the site asks crawlers not to visit: respect it, don't add it
             r = s.get(base, timeout=12)
         except requests.RequestException:

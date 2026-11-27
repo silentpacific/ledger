@@ -1,1 +1,1 @@
-"""Project Ledger scanner."""
+"""SentientLogs scanner (formerly Project Ledger)."""

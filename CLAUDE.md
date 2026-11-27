@@ -1,6 +1,9 @@
-# Ledger: handover notes for Claude
+# SentientLogs (formerly Ledger): handover notes for Claude
 
-Read this first in any new chat about Ledger ("Digital Commerce Facts").
+Read this first in any new chat about SentientLogs / Ledger ("Digital Commerce Facts"). Renamed 27 Nov 2026:
+site name in web/lib/brand.ts (BRAND = "SentientLogs"); crawler SentientLogsBot (ledger_scanner/config.py), which also
+obeys robots.txt rules written for the old name LedgerBot (config.ROBOTS_AGENTS). The repo and folders keep the ledger name.
+Analytics (production only, web/app/layout.tsx): GTM-W7QFJH7G, GA4 G-GKKZBSND4H (gtag config) and Clarity zk7kvropmo.
 
 ## Read the whole spec before working
 The spec doc (link below) is long, and the Claude Docs tool returns it in pages. Keep reading:
@@ -156,7 +159,7 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - Website look (27 Nov): the hero's "record" style across all pages (globals.css "the record look"): .card is a
   ruled section (ink top rule, no box), .kv rows use dotted leaders, .stat is a big-number strip, .band is the dark
   prompt (compare). No all-caps labels. Product name lives only in web/lib/brand.ts (BRAND) for the rename;
-  the crawler name LedgerBot is separate (ledger_scanner/config.py USER_AGENT).
+  the crawler name is separate (ledger_scanner/config.py USER_AGENT).
 - SEO: app/sitemap.ts is generated automatically and refreshed hourly; lastmod = each store's last scan for
   store pages, the latest scan for list pages, STATIC_UPDATED (in sitemap.ts; bump it when editing them) for
   About/Contact/Methodology. Structured data (lib/schema.ts): Organization + WebSite with SearchAction on every
@@ -206,8 +209,8 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   index next). Decisions put to Rahul 27 Nov.
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
-- Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name (then rename the crawler and
-  set a real crawler contact email, not his personal one), lawyer review. (No founder story.)
+- Waiting on Rahul: privacy policy, terms, opt-out response time, a crawler contact email on sentientlogs.com
+  (CRAWLER_CONTACT; not his personal one), a logo, lawyer review. (No founder story.)
 - Scheduled: Mon 30 Nov Cyber Monday weekly scan (batch); 1 Dec monthly skipped; weekly 7/14/21/28 Dec;
   monthly from 1 Jan.
 - Later: country rules before going global (EU database right, privacy laws, currencies), refine the cost index

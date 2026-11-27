@@ -459,7 +459,7 @@ def recheck_terms(domain: str, homepage_url: str) -> dict:
     base = f.base_url
     if home.status in (401, 403) or (home.status != 200 and not home.html):
         return {"verdict": "blocked" if home.status in (401, 403) else "unclear", "url": homepage_url,
-                "evidence": f"homepage returned {home.status} to LedgerBot"}
+                "evidence": f"homepage returned {home.status} to our crawler"}
     sm = discover.read_sitemaps(f)
     candidates = [u for u, _ in sm["pages"]] + discover.footer_and_nav_links(home.html, base)
     gate = terms.check_terms(f, candidates)

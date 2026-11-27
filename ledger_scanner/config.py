@@ -27,8 +27,17 @@ BATCH_PRICE_FACTOR = 0.5
 
 # Crawler identity (honest user agent with a contact address)
 CRAWLER_CONTACT = _env("CRAWLER_CONTACT")
-USER_AGENT = f"LedgerBot/0.1 (+mailto:{CRAWLER_CONTACT})" if CRAWLER_CONTACT else "LedgerBot/0.1"
-ROBOTS_AGENT = "LedgerBot"
+# Crawler renamed from LedgerBot to SentientLogsBot on 27 Nov 2026. robots.txt rules for either name are obeyed,
+# so a store that blocked the old name stays excluded.
+USER_AGENT = (f"SentientLogsBot/0.2 (+https://au.sentientlogs.com/methodology; mailto:{CRAWLER_CONTACT})" if CRAWLER_CONTACT
+              else "SentientLogsBot/0.2 (+https://au.sentientlogs.com/methodology)")
+ROBOTS_AGENT = "SentientLogsBot"
+ROBOTS_AGENTS = ("SentientLogsBot", "LedgerBot")
+
+
+def robots_ok(rp, url: str) -> bool:
+    """Allowed only if every name we have used is allowed."""
+    return all(rp.can_fetch(a, url) for a in ROBOTS_AGENTS)
 
 # Politeness
 SECONDS_BETWEEN_REQUESTS = float(os.environ.get("SECONDS_BETWEEN_REQUESTS", "2"))
