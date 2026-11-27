@@ -11,19 +11,24 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
   const input = useRef<HTMLInputElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const KEY = "ledger-picker-top";
+  const QKEY = "ledger-picker-q";
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const [i, setI] = useState(0);
   // After adding or removing a store the page re-renders and the content around the picker changes height.
   // Put the picker back at the same spot on screen it was at when the user acted, and keep typing in it.
   useEffect(() => {
     let saved: string | null = null;
     try { saved = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch { /* storage unavailable */ }
+    let savedQ: string | null = null;
+    try { savedQ = sessionStorage.getItem(QKEY); sessionStorage.removeItem(QKEY); } catch { /* storage unavailable */ }
+    if (savedQ !== null) { setQ(savedQ); setOpen(true); }
     if (saved === null || !wrap.current) return;
     const delta = wrap.current.getBoundingClientRect().top - Number(saved);
     if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: "instant" as ScrollBehavior });
     input.current?.focus({ preventScroll: true });
+    setOpen(true);
   }, [chosen.join(",")]);
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
-  const [i, setI] = useState(0);
   const byDomain = useMemo(() => new Map(options.map((o) => [o.domain, o])), [options]);
   const matches = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -34,7 +39,11 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
     try { if (wrap.current) sessionStorage.setItem(KEY, String(wrap.current.getBoundingClientRect().top)); } catch { /* storage unavailable */ }
     router.push(list.length ? `/compare?sites=${list.join(",")}` : "/compare", { scroll: false });
   };
-  const add = (d: string) => { setQ(""); setI(0); go([...chosen, d]); };
+  const add = (d: string) => {
+    try { sessionStorage.setItem(QKEY, q); } catch { /* storage unavailable */ }
+    setI((x) => Math.max(0, Math.min(x, matches.length - 2)));
+    go([...chosen, d]);
+  };
   const full = chosen.length >= max;
 
   return (
@@ -63,13 +72,12 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
               else if (e.key === "Backspace" && !q && chosen.length) go(chosen.slice(0, -1));
             }} />
           {open && matches.length > 0 && (
-            <ul id={`${id}-list`} role="listbox" className="card"
-              style={{ position: "absolute", zIndex: 20, top: 42, left: 0, right: 0, margin: 0, padding: 6, listStyle: "none", maxHeight: 360, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,.12)" }}>
+            <ul id={`${id}-list`} role="listbox" className="picker-list">
               {matches.map((o, n) => (
                 <li key={o.domain} id={`${id}-${n}`} role="option" aria-selected={n === i}
                   onMouseDown={(e) => { e.preventDefault(); add(o.domain); }} onMouseEnter={() => setI(n)}
-                  style={{ padding: "8px 10px", borderRadius: 6, cursor: "pointer", background: n === i ? "var(--accent-soft)" : undefined, display: "flex", justifyContent: "space-between", gap: 12 }}>
-                  <span style={{ fontWeight: 600 }}>{o.name}</span><span className="tiny muted">{o.industry}</span>
+                  className="picker-opt">
+                  <span className="picker-name">{o.name}</span><span className="picker-ind">{o.industry}</span>
                 </li>
               ))}
             </ul>

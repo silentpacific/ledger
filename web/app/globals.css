@@ -182,3 +182,12 @@ table.t th { color: var(--body); font-size: 13px; border-bottom: 1px solid var(-
   .grid { gap: 28px 24px; }
 }
 .bar .n { flex: 0 0 auto; min-width: 56px; white-space: nowrap; }
+
+/* compare picker: a solid list over the page (never see-through), names and industries never collide */
+.picker-list { position: absolute; z-index: 40; top: 42px; left: 0; width: max(100%, 380px); margin: 0; padding: 6px; list-style: none;
+  max-height: 360px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 18px 40px rgba(21, 23, 28, .18); }
+.picker-opt { display: flex; align-items: baseline; gap: 16px; padding: 9px 10px; border-radius: 8px; cursor: pointer; }
+.picker-opt[aria-selected="true"] { background: var(--accent-soft); }
+.picker-name { flex: 1 1 auto; min-width: 0; font-weight: 600; color: var(--ink); }
+.picker-ind { flex: 0 0 auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
