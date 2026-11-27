@@ -220,6 +220,13 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - 28 Nov ~00:15 Adelaide: Rahul asked for as many quality stores as possible by morning at half price, with only
   ~US$7 Anthropic credit. Discovery run 46008912929: up to 800 stores, 8 batch scan runs capped at US$0.50 each
   (~US$4) + ~US$1 store checks, ~US$2 kept for the 30 Nov Cyber Monday scan. More stores need more credit.
+  What happened: the 8 scans stopped at the start (first-round estimate $0.51 > $0.50 cap). The AI store check
+  (discover_stores.judge) was failing silently: Haiku returned a thinking block first and thinking used up the
+  60-token answer, so keyword guesses got in. Fixed (structured JSON answer, thinking off, retries; a store without
+  a verdict is never added; failure reasons are logged). Re-check of the 800: 160 switched off (outside our industries
+  / not shops), 73 moved industry; 591 confirmed stores scanning in 8 batch runs from 46029973464 ($0.60 cap each).
+  Real cost of a new store's full scan: ~US$0.0063. Credit is nearly used up: Rahul must top up before the
+  Mon 30 Nov 02:13 UTC weekly scan.
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
 - Waiting on Rahul: privacy policy, terms, opt-out response time, a crawler contact email on sentientlogs.com
