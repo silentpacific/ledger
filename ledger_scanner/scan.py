@@ -278,6 +278,9 @@ def _unchanged_facts(previous: dict | None, url: str, fp: str) -> list[dict] | N
     stored = previous.get("facts", {}).get(url)
     if not stored:
         return None
+    if any(x["status"] == "conflicting" or (x["status"] in ("observed", "not_offered") and x.get("evidence_verified") is False)
+           for x in stored):
+        return None  # something on this page wasn't settled last time: read it again rather than carry it over
     since = (previous.get("at", {}).get(url) or "")[:10]
     out = []
     for x in stored:

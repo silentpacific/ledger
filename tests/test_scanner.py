@@ -798,3 +798,10 @@ def test_relevant_text_for_rechecks():
     text = "\n".join(["Menu"] * 50 + ["Returns", "Return within 14 days of delivery.", "Contact us"] + ["Footer"] * 50)
     t = extract.relevant_text(text, {})
     assert "14 days" in t and len(t) < 200
+
+
+def test_unsettled_stored_facts_are_not_carried_over():
+    from ledger_scanner import scan
+    prev = {"hashes": {"u": "fp"}, "at": {}, "facts": {"u": [
+        {"category": "policies", "fact_key": "policies.returns.period_days", "status": "conflicting", "value": 14}]}}
+    assert scan._unchanged_facts(prev, "u", "fp") is None
