@@ -77,6 +77,14 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - Site cleanup 27 Nov 2026: domains fixed (wilsonandfrenchy.com.au, pe-nation.com, au.citta.com, peto.com.au
   = ex My Pet Warehouse, savour-life.com.au, muktiorganics.com, mr-smith.com.au); switched off (scan_enabled=false, reason in last_scan_error, data kept):
   wireless1.com.au, kohepets.com.au, milandirect.com.au.
+- Store discovery (27 Nov 2026, discover_stores.py + .github/workflows/discover.yml): .com.au/.au domains from
+  the public Tranco top-1M list in rank order, not yet tracked; homepage read once (robots.txt respected, our UA);
+  a store only if the page loads a commerce platform's files (Shopify/WooCommerce/BigCommerce/Magento/Neto/SFCC)
+  AND has product markup or add-to-cart, and isn't news/media; industry by keywords and it must appear in the
+  store's own title/description; books, liquor, records, markets, hardware etc. skipped. Inserts with
+  full_scan_requested and starts N parallel scan.yml runs (manual scan runs no longer share one concurrency
+  group). Test runs 27 Nov: first version let in news sites (fixed), second misfiled books/liquor (fixed); the
+  bad test additions are switched off with a reason in last_scan_error.
 - Terms: scan sites with no terms page. The Shopify template anti-scraping clause is ignored
   (verdict template_clause, site scanned). Custom anti-scraping clauses block (Michael Hill,
   Paspaley, By Charlotte...). Blocked/prohibited sites are switched off and listed in the
@@ -165,6 +173,8 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   confirmation sent to a role address (legal@/privacy@); email alone is never enough. Needs a schema change
   (approval) and the final crawler name. Rationale given: robots.txt is the industry norm; a narrow opt-out
   reduces disputes and blocking; lawyer review (item 15) should decide whether removal covers past data.
+- 27 Nov night: goal 1,000 stores on the site. Discovery run 45982623141 (target 900, 10 parallel scans, US$4
+  cap each) started ~21:30 Adelaide; plus scan 45982604136 for 22 good stores from the discovery tests.
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
 - Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name (then rename the crawler and
