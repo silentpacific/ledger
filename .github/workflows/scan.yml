@@ -100,8 +100,8 @@ jobs:
           DRY=""
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
           if [ "${{ github.event.inputs.no_ai }}" = "true" ]; then DRY="$DRY --no-ai"; fi
-          # half-price batches: the run's own switch, or the USE_BATCH variable for scheduled runs
-          if [ "${{ github.event.inputs.batch }}" = "true" ] || { [ "${{ github.event_name }}" = "schedule" ] && [ "${{ vars.USE_BATCH }}" = "true" ]; }; then DRY="$DRY --batch"; fi
+          # half-price batches: the run's own switch; scheduled runs always use them unless the USE_BATCH variable is 'false'
+          if [ "${{ github.event.inputs.batch }}" = "true" ] || { [ "${{ github.event_name }}" = "schedule" ] && [ "${{ vars.USE_BATCH }}" != "false" ]; }; then DRY="$DRY --batch"; fi
           if [ -n "${{ github.event.inputs.domain }}" ]; then
             # one run for the whole list, in order, with the spend budget
             python run.py --domain-list "${{ github.event.inputs.domain }}" --mode "$MODE" $DRY $BUDGET
