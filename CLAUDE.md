@@ -121,21 +121,52 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - When Rahul asks for the cost index: `select * from cost_index_industries order by median_index desc;`
   and `select * from cost_index_sites order by cost_index desc;` (typical month = avg full scan + 4.33 x avg weekly).
 
-## Status (27 Nov 2026)
-- 27 Nov: full scan of all 152 enabled sites started in batch mode as two runs (45924871812, 45924889305).
-  5-site tests: ~US$0.006/site full scan in batch; key-fact coverage up (Amber Sceats, Bevilles, Bed Bath N' Table now 4/4).
-  Still weak: JS-built sites (JB Hi-Fi, Tentworld), help-centre policies (Lyka), rate-limited sites (Healthylife 429).
-- Website (27 Nov, from UX feedback): homepage leads with what Ledger is, how it works, market numbers with
-  "how it's calculated", findings, a compare entry, top changes, then the full feed; Explore/Analyse nav;
-  store names from og:site_name / page title (lib/format displayName); offers past their end date are not live;
-  schedule line from lib/schedule.ts (mirror of scan.yml). Curasept is never used in suggested comparisons.
+## Status (27 Nov 2026, evening)
+- Stores: ~150 at the start of 27 Nov; +20 pet stores (ids 609-628; 17 read, The Vet Shed and Mad Paws refuse by
+  terms, Waggly blocks); +183 stores across the other 8 industries (ids >628, drafted from knowledge without web
+  searches to save Rahul's Claude usage; jewellery got 15 as it already had 38). The 183 are scanning in two batch
+  runs (45960639175, 45960659695, US$4 cap each): expect some refusals (big chains) and some wrong domains to fix.
+- Full scan 27 Nov of the original stores: 151 stored, 0 failed, ~US$1.32 AI for the day. Key facts found:
+  returns window 99, change of mind 98, free-shipping minimum 82, delivery fee 80, BNPL 84 (of 151).
+- Unreadable-store cleanup 27 Nov (17 stores): 9 now read (Firecrawl mode or www fix or corrected domain),
+  wireless1/kohepets/milandirect switched off, snowys + healthylife + savour-life switched off by their own terms,
+  still unreadable: myprotein.com.au (503 even via Firecrawl), anaconda.com.au (no answer).
+- JavaScript sites + help centres (27 Nov): the 9 JS stores went from 36 missing key facts to 15 (Platypus, The
+  Athlete's Foot, Chemist Discount Centre now 4/4). Zanui still empty even rendered. Freedom and Lyka now read
+  from their Zendesk help centres. Pet coverage 48% -> 59% average key facts (10 -> 27 stores).
+- Website changes 27 Nov:
+  - Homepage hero "Type a store, see its profile" (StoreLookup) and the record look on every page (see below).
+  - Compare: equal-width value columns with wrapping (table.cmp); picker list is a solid .picker-list (never
+    see-through); Enter adds the highlighted / exact / first match even if typed before hydration; the box clears
+    after each add (Rahul's latest call; earlier he wanted the term to persist) and the list stays open.
+  - Payments (/payments overview: BNPL share, providers per store, sortable options table, BNPL by industry,
+    providers offered together, recent changes), Platforms (/platforms), Policies (/policies); detail pages via
+    lib/facetRoutes.ts; FacetIndex component for the platform/policy overviews.
+  - Promotions: pill counts = stores with that offer type in the month/year being viewed (not live-now).
+  - Sites filters labelled with KIND_SINGULAR (Technology, Policy). Methodology no longer mentions template wording.
+  - About page: founder story removed (Rahul doesn't want one).
 - Website look (27 Nov): the hero's "record" style across all pages (globals.css "the record look"): .card is a
   ruled section (ink top rule, no box), .kv rows use dotted leaders, .stat is a big-number strip, .band is the dark
   prompt (compare). No all-caps labels. Product name lives only in web/lib/brand.ts (BRAND) for the rename;
   the crawler name LedgerBot is separate (ledger_scanner/config.py USER_AGENT).
-- Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name. (No founder story: Rahul doesn't want one.)
-- Switched off by their own terms once readable (27 Nov): snowys.com.au, healthylife.com.au.
-- Still unreadable: myprotein.com.au (503 even via Firecrawl), anaconda.com.au (no answer even on www).
-- Known gaps: JS-rendered prices (Goldmark, Prouds, Temple & Grace), store finders,
-  over-time charts (need more weeks of data), real domain + brand, lawyer review,
-  placeholders (email, city, ABN, privacy, terms).
+- SEO: app/sitemap.ts is generated automatically and refreshed hourly; lastmod = each store's last scan for
+  store pages, the latest scan overall for everything else (approximate for static pages). Structured data is
+  only on store pages (BreadcrumbList), list pages (ItemList) and benchmarks (Dataset); no site-wide
+  Organization/WebSite, no breadcrumbs elsewhere (offered to Rahul 27 Nov).
+- Opt-out proposal (27 Nov, awaiting Rahul): robots.txt Disallow for our crawler = stop tracking (already works);
+  removal of past data only after proof of control (code in /.well-known/ file or DNS TXT), checked automatically,
+  confirmation sent to a role address (legal@/privacy@); email alone is never enough. Needs a schema change
+  (approval) and the final crawler name. Rationale given: robots.txt is the industry norm; a narrow opt-out
+  reduces disputes and blocking; lawyer review (item 15) should decide whether removal covers past data.
+- Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
+  and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
+- Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name (then rename the crawler and
+  set a real crawler contact email, not his personal one), lawyer review. (No founder story.)
+- Scheduled: Mon 30 Nov Cyber Monday weekly scan (batch); 1 Dec monthly skipped; weekly 7/14/21/28 Dec;
+  monthly from 1 Jan.
+- Later: country rules before going global (EU database right, privacy laws, currencies), refine the cost index
+  labour estimates after a few weeks, update the spec doc with 27 Nov decisions (batch mode, unchanged pages,
+  cost index, missing-facts check, schedule, Firecrawl mode, JS rendering, help centres), segments via an
+  ANZSIC-based scheme (Rahul said no for now).
+- Known gaps: JS-rendered prices (Goldmark, Prouds, Temple & Grace), Zanui, store finders, over-time charts
+  (need more weeks of data), real domain + brand, placeholders (email, city, ABN, privacy, terms).
