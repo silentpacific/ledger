@@ -96,8 +96,9 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
         )}
         {sites.length > 0 && <>
         <div className="card scroll" style={{ padding: 0, marginTop: 24 }}>
-          <table className="t" style={{ minWidth: 860 }}>
-            <thead><tr><th style={{ width: 200, paddingLeft: 20 }}></th>{sites.map((s) => <th key={s.domain} className="display" style={{ fontSize: 18, color: "var(--ink)" }}><Link href={`/sites/${s.domain}`} style={{ color: "var(--ink)" }}>{siteName(s)}</Link></th>)}</tr></thead>
+          <table className="t cmp" style={{ minWidth: 200 + sites.length * 180 }}>
+            <colgroup><col style={{ width: 200 }} />{sites.map((s) => <col key={s.domain} />)}</colgroup>
+            <thead><tr><th style={{ paddingLeft: 20 }}></th>{sites.map((s) => <th key={s.domain} className="display" style={{ fontSize: 18, color: "var(--ink)" }}><Link href={`/sites/${s.domain}`} style={{ color: "var(--ink)" }}>{siteName(s)}</Link></th>)}</tr></thead>
             <tbody>
               {groups.map(([g, rows]) => [
                 <tr key={g}><td colSpan={sites.length + 1} style={{ padding: "18px 20px 6px", fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, borderTop: "1px solid var(--line)" }}>{g}</td></tr>,

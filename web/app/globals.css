@@ -134,3 +134,7 @@ body { overflow-anchor: none; }
 
 /* a filtered list can be short; keep the section tall enough that filtering never pulls the page up */
 #activity, .filter-results { min-height: 100vh; }
+
+/* compare: fixed label column, equal value columns, long values wrap */
+table.cmp { table-layout: fixed; width: 100%; }
+table.cmp th, table.cmp td { overflow-wrap: anywhere; word-break: normal; }
