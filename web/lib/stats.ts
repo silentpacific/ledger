@@ -11,10 +11,10 @@ function medianCell(sites: Site[], key: string, as: (n: number) => string): Cell
   const xs = sites.map((s) => num(s, key)).filter((x): x is number => x !== undefined);
   if (!sites.length) return { text: "—", sort: null, enough: false };
   if (xs.length / sites.length < COVERAGE) {
-    return { text: "Not enough data", sub: `${xs.length} of ${sites.length} sites state it`, sort: null, enough: false };
+    return { text: "Not enough data", sub: `${xs.length} of ${sites.length} stores state it`, sort: null, enough: false };
   }
   const m = median(xs)!;
-  return { text: as(m), sub: `${xs.length} of ${sites.length} sites`, sort: m, enough: true };
+  return { text: as(m), sub: `${xs.length} of ${sites.length} stores`, sort: m, enough: true };
 }
 
 /** The six headline stats for a group of sites (an industry, or everything). */
@@ -30,11 +30,11 @@ export function groupStats(sites: Site[], promos: Promo[]) {
   const pct = (x: number) => (n ? Math.round((100 * x) / n) : 0);
   return {
     sites: { text: String(n), sort: n, enough: true } as Cell,
-    onSale: { text: `${pct(onSale)}%`, sub: `${onSale} of ${n} sites`, sort: pct(onSale), enough: true } as Cell,
+    onSale: { text: `${pct(onSale)}%`, sub: `${onSale} of ${n} stores`, sort: pct(onSale), enough: true } as Cell,
     freeShipping: medianCell(sites, "shipping.free_shipping_threshold", (m) => money(m) === "Free" ? "Free on all orders" : money(m)!),
     returns: medianCell(sites, "policies.returns.period_days", (m) => `${m} days`),
     bnpl: { text: `${pct(bnpl.length)}%`, sub: top ? `Most common: ${label(top[0])} (${top[1]})` : "None found", sort: pct(bnpl.length), enough: true } as Cell,
-    topTool: tool ? { text: tool.name, sub: `${tool.n} of ${n} sites (${pct(tool.n)}%)`, sort: pct(tool.n), enough: true } as Cell
+    topTool: tool ? { text: tool.name, sub: `${tool.n} of ${n} stores (${pct(tool.n)}%)`, sort: pct(tool.n), enough: true } as Cell
       : { text: "—", sort: null, enough: false } as Cell,
   };
 }

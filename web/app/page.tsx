@@ -15,6 +15,8 @@ export const revalidate = 3600;
 type Item = { at: string; tag: string; site: string; domain: string; ind: string; text: string; when: string; sig: string };
 
 const DAY = 864e5;
+// never put these forward as examples (Curasept is Rahul's client: ask before featuring it)
+const NOT_FEATURED = new Set(["curasept.com.au"]);
 const short = (d: string | Date) => dateAU(d, { day: "numeric", month: "short", year: "numeric" });
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ f?: string; industry?: string; segment?: string; site?: string }> }) {
@@ -42,7 +44,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
   if (mostOnSale) findings.push({ text: `${mostOnSale.i.name} has the most stores on sale right now: ${mostOnSale.st.onSale.text} of ${mostOnSale.xs.length}.`, href: `/promotions?industry=${mostOnSale.i.slug}` });
   if (cheapestShip) findings.push({ text: `${cheapestShip.i.name} has the lowest median free-shipping minimum, at ${cheapestShip.st.freeShipping.text}.`, href: `/benchmarks?industry=${cheapestShip.i.slug}#ship` });
   findings.push(newOffers.size
-    ? { text: `${newOffers.size} ${newOffers.size === 1 ? "store" : "stores"} started a new offer in the last 7 days.`, href: "/promotions" }
+    ? { text: `${newOffers.size} ${newOffers.size === 1 ? "store has an offer" : "stores have offers"} we first saw in the last 7 days. With tracking this new, some may have been running before we started.`, href: "/promotions" }
     : deepest ? { text: `Deepest discount advertised right now: up to ${maxPct(deepest)}% at ${siteName(deepest.domain)}.`, href: `/sites/${deepest.domain}` }
     : { text: "No discounts are running at the moment.", href: "/promotions" });
   if (bnplSites.length) findings.push({ text: `Afterpay is the most common buy now, pay later option: ${Math.round((100 * afterpay) / bnplSites.length)}% of stores where we found one.`, href: "/explore/payments/afterpay" });
@@ -68,7 +70,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
     const s = byDomain.get(p.domain)!;
     const isNew = new Date(p.first_seen).getTime() - new Date(s.first_scanned_at).getTime() > 36e5;
     const offer = `${p.name}${p.discount && !p.name.toLowerCase().includes(p.discount.toLowerCase().slice(0, 12)) ? `: ${p.discount}` : ""}`;
-    items.push({ at: p.first_seen, tag: isNew ? "New offer" : "Offer running", site: siteName(p.domain), domain: p.domain, ind: industryName(industryOf(s)),
+    items.push({ at: p.first_seen, tag: isNew ? "Offer first seen this week" : "Offer running", site: siteName(p.domain), domain: p.domain, ind: industryName(industryOf(s)),
       text: offer, when: `First seen ${short(p.first_seen)} · last confirmed ${short(p.last_seen)}${p.ends ? ` · ends ${short(p.ends)}` : ""}`,
       sig: maxPct(p) >= 30 ? "High" : "Medium" });
   }
@@ -85,7 +87,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
 
   // ---- compare entry ----
   const options = [...all].sort((a, b) => siteName(a).localeCompare(siteName(b))).map((s) => ({ domain: s.domain, name: siteName(s), industry: industryName(industryOf(s)) }));
-  const richest = (xs: Site[]) => [...xs].sort((a, b) => Object.keys(b.facts).length - Object.keys(a.facts).length).slice(0, 3);
+  const richest = (xs: Site[]) => [...xs].filter((s) => !NOT_FEATURED.has(s.domain)).sort((a, b) => Object.keys(b.facts).length - Object.keys(a.facts).length).slice(0, 3);
   const suggestions = [...groups].sort((a, b) => b.xs.length - a.xs.length).slice(0, 3)
     .map((g) => ({ name: g.i.name, sites: richest(g.xs) })).filter((g) => g.sites.length >= 2);
   const fc = facets(all);

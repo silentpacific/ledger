@@ -58,7 +58,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     if (xs.length < 2) return undefined;
     return r.better === "low" ? Math.min(...xs) : Math.max(...xs);
   };
-  const suggestions = INDUSTRIES.map((i) => ({ name: i.name, sites: [...all.filter((x) => (x.industry || "jewellery") === i.slug)]
+  const suggestions = INDUSTRIES.map((i) => ({ name: i.name, sites: [...all.filter((x) => (x.industry || "jewellery") === i.slug && x.domain !== "curasept.com.au")]
       .sort((a, b) => Object.keys(b.facts).length - Object.keys(a.facts).length).slice(0, 3) })).filter((g) => g.sites.length >= 2);
   const options = [...all].sort((a, b) => siteName(a).localeCompare(siteName(b)))
     .map((s) => ({ domain: s.domain, name: siteName(s), industry: industryName(s.industry) }));
