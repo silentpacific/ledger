@@ -16,6 +16,9 @@ on:
       budget:
         description: "AI spend cap per scan run, USD"
         default: "4"
+      review_since:
+        description: "Instead of discovering: re-judge stores added since this UTC time (e.g. 2026-11-27T10:35)"
+        default: ""
 
 permissions:
   contents: read
@@ -28,6 +31,7 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CRAWLER_CONTACT: ${{ vars.CRAWLER_CONTACT }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -37,9 +41,14 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      - name: Review stores already added
+        if: inputs.review_since != ''
+        run: python discover_stores.py --review-since "${{ inputs.review_since }}"
       - name: Find stores
+        if: inputs.review_since == ''
         run: python discover_stores.py --target "${{ inputs.target }}" --chunks "${{ inputs.chunks }}" --per-industry "${{ inputs.per_industry }}"
       - name: Start a full scan for each chunk
+        if: inputs.review_since == ''
         run: |
           for f in chunk_*.txt; do
             gh workflow run scan.yml --ref main -f domain="$(cat "$f")" -f mode=full -f budget="${{ inputs.budget }}" -f batch=true

@@ -87,6 +87,31 @@ def classify(text: str) -> str | None:
     return best[0][0]
 
 
+INDUSTRIES = list(INDUSTRY_WORDS)
+JUDGE = ("You classify Australian online stores for a retail research site. Reply with JSON only: "
+         '{"industry": one of ' + ", ".join(INDUSTRIES) + ' or "none", "adult": true|false}. '
+         "industry is the store's main consumer category; use none for stores outside these (books, alcohol, "
+         "automotive, tobacco/vape, hardware/trade, education, party/costume, general marketplaces, services). "
+         "adult is true for sex shops, adult toys or explicit content. jewellery = jewellery and watches; "
+         "homewares = furniture, homewares, bedding, plants/garden decor; health = pharmacy, vitamins, supplements, "
+         "sports nutrition; baby-kids = baby gear, kids clothing and toys.")
+
+
+def judge(domain: str, head: str, text: str) -> dict | None:
+    """Haiku's verdict on one store: {'industry': ... | 'none', 'adult': bool}. None if the AI can't be reached."""
+    if not config.ANTHROPIC_API_KEY:
+        return None
+    import anthropic
+    try:
+        msg = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY).messages.create(
+            model=config.CLAUDE_MODEL, max_tokens=60, system=JUDGE,
+            messages=[{"role": "user", "content": f"Site: {domain}\nTitle and description: {head[:400]}\nHomepage text: {text[:1800]}"}])
+        out = json.loads(re.search(r"\{.*\}", msg.content[0].text, re.S).group(0))
+        return out if out.get("industry") in INDUSTRIES + ["none"] else None
+    except Exception:
+        return None
+
+
 def check(domain: str) -> dict | None:
     s = requests.Session()
     s.headers.update({"User-Agent": config.USER_AGENT, "Accept-Language": "en-AU,en;q=0.9"})
@@ -112,9 +137,15 @@ def check(domain: str) -> dict | None:
         head_words = set(re.sub(r"[^a-z ]", " ", head.lower()).split())
         if head_words & OUT_OF_SCOPE:
             return None
-        industry = classify(f"{head} {head} {head} " + html_to_text(html)[:6000])  # title + description weigh most
+        text = html_to_text(html)
+        industry = classify(f"{head} {head} {head} " + text[:6000])  # title + description weigh most
         if not industry or not head_words & set(KW[industry]):
             return None  # the store's own title/description must name its industry
+        v = judge(domain, head, text)  # final say: right industry, not adult, not out of scope
+        if v is not None:
+            if v.get("adult") or v["industry"] == "none":
+                return None
+            industry = v["industry"]
         return {"domain": domain, "homepage_url": base, "industry": industry}
     return None
 
@@ -126,7 +157,10 @@ def main() -> int:
     ap.add_argument("--per-industry", type=int, default=110)
     ap.add_argument("--max-check", type=int, default=6000)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--review-since", help="re-judge stores added since this UTC time (e.g. 2026-11-27T10:35) instead of discovering")
     a = ap.parse_args()
+    if a.review_since:
+        return review(a.review_since, a.dry_run)
 
     have = existing()
     cands = [d for d in tranco_au() if d not in have][: a.max_check]
@@ -166,6 +200,45 @@ def main() -> int:
         part = doms[n * size:(n + 1) * size]
         if part:
             open(f"chunk_{n}.txt", "w").write(",".join(part))
+    return 0
+
+
+def review(since: str, dry: bool) -> int:
+    """Re-judge stores added since a time: correct the industry, switch off adult/out-of-scope ones (never delete)."""
+    h = {"apikey": config.SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {config.SUPABASE_SERVICE_KEY}"}
+    rows = requests.get(f"{config.SUPABASE_URL}/rest/v1/domains?select=domain,homepage_url,industry"
+                        f"&created_at=gt.{since}&scan_enabled=is.true&limit=5000", headers=h, timeout=60).json()
+    print(f"reviewing {len(rows)} stores", flush=True)
+
+    def one(r: dict):
+        try:
+            res = requests.get(r["homepage_url"] or f"https://{r['domain']}/", timeout=12, headers={"User-Agent": config.USER_AGENT})
+            html = res.text[:400_000]
+        except requests.RequestException:
+            return r, None
+        title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
+        desc = re.search(r"<meta[^>]+name=[\"']description[\"'][^>]+content=[\"']([^\"']*)", html, re.I)
+        return r, judge(r["domain"], f"{title.group(1) if title else ''} {desc.group(1) if desc else ''}", html_to_text(html))
+
+    moved = off = 0
+    with ThreadPoolExecutor(12) as ex:
+        for r, v in ex.map(one, rows):
+            if not v:
+                continue
+            patch = None
+            if v.get("adult") or v["industry"] == "none":
+                patch = {"scan_enabled": False, "full_scan_requested": False,
+                         "last_scan_error": "switched off by discovery review: " + ("adult store" if v.get("adult") else "outside our 9 industries")}
+                off += 1
+            elif v["industry"] != r["industry"]:
+                patch = {"industry": v["industry"]}
+                moved += 1
+            if patch:
+                print(f"{r['domain']}: {r['industry']} -> {patch}", flush=True)
+                if not dry:
+                    requests.patch(f"{config.SUPABASE_URL}/rest/v1/domains?domain=eq.{r['domain']}",
+                                   headers={**h, "Content-Type": "application/json", "Prefer": "return=minimal"}, json=patch, timeout=30)
+    print(f"review done: {moved} moved to another industry, {off} switched off", flush=True)
     return 0
 
 
