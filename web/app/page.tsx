@@ -3,12 +3,13 @@ import Header from "@/components/Header";
 import { Bars, Stat } from "@/components/ui";
 import IndustryFilter from "@/components/IndustryFilter";
 import SitePicker from "@/components/SitePicker";
+import StoreLookup, { type Profile } from "@/components/StoreLookup";
 import { filterSites, getChanges, getPromotions, getSites, industryOf, promotionsFor, Promo, Site } from "@/lib/data";
 import { INDUSTRIES, industryName } from "@/lib/industries";
 import { nextMonthly, nextWeekly, TRACKING_BEGAN } from "@/lib/schedule";
 import { COVERAGE, groupStats } from "@/lib/stats";
 import { PLUMBING, techCategory } from "@/lib/tech";
-import { dateAU, dayKey, describeChange, facets, label, list, maxPct, median, money, num, siteName, isDiscount } from "@/lib/format";
+import { dateAU, dayKey, describeChange, facets, label, list, maxPct, median, money, num, show, siteName, isDiscount, val } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -96,6 +97,37 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
   const tools = fc.tech.filter((x) => !PLUMBING.has(techCategory(x.name))).slice(0, 8);
   const weekly = nextWeekly(), monthly = nextMonthly();
 
+  // ---- the hero's store records ----
+  const liveBest = new Map<string, Promo>();
+  promosAll.filter((p) => p.live).forEach((p) => { const b = liveBest.get(p.domain); if (!b || maxPct(p) > maxPct(b) || (!isDiscount(b) && isDiscount(p))) liveBest.set(p.domain, p); });
+  const coreCount = (s: Site) => ["shipping.free_shipping_threshold", "shipping.standard_shipping_cost", "policies.returns.period_days",
+    "policies.returns.change_of_mind"].filter((k) => show(s, k) !== "Not stated").length;
+  const profiles: Profile[] = [...all].sort((a, b) => siteName(a).localeCompare(siteName(b))).map((s) => {
+    const fs = num(s, "shipping.free_shipping_threshold"), rd = num(s, "policies.returns.period_days");
+    const offer = liveBest.get(s.domain);
+    const tech = ((val(s, "tech_stack.technologies") as string[] | undefined) || []).filter((t) => !PLUMBING.has(techCategory(t)));
+    const opt = (v: string) => (v === "Not stated" ? null : v);
+    const peers = all.filter((x) => x.domain !== s.domain && industryOf(x) === industryOf(s) && !NOT_FEATURED.has(x.domain))
+      .sort((a, b) => coreCount(b) - coreCount(a)).slice(0, 2).map((x) => x.domain);
+    return {
+      domain: s.domain, name: siteName(s), industry: industryName(industryOf(s)), checked: short(s.last_scanned_at), peers,
+      rows: [
+        ["Free shipping over", fs === undefined ? null : fs === 0 ? "Free on every order" : money(fs)],
+        ["Standard delivery", opt(show(s, "shipping.standard_shipping_cost", (v) => money(v) ?? String(v)))],
+        ["Returns window", rd === undefined ? null : `${rd} days`],
+        ["Change of mind", opt(show(s, "policies.returns.change_of_mind"))],
+        ["Buy now, pay later", list(s, "payments.bnpl_providers").map(label).join(", ") || null],
+        ["Running now", offer ? `${offer.name}${offer.discount && !offer.name.toLowerCase().includes(offer.discount.toLowerCase().slice(0, 10)) ? `: ${offer.discount}` : ""}` : "No offer seen this week"],
+        ["Tools", tech.length ? `${tech.slice(0, 2).join(", ")}${tech.length > 2 ? ` and ${tech.length - 2} more` : ""}` : null],
+      ] as [string, string | null][],
+    };
+  });
+  const complete = all.filter((s) => !NOT_FEATURED.has(s.domain) && coreCount(s) === 4).sort((a, b) => a.domain.localeCompare(b.domain));
+  const start = (complete[new Date().getUTCDate() % Math.max(1, complete.length)] ?? all[0]).domain; // a different full record each day
+  const FAMOUS = ["lovisa.com.au", "koala.com", "adorebeauty.com.au", "princesspolly.com.au", "petcircle.com.au", "jbhifi.com.au"];
+  const tryThese = FAMOUS.map((d) => byDomainAll.get(d)).filter((s): s is Site => !!s && s.domain !== start && coreCount(s) >= 2)
+    .slice(0, 3).map((s) => ({ domain: s.domain, name: siteName(s) }));
+
   const FeedItem = ({ i }: { i: Item }) => (
     <div className="feed-item" style={{ alignItems: "flex-start" }}>
       <div style={{ flex: "1 1 auto", minWidth: 0 }}>
@@ -117,37 +149,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
     <>
       <Header />
       <main className="wrap page">
-        {/* what Ledger is, and what to do first */}
-        <section style={{ maxWidth: 820 }}>
-          <div className="eyebrow">Australian ecommerce intelligence</div>
-          <h1 className="title" style={{ marginTop: 8 }}>See how Australian online stores compete, and how that changes.</h1>
-          <p className="lede">Ledger tracks the promotions, shipping, returns, payment options and tools of {all.length} online stores across {new Set(all.map(industryOf)).size} industries.
+        <StoreLookup profiles={profiles} start={start} tryThese={tryThese}>
+          <h1>Look up how any Australian online store sells.</h1>
+          <p>Shipping costs, returns rules, payment options, offers and tools for {all.length} stores in {new Set(all.map(industryOf)).size} industries.
             Every fact is dated and quoted from the store's own site, and every change is recorded.</p>
-          <div className="row" style={{ gap: 12, marginTop: 20 }}>
-            <Link href="/compare" className="btn">Compare stores</Link>
-            <Link href="/industries" className="btn ghost">Explore an industry</Link>
-          </div>
-          <p className="small muted" style={{ marginTop: 16 }}>
-            Last scan {latest ? short(latest) : "—"} · Promotions are scanned weekly (next {dateAU(weekly, { weekday: "short", day: "numeric", month: "short" })}) ·
-            policies, payments and tools monthly (next {dateAU(monthly, { day: "numeric", month: "short", year: "numeric" })}).
-            Tracking began {short(TRACKING_BEGAN + "T12:00:00")}; history grows with every scan.
+          <p className="hero-note">
+            Offers are checked every week (next {dateAU(weekly, { weekday: "long", day: "numeric", month: "short" })}), everything else monthly.
+            Tracking began on {short(TRACKING_BEGAN + "T12:00:00")}, so the history is still short.{" "}
+            <Link href="/methodology">How we collect and check facts</Link>. Or <Link href="/industries">browse by industry</Link>.
           </p>
-        </section>
-
-        {/* how it works */}
-        <section className="grid g3" style={{ marginTop: 32 }} aria-label="How Ledger works">
-          {[
-            ["1. We read stores' public pages", "Returns and shipping policies, offers, prices, payment options and the tools on each store's site. No logins, no guesswork."],
-            ["2. Every fact keeps its evidence", "Each fact has the date it was seen and a quote from the page. A change counts only once the next scan confirms it."],
-            ["3. You compare and watch", "Compare stores side by side, benchmark an industry, or follow what changed this week."],
-          ].map(([h, t]) => (
-            <div key={h} className="card" style={{ padding: 18 }}>
-              <div style={{ fontWeight: 600 }}>{h}</div>
-              <div className="small muted" style={{ marginTop: 6, lineHeight: 1.55 }}>{t}</div>
-            </div>
-          ))}
-        </section>
-        <p className="tiny muted" style={{ marginTop: 8 }}><Link href="/methodology">How we collect and check facts →</Link></p>
+        </StoreLookup>
 
         {/* market overview */}
         <h2 style={{ margin: "36px 0 0", fontSize: 24 }}>The market right now</h2>
