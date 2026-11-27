@@ -25,15 +25,17 @@ type FeedView = { items: Item[]; total: number; stores: Ref[] };
 
 const short = (d: string | Date) => dateAU(d, { day: "numeric", month: "short", year: "numeric" });
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ f?: string; industry?: string; segment?: string; site?: string }> }) {
-  const { f = "all", industry, segment, site } = await searchParams;
+export default async function Home({ searchParams }: { searchParams: Promise<{ f?: string; industry?: string; segment?: string; site?: string; fp?: string }> }) {
+  const { f = "all", industry, segment, site, fp } = await searchParams;
   const [v, fv, counts] = await Promise.all([getView<HomeView>("home"), getView<FeedView>(`feed:${industry || "all"}`), getCounts()]);
   if (!v) return <><Header /><main className="wrap page"><p className="lede">The latest numbers are being worked out. Try again in a minute.</p></main></>;
   const feed = fv ?? { items: [], total: 0, stores: [] };
   const items = site ? feed.items.filter((i) => i.domain === site) : feed.items;
   const shown = items.filter((i) => f === "all" || i.tag.toLowerCase().startsWith(f) || (f === "promotion" && i.tag.includes("ffer")));
+  const PER = 50, fpages = Math.max(1, Math.ceil(shown.length / PER)), fpage = Math.min(Math.max(1, Number(fp) || 1), fpages);
+  const fq = (n: number) => `/?${new URLSearchParams(Object.entries({ f: f === "all" ? undefined : f, industry, site, fp: n > 1 ? String(n) : undefined }).filter(([, x]) => x) as [string, string][])}#activity`;
   const days = new Map<string, Item[]>();
-  shown.forEach((i) => { const k = dayKey(i.at); days.set(k, [...(days.get(k) || []), i]); });
+  shown.slice((fpage - 1) * PER, fpage * PER).forEach((i) => { const k = dayKey(i.at); days.set(k, [...(days.get(k) || []), i]); });
   const FILTERS = [["all", "All kinds"], ["promotion", "Promotions"], ["shipping", "Shipping"], ["payments", "Payments"], ["policies", "Policies"], ["tech", "Tech"]];
   const { top, bnplRows, tools, suggestions, findings } = v;
   const bnplSites = { length: v.bnplN };
@@ -154,6 +156,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
               <div className="card" style={{ padding: 0 }}>{list_.map((i, n) => <FeedItem key={n} i={i} />)}</div>
             </div>
           ))}
+          {fpages > 1 && (
+            <nav className="row small" aria-label="Activity pages" style={{ gap: 6, marginTop: 16, alignItems: "center" }}>
+              <span className="muted" style={{ marginRight: 8 }}>Showing {(fpage - 1) * PER + 1}–{Math.min(fpage * PER, shown.length)} of {shown.length}</span>
+              {fpage > 1 && <Link scroll={false} className="chip" href={fq(fpage - 1)} rel="prev">Newer</Link>}
+              {fpage < fpages && <Link scroll={false} className="chip" href={fq(fpage + 1)} rel="next">Older</Link>}
+            </nav>
+          )}
         </section>
       </main>
     </>

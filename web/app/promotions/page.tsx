@@ -23,7 +23,7 @@ const DATES: [string, string][] = [
 ];
 const DAY = 864e5;
 
-export default async function Promotions({ searchParams }: { searchParams: Promise<{ m?: string; type?: string; view?: string; industry?: string; segment?: string }> }) {
+export default async function Promotions({ searchParams }: { searchParams: Promise<{ m?: string; type?: string; view?: string; industry?: string; segment?: string; p?: string }> }) {
   const sp = await searchParams;
   const today = dayKey(new Date().toISOString());
   const month = /^\d{4}-\d{2}$/.test(sp.m || "") ? sp.m! : today.slice(0, 7);
@@ -36,13 +36,15 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const byType = sp.type && PROMO_TYPES[sp.type] ? sp.type : undefined;
   // worked out in the database (web_promo_calendar): rows to draw (at most 200), pill counts and the stats
   const [cal, counts] = await Promise.all([promoCalendar(new Date(w0), new Date(w1), sp.industry, byType, year), getCounts()]);
-  const shown = cal.rows.map((p) => ({ p, s: [new Date(p.a).getTime(), new Date(p.b).getTime()] as const }));
+  // 100 rows a page (the database sends the first 200)
+  const ROWS = 100, pages = Math.ceil(Math.min(cal.rows.length, 200) / ROWS), pg = Math.min(Math.max(1, Number(sp.p) || 1), Math.max(1, pages));
+  const shown = cal.rows.slice((pg - 1) * ROWS, pg * ROWS).map((p) => ({ p, s: [new Date(p.a).getTime(), new Date(p.b).getTime()] as const }));
   const discountCount = cal.discount_stores;
   const typeCounts = Object.entries(PROMO_TYPES).map(([k, n]) => [k, n, cal.types[k] || 0] as const)
     .filter(([k, , c]) => c > 0 || sp.type === k);
   const todayX = ((nowT - w0) / span) * 100;
   const ticks = year ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : Array.from({ length: days }, (_, i) => String(i + 1));
-  const q = (o: Record<string, string | undefined>) => "/promotions?" + new URLSearchParams(Object.entries({ m: month, type: sp.type, view: sp.view, industry: sp.industry, segment: sp.segment, ...o }).filter(([, v]) => v) as [string, string][]).toString();
+  const q = (o: Record<string, string | undefined>) => "/promotions?" + new URLSearchParams(Object.entries({ m: month, type: sp.type, view: sp.view, industry: sp.industry, ...o }).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
     <>
@@ -97,7 +99,12 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
                   </div>
                 );
               })}
-              {cal.shown > shown.length && <div className="tiny muted" style={{ marginTop: 10 }}>Showing the first {shown.length} of {cal.shown}, by industry and store. Pick an industry or a kind of offer to narrow it.</div>}
+              {cal.shown > ROWS && (
+                <div className="row small" style={{ gap: 8, marginTop: 12, alignItems: "center" }}>
+                  <span className="muted">Showing {(pg - 1) * ROWS + 1}–{(pg - 1) * ROWS + shown.length} of {cal.shown}, by industry and store{cal.shown > 200 ? " (the first 200 can be paged; pick an industry or a kind of offer to narrow it)" : ""}.</span>
+                  {Array.from({ length: pages }, (_, i) => i + 1).map((n) => <Link key={n} scroll={false} className={`chip${n === pg ? " on" : ""}`} href={q({ p: n > 1 ? String(n) : undefined })}>{n}</Link>)}
+                </div>
+              )}
               <div className="row tiny muted" style={{ gap: 20, marginTop: 12 }}>
                 <span><span style={{ display: "inline-block", width: 14, height: 10, borderRadius: 2, background: "var(--accent)", verticalAlign: "middle" }} /> Dates stated by the store</span>
                 <span><span style={{ display: "inline-block", width: 14, height: 10, borderRadius: 2, background: "var(--accent-light)", verticalAlign: "middle" }} /> Dates from when we saw it (tracking began 26 Nov 2026)</span>

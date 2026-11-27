@@ -162,7 +162,22 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   About/Contact/Methodology. Structured data (lib/schema.ts): Organization + WebSite with SearchAction on every
   page (layout); every page has its page type + BreadcrumbList; list pages an ItemList; store pages a ProfilePage
   with the store as OnlineStore (+ MerchantReturnPolicy from observed returns facts only); benchmarks a Dataset.
-- Build data (27 Nov): web_sites is >3 MB (over Next's 2 MB data cache), so lib/data.ts memoises each RPC per
+- Page data (27 Nov night, Rahul approved; db/010): no page downloads every store. web/scripts/build-views.ts (workflow
+  .github/workflows/views.yml "page data": after each Scan run, every 6 h, on pushes to web/lib or web/scripts) loads
+  everything once with the service key, works out each page with lib/views.ts (same logic the pages had) and calls
+  publish_web_data (service role only) to replace web_views (one row per page + industry: home, feed:<ind>,
+  industries, industry:<slug>, payments|tech|benchmarks|platform|policy|filters:<all|slug>, facet:<kind>:<value>,
+  facets, counts, medians, compare) and web_site_index (one row per store: name, industry, tags like
+  'payments:afterpay', table row, homepage record card). Pages read getView(key); stores tables are paged 50 at a
+  time via web_site_list (components/StoreTable + Pager); store pages use web_site + web_promotions/web_changes for
+  that domain and are built on first visit; compare uses web_sites_in; the homepage lookup and compare picker search
+  as you type from the browser (lib/client.ts, publishable key); the promotions calendar and promotion search are
+  worked out in SQL (web_promo_calendar, web_promo_search via web_promo_rows); homepage feed 50 items a page,
+  calendar 100 rows a page. When page logic changes, change lib/views.ts and the page together; a push re-runs the
+  builder. Local builds: dry-run the builder with LEDGER_FIXTURE_DIR=<dir> VIEWS_OUT=<dir>/views.json, then
+  `LEDGER_FIXTURE_DIR=<dir> npx next build` (lib/fixture.ts stands in for the database). Stores never featured as
+  examples are in the not_featured table (not in the public code). getSites()/web_sites is for the builder only.
+- Build data (27 Nov, before page data): web_sites is >3 MB (over Next's 2 MB data cache), so lib/data.ts memoises each RPC per
   build worker/server instance and retries 5xx; without it every page refetched and Supabase timed out (57014),
   which failed the deploys of the /payments and /platforms changes. On the live site the memo lasts 5 minutes.
   Vercel's shared data cache kept serving an old 144-store web_sites copy (fresh >2 MB copies can't be stored):
@@ -184,10 +199,10 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   the scanner stops calling Firecrawl for the rest of the run (fetch.FIRECRAWL_OUT) and stores that needed it get
   the issue fetch.NEEDS_FIRECRAWL; rescan those when credits are back:
   `select distinct d.domain from scans s join domains d on d.id=s.domain_id where s.issues::text like '%needs Firecrawl%'`.
-- Scaling to 5,000 stores (Rahul's goal, 27 Nov) hits limits: GitHub Actions minutes (private repo, ~1,365 of the
+- Scaling to 5,000 stores (Rahul's goal, 27 Nov) hits limits: GitHub Actions minutes (solved: Rahul made the repo
+  public 27 Nov, so minutes are free; nothing secret is in it, history checked; was a private repo, ~1,365 of the
   free 2,000/month used in Nov; batch mode idles while waiting so a store costs ~1-2 runner minutes), Supabase
-  free 500 MB (67 MB at ~565 stores, raw_payload is most of it), Vercel (web_sites would be ~25 MB; pages need
-  per-store RPCs instead of loading every store), and a new store source (Tranco .au is used up; Common Crawl
+  free 500 MB (67 MB at ~565 stores, raw_payload is most of it), Vercel (solved 27 Nov by page data, above), and a new store source (Tranco .au is used up; Common Crawl
   index next). Decisions put to Rahul 27 Nov.
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
