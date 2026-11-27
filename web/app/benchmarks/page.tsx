@@ -9,6 +9,7 @@ import { INDUSTRIES, industryName } from "@/lib/industries";
 import { COVERAGE } from "@/lib/stats";
 import { PLUMBING, techCategory } from "@/lib/tech";
 import { SITE_URL } from "@/lib/site";
+import { BRAND } from "@/lib/brand";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -66,7 +67,7 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
       <Header active="/benchmarks" />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: `Australian ecommerce benchmarks${industry ? `: ${industryName(industry)}` : ""}`,
         description: "Free-shipping thresholds, delivery fees, returns windows, buy now pay later adoption and loyalty programmes across Australian online stores, by industry.",
-        url: `${SITE_URL}/benchmarks`, spatialCoverage: "Australia", dateModified: latest, creator: { "@type": "Organization", name: "Ledger" } }} />
+        url: `${SITE_URL}/benchmarks`, spatialCoverage: "Australia", dateModified: latest, creator: { "@type": "Organization", name: `${BRAND}` } }} />
       <main className="wrap page">
         <div className="eyebrow">Benchmarks{industry ? ` · ${industryName(industry)}` : " · All industries"}</div>
         <h1 className="title">How Australian {scope} compare</h1>

@@ -190,9 +190,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
         </div>
 
         {/* compare: the main thing to do here */}
-        <section className="card" style={{ marginTop: 28, background: "var(--accent-soft)", borderColor: "transparent" }}>
-          <h2 style={{ margin: 0, fontSize: 22 }}>Compare stores side by side</h2>
-          <p className="small" style={{ margin: "6px 0 0", color: "var(--body)" }}>Free-shipping minimums, returns windows, buy now pay later, loyalty and live offers, for up to 5 stores from any industry.</p>
+        <section className="band" style={{ marginTop: 36 }}>
+          <h2>Compare stores side by side</h2>
+          <p className="small">Free-shipping minimums, returns windows, buy now pay later, loyalty and live offers, for up to 5 stores from any industry.</p>
           <SitePicker options={options} chosen={[]} />
           {suggestions.length > 0 && (
             <div className="row small" style={{ gap: 10, marginTop: 14, alignItems: "center" }}>
@@ -248,7 +248,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
           {days.size === 0 && <div className="empty" style={{ marginTop: 20 }}>Nothing matches these filters yet. Try “All kinds” or a wider industry or segment; new changes appear after each weekly scan.</div>}
           {[...days.entries()].map(([day, list_]) => (
             <div key={day}>
-              <div className="small muted" style={{ fontWeight: 600, margin: "24px 0 10px", textTransform: "uppercase" }}>{dateAU(day + "T12:00:00", { weekday: "long", day: "numeric", month: "long" })}</div>
+              <div className="small muted" style={{ fontWeight: 600, margin: "24px 0 10px" }}>{dateAU(day + "T12:00:00", { weekday: "long", day: "numeric", month: "long" })}</div>
               <div className="card" style={{ padding: 0 }}>{list_.map((i, n) => <FeedItem key={n} i={i} />)}</div>
             </div>
           ))}

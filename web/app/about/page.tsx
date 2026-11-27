@@ -2,10 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import SuggestSite from "@/components/SuggestSite";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "About Ledger",
-  description: "Ledger is the record of how Australian online stores sell, and how that changes: dated, sourced facts on policies, prices, promotions, payments and tech.",
+  title: `About ${BRAND}`,
+  description: `${BRAND} is the record of how Australian online stores sell, and how that changes: dated, sourced facts on policies, prices, promotions, payments and tech.`,
   alternates: { canonical: "/about" },
 };
 
@@ -20,7 +21,7 @@ export default function About() {
       <main className="narrow page">
         <div className="eyebrow">About us</div>
         <h1 className="title" style={{ fontSize: 48, maxWidth: 820 }}>The record of how Australian online stores sell, and how that changes</h1>
-        <p className="prose" style={{ fontSize: 18, maxWidth: 760, marginTop: 18 }}>Ledger tracks the public commercial facts of Australian ecommerce: returns windows, delivery fees, buy now pay later options, loyalty programmes, promotions, prices and the tools behind each store. Every fact is dated and sourced, and every change is kept, so you can see not just what a store does today, but what it did last month and last Black Friday.</p>
+        <p className="prose" style={{ fontSize: 18, maxWidth: 760, marginTop: 18 }}>{BRAND} tracks the public commercial facts of Australian ecommerce: returns windows, delivery fees, buy now pay later options, loyalty programmes, promotions, prices and the tools behind each store. Every fact is dated and sourced, and every change is kept, so you can see not just what a store does today, but what it did last month and last Black Friday.</p>
         <div className="grid g3" style={{ marginTop: 40 }}>
           <C t="Australian by design">We only cover stores selling to Australian shoppers. Prices are in AUD, policies are read against Australian Consumer Law, and we track the payment options Australians actually use: Afterpay, Zip, Humm, Latitude and more.</C>
           <C t="Facts, not opinions">Every value shows the date it was seen and the words it came from on the store's own site. If a store doesn't say something, we show "Not stated" rather than guessing.</C>

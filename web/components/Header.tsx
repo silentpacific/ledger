@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
 
 // Grouped by what people come to do: look around the market, or analyse it.
 const GROUPS = [
@@ -10,14 +11,14 @@ export default function Header({ active }: { active?: string }) {
   return (
     <header style={{ background: "#15171C", color: "#F6F5F1" }}>
       <div className="wrap" style={{ padding: "14px 32px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 24 }}>
-        <Link href="/" className="display" aria-label="Ledger home" style={{ fontWeight: 700, fontSize: 22, color: "#F6F5F1", textDecoration: "none" }}>
-          Ledger{" "}
+        <Link href="/" className="display" aria-label={`${BRAND} home`} style={{ fontWeight: 700, fontSize: 22, color: "#F6F5F1", textDecoration: "none" }}>
+          {BRAND}{" "}
           <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 600, color: "#15171C", background: "#5FD3C4", borderRadius: 4, padding: "2px 6px", verticalAlign: "middle" }}>AU</span>
         </Link>
         <nav aria-label="Main" style={{ display: "flex", flexWrap: "wrap", gap: 28, fontSize: 14, fontWeight: 500, alignItems: "center" }}>
           {GROUPS.map(([group, links]) => (
             <div key={group} style={{ display: "flex", gap: 16, alignItems: "center" }}>
-              <span style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "#8A8F99" }}>{group}</span>
+              <span style={{ fontSize: 12, color: "#8A8F99" }}>{group}</span>
               {links.map(([href, text]) => (
                 <Link key={href} href={href} aria-current={active === href ? "page" : undefined}
                   style={{ color: active === href ? "#fff" : "#C9CCD3", paddingBottom: 4, textDecoration: "none",

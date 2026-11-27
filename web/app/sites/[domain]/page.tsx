@@ -7,6 +7,7 @@ import { getChanges, getProducts, getPromotions, getSite, getSites } from "@/lib
 import { CARDS, dateAU, describeChange, fact, fmt, list, median, money, num, show, siteName, val } from "@/lib/format";
 import { SITE_URL } from "@/lib/site";
 import { industryName } from "@/lib/industries";
+import { BRAND } from "@/lib/brand";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ domain: s
     list(s, "payments.bnpl_providers").length && `${list(s, "payments.bnpl_providers").length} BNPL options`].filter(Boolean).join(", ");
   return {
     title: `${n}: returns, shipping, Afterpay & promotions (updated ${dateAU(s.last_scanned_at)})`,
-    description: `${n} (${s.domain}) facts, dated and sourced: ${bits || "returns, shipping, payments, loyalty and promotions"}. Tracked weekly by Ledger.`,
+    description: `${n} (${s.domain}) facts, dated and sourced: ${bits || "returns, shipping, payments, loyalty and promotions"}. Tracked weekly by ${BRAND}.`,
     alternates: { canonical: `/sites/${s.domain}` },
   };
 }

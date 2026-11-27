@@ -2,10 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import ContactForm from "@/components/ContactForm";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "How Ledger works: methodology, quality rules and opt-out",
-  description: "How Ledger collects and checks facts from Australian online stores, what the labels mean, which sites we don't track, and how site owners can opt out.",
+  title: `How ${BRAND} works: methodology, quality rules and opt-out`,
+  description: `How ${BRAND} collects and checks facts from Australian online stores, what the labels mean, which sites we don't track, and how site owners can opt out.`,
   alternates: { canonical: "/methodology" },
 };
 
@@ -19,13 +20,13 @@ export default function Methodology() {
       <Header />
       <div className="wrap page" style={{ display: "flex", flexWrap: "wrap", gap: 40, alignItems: "flex-start" }}>
         <nav aria-label="On this page" style={{ flex: "1 1 200px", maxWidth: 240, display: "flex", flexDirection: "column", gap: 10, fontSize: 14 }}>
-          <div className="tiny muted" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>On this page</div>
+          <div className="tiny muted" style={{ fontWeight: 600 }}>On this page</div>
           <a href="#collect">What we collect</a><a href="#how">How we collect it</a><a href="#check">How we check facts</a><a href="#dates">Dates and changes</a>
           <a href="#words">What the labels mean</a><a href="#notrack">Sites we don't track</a><a href="#opt-out">Opt out</a><a href="#privacy">Privacy</a><a href="#terms">Terms of use</a>
         </nav>
         <main className="prose" style={{ flex: "999 1 560px", minWidth: 0, maxWidth: 780 }}>
-          <h1 className="title" style={{ color: "var(--ink)" }}>How Ledger works</h1>
-          <p className="muted" style={{ marginTop: 12 }}>Every fact on Ledger was read from a public page of an Australian online store, on a date we show, with the words it came from.</p>
+          <h1 className="title" style={{ color: "var(--ink)" }}>How {BRAND} works</h1>
+          <p className="muted" style={{ marginTop: 12 }}>Every fact on {BRAND} was read from a public page of an Australian online store, on a date we show, with the words it came from.</p>
           <h2 id="collect">What we collect</h2>
           <p>Thirteen areas: who the business is, its policies (returns, warranty, terms), shipping, products and prices for a small watch list, promotions, payment options including buy now pay later, the technology it uses, the shopping journey, trust and support, external review ratings, loyalty programmes, content activity, and how readable the site is for AI shopping assistants.</p>
           <h2 id="how">How we collect it</h2>

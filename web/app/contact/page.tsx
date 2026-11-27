@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import ContactForm from "@/components/ContactForm";
+import { BRAND } from "@/lib/brand";
 
-export const metadata: Metadata = { title: "Contact us", description: "Questions about the data, a fact that looks wrong, or early access to Ledger.", alternates: { canonical: "/contact" } };
+export const metadata: Metadata = { title: "Contact us", description: `Questions about the data, a fact that looks wrong, or early access to ${BRAND}.`, alternates: { canonical: "/contact" } };
 
 export default async function Contact({ searchParams }: { searchParams: Promise<{ topic?: string }> }) {
   const { topic } = await searchParams;

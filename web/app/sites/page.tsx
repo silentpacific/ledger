@@ -6,11 +6,12 @@ import FilterSelect from "@/components/FilterSelect";
 import { filterSites, getPromotions, getSites, promotionsFor, Site } from "@/lib/data";
 import { KIND_NAMES, dateAU, facets, label, list, money, num, siteName, val } from "@/lib/format";
 import { industryName } from "@/lib/industries";
+import { BRAND } from "@/lib/brand";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Australian online stores we track",
-  description: "Every Australian online store Ledger tracks, filterable by industry, payment option, technology, platform and policy, with returns, shipping, buy now pay later and loyalty at a glance.",
+  description: `Every Australian online store ${BRAND} tracks, filterable by industry, payment option, technology, platform and policy, with returns, shipping, buy now pay later and loyalty at a glance.`,
   alternates: { canonical: "/sites" },
 };
 

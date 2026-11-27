@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Footer from "@/components/Footer";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
+import { BRAND } from "@/lib/brand";
 
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "Ledger – how Australian online stores sell, tracked over time", template: "%s | Ledger" },
+  title: { default: `${BRAND} – how Australian online stores sell, tracked over time`, template: `%s | ${BRAND}` },
   description: "Dated, sourced facts on Australian ecommerce: returns, shipping, buy now pay later, loyalty, promotions, prices and tech, with every change recorded.",
-  openGraph: { siteName: "Ledger", locale: "en_AU", type: "website" },
+  openGraph: { siteName: `${BRAND}`, locale: "en_AU", type: "website" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

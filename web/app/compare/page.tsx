@@ -101,7 +101,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
             <thead><tr><th style={{ paddingLeft: 20 }}></th>{sites.map((s) => <th key={s.domain} className="display" style={{ fontSize: 18, color: "var(--ink)" }}><Link href={`/sites/${s.domain}`} style={{ color: "var(--ink)" }}>{siteName(s)}</Link></th>)}</tr></thead>
             <tbody>
               {groups.map(([g, rows]) => [
-                <tr key={g}><td colSpan={sites.length + 1} style={{ padding: "18px 20px 6px", fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1, borderTop: "1px solid var(--line)" }}>{g}</td></tr>,
+                <tr key={g}><td colSpan={sites.length + 1} style={{ padding: "18px 20px 6px", fontSize: 14, fontWeight: 600, color: "var(--ink)", borderTop: "1px solid var(--line)" }}>{g}</td></tr>,
                 ...rows.map((r) => {
                   const b = best(r);
                   return (

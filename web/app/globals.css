@@ -138,3 +138,47 @@ body { overflow-anchor: none; }
 /* compare: fixed label column, equal value columns, long values wrap */
 table.cmp { table-layout: fixed; width: 100%; }
 table.cmp th, table.cmp td { overflow-wrap: anywhere; word-break: normal; }
+
+/* ---- the record look, beyond the hero (27 Nov 2026) ------------------------------------
+   Sections are ruled ledger sheets, not floating cards: a firm ink rule on top, content on the
+   page. Data rows use the hero's dotted leaders. One white sheet is kept only where a surface
+   carries meaning (the lookup record, tables people scan across, forms). */
+.eyebrow { font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--accent); }
+h1.title { font-size: 48px; letter-spacing: -0.03em; line-height: 1.04; }
+.lede { font-size: 17px; line-height: 1.55; color: var(--body); }
+main.page > h2, main.page section > h2, .wrap > h2 { letter-spacing: -0.02em; }
+
+.grid { gap: 36px 40px; }
+.card { background: transparent; border: 0; border-top: 2px solid var(--ink); border-radius: 0; padding: 16px 0 0; }
+.card h2 { font-size: 20px; }
+.card.sheet, .sheet { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink); border-radius: 0 0 14px 14px; padding: 20px 24px; }
+
+/* label .......... value */
+.kv { align-items: baseline; gap: 4px; border-top: 0; padding: 7px 0; font-size: 15px; }
+.kv .k { display: flex; flex: 1 1 auto; align-items: baseline; min-width: 0; color: var(--body); }
+.kv .k::after { content: ""; flex: 1 1 auto; min-width: 16px; margin: 0 6px 0 10px; border-bottom: 2px dotted #C9C6BC; transform: translateY(-4px); }
+.kv .v { flex: 0 1 auto; max-width: 62%; font-weight: 600; }
+
+/* headline numbers: a ruled strip */
+.stat { padding-top: 14px; }
+.stat .v { font-size: 44px; line-height: 1; letter-spacing: -0.03em; margin-top: 10px; }
+.stat .k { font-size: 14px; color: var(--body); }
+
+.empty { border: 0; border-left: 3px solid var(--line); border-radius: 0; background: none; padding: 6px 0 6px 18px; font-size: 15px; }
+.feed-item { padding: 16px 0; }
+.card > .feed-item:first-child, .card > div > .feed-item:first-child { padding-top: 4px; }
+table.t th { color: var(--body); font-size: 13px; border-bottom: 1px solid var(--ink); }
+.tabs { border-bottom: 1px solid var(--ink); }
+.tabs a.on { border-bottom: 3px solid var(--accent); margin-bottom: -1px; }
+
+/* dark band: the hero's address bar, reused for "compare" and "suggest a store" prompts */
+.band { background: var(--ink); color: #F6F5F1; border-radius: 14px; padding: 26px 28px; }
+.band h2 { color: #fff; margin: 0; font-size: 24px; }
+.band p { color: #C9CCD3; margin: 6px 0 0; }
+
+@media (max-width: 900px) {
+  h1.title { font-size: 36px; }
+  .stat .v { font-size: 34px; }
+  .grid { gap: 28px 24px; }
+}
+.bar .n { flex: 0 0 auto; min-width: 56px; white-space: nowrap; }
