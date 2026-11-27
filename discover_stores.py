@@ -140,7 +140,8 @@ INDUSTRIES = list(INDUSTRY_WORDS)
 JUDGE = ("You classify Australian online stores for a retail research site. Reply with JSON only: "
          '{"industry": one of ' + ", ".join(INDUSTRIES) + ' or "none", "adult": true|false}. '
          "industry is the store's main consumer category; use none for stores outside these (books, alcohol, "
-         "automotive, tobacco/vape, hardware/trade, education, party/costume, general marketplaces, services). "
+         "automotive and car parts, tobacco/vape, hardware/trade, education, party/costume, general marketplaces, groceries and "
+         "packaged food, art and craft supplies, services, clinics, clubs and associations, sites that don't sell products online). "
          "adult is true for sex shops, adult toys or explicit content. jewellery = jewellery and watches; "
          "homewares = furniture, homewares, bedding, plants/garden decor; health = pharmacy, vitamins, supplements, "
          "sports nutrition; baby-kids = baby gear, kids clothing and toys.")
@@ -150,15 +151,19 @@ def judge(domain: str, head: str, text: str) -> dict | None:
     """Haiku's verdict on one store: {'industry': ... | 'none', 'adult': bool}. None if the AI can't be reached."""
     if not config.ANTHROPIC_API_KEY:
         return None
+    import time
     import anthropic
-    try:
-        msg = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY).messages.create(
-            model=config.CLAUDE_MODEL, max_tokens=60, system=JUDGE,
-            messages=[{"role": "user", "content": f"Site: {domain}\nTitle and description: {head[:400]}\nHomepage text: {text[:1800]}"}])
-        out = json.loads(re.search(r"\{.*\}", msg.content[0].text, re.S).group(0))
-        return out if out.get("industry") in INDUSTRIES + ["none"] else None
-    except Exception:
-        return None
+    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY, max_retries=6)  # backs off on rate limits
+    for attempt in range(3):
+        try:
+            msg = client.messages.create(
+                model=config.CLAUDE_MODEL, max_tokens=60, system=JUDGE,
+                messages=[{"role": "user", "content": f"Site: {domain}\nTitle and description: {head[:400]}\nHomepage text: {text[:1800]}"}])
+            out = json.loads(re.search(r"\{.*\}", msg.content[0].text, re.S).group(0))
+            return out if out.get("industry") in INDUSTRIES + ["none"] else None
+        except Exception:
+            time.sleep(3 * (attempt + 1))
+    return None
 
 
 HAVE: set[str] = set()      # domains already tracked or found this run (filled by main)
@@ -217,10 +222,9 @@ def check(domain: str) -> dict | None:
         if not industry or not head_words & set(KW[industry]):
             return None  # the store's own title/description must name its industry
         v = judge(domain, head, text)  # final say: right industry, not adult, not out of scope
-        if v is not None:
-            if v.get("adult") or v["industry"] == "none":
-                return None
-            industry = v["industry"]
+        if v is None or v.get("adult") or v["industry"] == "none":
+            return None  # no verdict means not added: keyword guesses alone let in the wrong shops
+        industry = v["industry"]
         if len(brand) >= 4:
             with _LOCK:
                 if brand in NAMES:
@@ -304,10 +308,11 @@ def review(since: str, dry: bool) -> int:
         desc = re.search(r"<meta[^>]+name=[\"']description[\"'][^>]+content=[\"']([^\"']*)", html, re.I)
         return r, judge(r["domain"], f"{title.group(1) if title else ''} {desc.group(1) if desc else ''}", html_to_text(html))
 
-    moved = off = 0
-    with ThreadPoolExecutor(12) as ex:
+    moved = off = unjudged = 0
+    with ThreadPoolExecutor(8) as ex:
         for r, v in ex.map(one, rows):
             if not v:
+                unjudged += 1
                 continue
             patch = None
             if v.get("adult") or v["industry"] == "none":
@@ -322,7 +327,7 @@ def review(since: str, dry: bool) -> int:
                 if not dry:
                     requests.patch(f"{config.SUPABASE_URL}/rest/v1/domains?domain=eq.{r['domain']}",
                                    headers={**h, "Content-Type": "application/json", "Prefer": "return=minimal"}, json=patch, timeout=30)
-    print(f"review done: {moved} moved to another industry, {off} switched off", flush=True)
+    print(f"review done: {moved} moved to another industry, {off} switched off, {unjudged} could not be judged", flush=True)
     return 0
 
 
