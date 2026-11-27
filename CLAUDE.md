@@ -82,7 +82,9 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   (team team_JBupfPXHwDsuPQWn9DezvHWE, region syd1). Auto-deploys on push. Pages refresh hourly (ISR).
   Data only via web_* RPCs with the publishable key; raw tables are RLS-locked.
 - Industries: jewellery, fashion, beauty, health, homewares, pet, baby-kids, sports-outdoors, electronics.
-  Every page covers all industries with an industry filter (segment chips appear under a chosen industry).
+  Every page covers all industries with an industry filter (industry tabs, then secondary dropdowns).
+  Segments are switched off (27 Nov 2026, web/lib/data.ts SEGMENTS_ENABLED=false): overlapping, single-store and
+  not industry-standard. Data kept in domains.segment. Revisit later with an industry-standard scheme.
   Nav: This week, Industries (sortable stats table), Sites (Explore merged in; /explore redirects), Compare
   (starts empty, search picker), Benchmarks, Promotions, Tech (/tech, /tech/[tool]; commerce tools only).
   Industry stats show a median only when >=60% of that industry's sites state the value (lib/stats.ts).

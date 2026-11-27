@@ -41,8 +41,13 @@ async function rpc<T>(fn: string, args: Record<string, unknown> = {}, revalidate
   return (await res.json()) as T;
 }
 
+/** Segments are switched off for now (27 Nov 2026): they overlapped, many had one store, and they weren't
+ * an industry standard. The data stays in the database; set this to true to show them again. */
+export const SEGMENTS_ENABLED = false;
+
 export async function getSites(): Promise<Site[]> {
-  const sites = await rpc<Site[]>("web_sites");
+  const raw = await rpc<Site[]>("web_sites");
+  const sites = SEGMENTS_ENABLED ? raw : raw.map((s) => ({ ...s, segment: null }));
   const { rememberNames } = await import("./format");
   rememberNames(sites); // so pages that only have a domain (feeds, promotions) show the store's real name
   return sites;
@@ -68,6 +73,7 @@ export const industryOf = (s: { industry?: string | null }) => s.industry || "je
 
 /** Sites in one industry (and segment), or all of them. */
 export function filterSites(sites: Site[], industry?: string, segment?: string): Site[] {
+  if (!SEGMENTS_ENABLED) segment = undefined; // old segment links show the whole industry
   return sites.filter((s) => (!industry || industryOf(s) === industry) && (!segment || s.segment === segment));
 }
 

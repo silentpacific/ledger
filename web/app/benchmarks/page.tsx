@@ -68,7 +68,7 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
         description: "Free-shipping thresholds, delivery fees, returns windows, buy now pay later adoption and loyalty programmes across Australian online stores, by industry.",
         url: `${SITE_URL}/benchmarks`, spatialCoverage: "Australia", dateModified: latest, creator: { "@type": "Organization", name: "Ledger" } }} />
       <main className="wrap page">
-        <div className="eyebrow">Benchmarks{industry ? ` · ${industryName(industry)}` : " · All industries"}{segment ? ` · ${segment}` : ""}</div>
+        <div className="eyebrow">Benchmarks{industry ? ` · ${industryName(industry)}` : " · All industries"}</div>
         <h1 className="title">How Australian {scope} compare</h1>
         <p className="small muted" style={{ margin: "8px 0 0" }}>{sites.length} stores · facts seen {latest ? dateAU(latest) : "—"} · trends appear after four weekly scans</p>
         <IndustryFilter path="/benchmarks" sites={all} industry={industry} segment={segment} />

@@ -65,7 +65,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
       <main className="wrap page">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
-            <div className="eyebrow">Promotions calendar · {sp.industry ? industryName(sp.industry) : "All industries"}{sp.segment ? ` · ${sp.segment}` : ""}</div>
+            <div className="eyebrow">Promotions calendar · {sp.industry ? industryName(sp.industry) : "All industries"}</div>
             <h1 className="title">{year ? y : dateAU(new Date(start + DAY), { month: "long", year: "numeric" })}</h1>
           </div>
           <div className="row" style={{ gap: 8, alignItems: "center" }}>

@@ -10,7 +10,7 @@ import { industryName } from "@/lib/industries";
 export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Australian online stores we track",
-  description: "Every Australian online store Ledger tracks, filterable by industry, segment, payment option, technology, platform and policy, with returns, shipping, buy now pay later and loyalty at a glance.",
+  description: "Every Australian online store Ledger tracks, filterable by industry, payment option, technology, platform and policy, with returns, shipping, buy now pay later and loyalty at a glance.",
   alternates: { canonical: "/sites" },
 };
 
@@ -46,7 +46,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
     <>
       <Header active="/sites" />
       <main className="wrap page">
-        <div className="eyebrow">Sites{q.industry ? ` · ${industryName(q.industry)}` : ""}{q.segment ? ` · ${q.segment}` : ""}</div>
+        <div className="eyebrow">Sites{q.industry ? ` · ${industryName(q.industry)}` : ""}</div>
         <h1 className="title">Stores we track</h1>
         <p className="lede">{every.length} Australian online stores across {new Set(every.map((s) => s.industry || "jewellery")).size} industries. Pick an industry, then narrow by payment option, tool, platform or policy. Open a store for its full profile, change history, promotions and prices.</p>
 
