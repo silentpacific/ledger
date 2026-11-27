@@ -75,7 +75,7 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   Each help-centre host's own robots.txt is respected (Fetcher._other_host_robots). A help centre that rejects
   direct requests (Zendesk 403, e.g. Lyka) is read through Firecrawl's standard fetch (helpcentre._get).
 - Site cleanup 27 Nov 2026: domains fixed (wilsonandfrenchy.com.au, pe-nation.com, au.citta.com, peto.com.au
-  = ex My Pet Warehouse, savour-life.com.au); switched off (scan_enabled=false, reason in last_scan_error, data kept):
+  = ex My Pet Warehouse, savour-life.com.au, muktiorganics.com, mr-smith.com.au); switched off (scan_enabled=false, reason in last_scan_error, data kept):
   wireless1.com.au, kohepets.com.au, milandirect.com.au.
 - Terms: scan sites with no terms page. The Shopify template anti-scraping clause is ignored
   (verdict template_clause, site scanned). Custom anti-scraping clauses block (Michael Hill,
@@ -156,7 +156,10 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   with the store as OnlineStore (+ MerchantReturnPolicy from observed returns facts only); benchmarks a Dataset.
 - Build data (27 Nov): web_sites is >3 MB (over Next's 2 MB data cache), so lib/data.ts memoises each RPC per
   build worker/server instance and retries 5xx; without it every page refetched and Supabase timed out (57014),
-  which failed the deploys of the /payments and /platforms changes.
+  which failed the deploys of the /payments and /platforms changes. On the live site the memo lasts 5 minutes.
+  Vercel's shared data cache kept serving an old 144-store web_sites copy (fresh >2 MB copies can't be stored):
+  fixed by versioning the cache key (X-Ledger-Data header in lib/data.ts); bump it if a stale copy ever sticks.
+  The site also drops empty list entries on load (lib/data.ts clean()), after null entries broke a deploy.
 - Opt-out proposal (27 Nov, awaiting Rahul): robots.txt Disallow for our crawler = stop tracking (already works);
   removal of past data only after proof of control (code in /.well-known/ file or DNS TXT), checked automatically,
   confirmation sent to a role address (legal@/privacy@); email alone is never enough. Needs a schema change

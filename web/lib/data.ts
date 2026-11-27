@@ -34,7 +34,9 @@ async function rpc<T>(fn: string, args: Record<string, unknown> = {}, revalidate
   if (revalidate === false) return rpcOnce<T>(fn, args, revalidate);
   const key = fn + JSON.stringify(args);
   const hit = MEMO.get(key);
-  if (hit && Date.now() - hit.at < revalidate * 1000) return hit.p as Promise<T>;
+  // during a build, one copy serves every page; on the live site keep it only briefly so hourly refreshes see new scans
+  const ttl = process.env.NEXT_PHASE === "phase-production-build" ? revalidate * 1000 : 5 * 60 * 1000;
+  if (hit && Date.now() - hit.at < ttl) return hit.p as Promise<T>;
   const p = rpcOnce<T>(fn, args, revalidate);
   MEMO.set(key, { at: Date.now(), p });
   p.catch(() => MEMO.delete(key)); // never keep a failure
