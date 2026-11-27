@@ -225,3 +225,7 @@ grant execute on function public.web_view(text), public.web_sites_in(text[]), pu
 create table if not exists public.not_featured (domain text primary key, reason text, added_at timestamptz not null default now());
 alter table public.not_featured enable row level security;
 -- (one row inserted; see the table)
+
+-- 28 Nov 2026 (migration "web_changes_fast_confirmed"): 'confirmed' now reads the fact's latest observation directly
+-- instead of the current_facts view once per change (that view sorts every observation; it timed out the page-data
+-- builder once ~1,000 stores were scanned). Same meaning: latest observation >1 h after the change, still the new value.
