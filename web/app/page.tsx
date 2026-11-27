@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import { Bars, Stat } from "@/components/ui";
 import IndustryFilter from "@/components/IndustryFilter";
 import SitePicker from "@/components/SitePicker";
+import FilterSelect from "@/components/FilterSelect";
 import StoreLookup, { type Profile } from "@/components/StoreLookup";
 import { filterSites, getChanges, getPromotions, getSites, industryOf, promotionsFor, Promo, Site } from "@/lib/data";
 import { INDUSTRIES, industryName } from "@/lib/industries";
@@ -53,38 +54,45 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
   // ---- the activity feed (filterable) ----
   const scoped = filterSites(all, industry, segment);
   const sites = site ? scoped.filter((s) => s.domain === site) : scoped;
-  const byDomain = new Map(sites.map((s) => [s.domain, s]));
-  const promos = promotionsFor(promosAll, sites);
-  const items: Item[] = [];
-  for (const c of changes.filter((c) => c.confirmed)) {
-    const s = byDomain.get(c.domain);
-    if (!s) continue;
-    const d = describeChange(c);
-    const cat = c.category.replace(/_/g, " ");
-    items.push({ at: c.at, tag: cat.charAt(0).toUpperCase() + cat.slice(1), site: siteName(c.domain), domain: c.domain, ind: industryName(industryOf(s)),
-      text: d.text.charAt(0).toUpperCase() + d.text.slice(1), when: `Changed between scans · confirmed ${short(c.at)}`, sig: d.significance });
-  }
-  const best = new Map<string, Promo>();
-  promos.filter((p) => p.live && isDiscount(p) && Date.now() - new Date(p.last_seen).getTime() < 7 * DAY)
-    .forEach((p) => { const b = best.get(p.domain); if (!b || maxPct(p) > maxPct(b)) best.set(p.domain, p); });
-  for (const p of best.values()) {
-    const s = byDomain.get(p.domain)!;
-    const isNew = new Date(p.first_seen).getTime() - new Date(s.first_scanned_at).getTime() > 36e5;
-    const offer = `${p.name}${p.discount && !p.name.toLowerCase().includes(p.discount.toLowerCase().slice(0, 12)) ? `: ${p.discount}` : ""}`;
-    items.push({ at: p.first_seen, tag: isNew ? "Offer first seen this week" : "Offer running", site: siteName(p.domain), domain: p.domain, ind: industryName(industryOf(s)),
-      text: offer, when: `First seen ${short(p.first_seen)} · last confirmed ${short(p.last_seen)}${p.ends ? ` · ends ${short(p.ends)}` : ""}`,
-      sig: maxPct(p) >= 30 ? "High" : "Medium" });
-  }
+  // feed items for a set of stores: confirmed changes, plus each store's deepest offer seen in the last 7 days
+  const buildItems = (subset: Site[]): Item[] => {
+    const byDomain = new Map(subset.map((s) => [s.domain, s]));
+    const promos = promotionsFor(promosAll, subset);
+    const items: Item[] = [];
+    for (const c of changes.filter((c) => c.confirmed)) {
+      const s = byDomain.get(c.domain);
+      if (!s) continue;
+      const d = describeChange(c);
+      const cat = c.category.replace(/_/g, " ");
+      items.push({ at: c.at, tag: cat.charAt(0).toUpperCase() + cat.slice(1), site: siteName(c.domain), domain: c.domain, ind: industryName(industryOf(s)),
+        text: d.text.charAt(0).toUpperCase() + d.text.slice(1), when: `Changed between scans · confirmed ${short(c.at)}`, sig: d.significance });
+    }
+    const best = new Map<string, Promo>();
+    promos.filter((p) => p.live && isDiscount(p) && Date.now() - new Date(p.last_seen).getTime() < 7 * DAY)
+      .forEach((p) => { const b = best.get(p.domain); if (!b || maxPct(p) > maxPct(b)) best.set(p.domain, p); });
+    for (const p of best.values()) {
+      const s = byDomain.get(p.domain)!;
+      const isNew = new Date(p.first_seen).getTime() - new Date(s.first_scanned_at).getTime() > 36e5;
+      const offer = `${p.name}${p.discount && !p.name.toLowerCase().includes(p.discount.toLowerCase().slice(0, 12)) ? `: ${p.discount}` : ""}`;
+      items.push({ at: p.first_seen, tag: isNew ? "Offer first seen this week" : "Offer running", site: siteName(p.domain), domain: p.domain, ind: industryName(industryOf(s)),
+        text: offer, when: `First seen ${short(p.first_seen)} · last confirmed ${short(p.last_seen)}${p.ends ? ` · ends ${short(p.ends)}` : ""}`,
+        sig: maxPct(p) >= 30 ? "High" : "Medium" });
+    }
+
+    return items;
+  };
+  const items = buildItems(sites);       // the filtered feed
+  const overview = buildItems(all);      // "What changed this week" always covers every store
   const rank = (x: Item) => (x.sig === "High" ? 2 : x.sig === "Medium" ? 1 : 0);
-  const top = [...items].sort((a, b) => rank(b) - rank(a) || (a.at < b.at ? 1 : -1)).slice(0, 6);
+  const top = [...overview].sort((a, b) => rank(b) - rank(a) || (a.at < b.at ? 1 : -1)).slice(0, 6);
   const shown = items.filter((i) => f === "all" || i.tag.toLowerCase().startsWith(f) || (f === "promotion" && i.tag.includes("ffer")));
   const days = new Map<string, Item[]>();
   shown.sort((a, b) => (a.at < b.at ? 1 : -1)).forEach((i) => { const k = dayKey(i.at); days.set(k, [...(days.get(k) || []), i]); });
   const q = (o: Record<string, string | undefined>) => {
     const p = new URLSearchParams(Object.entries({ f: f === "all" ? undefined : f, industry, segment, site, ...o }).filter(([, v]) => v) as [string, string][]).toString();
-    return `/${p ? `?${p}` : ""}#activity`;
+    return `/${p ? `?${p}` : ""}`;
   };
-  const FILTERS = [["all", "All"], ["promotion", "Promotions"], ["shipping", "Shipping"], ["payments", "Payments"], ["policies", "Policies"], ["tech", "Tech"]];
+  const FILTERS = [["all", "All kinds"], ["promotion", "Promotions"], ["shipping", "Shipping"], ["payments", "Payments"], ["policies", "Policies"], ["tech", "Tech"]];
 
   // ---- compare entry ----
   const options = [...all].sort((a, b) => siteName(a).localeCompare(siteName(b))).map((s) => ({ domain: s.domain, name: siteName(s), industry: industryName(industryOf(s)) }));
@@ -230,23 +238,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ f
         <section id="activity" style={{ marginTop: 44 }} aria-labelledby="all-h">
           <h2 id="all-h" style={{ margin: 0, fontSize: 24 }}>All activity</h2>
           <p className="small muted" style={{ margin: "6px 0 0" }}>Every confirmed change and every offer seen in the last 7 days. Filter by industry, kind of change or one store.</p>
-          <IndustryFilter path="/" sites={all} industry={industry} segment={segment} keep={{ f: f === "all" ? undefined : f }} />
-          <div className="row" style={{ gap: 8, marginTop: 12 }}>
-            {FILTERS.map(([k, t]) => <Link key={k} href={q({ f: k === "all" ? undefined : k })} className={`chip${f === k ? " on" : ""}`}>{t}</Link>)}
-          </div>
-          <form action="/#activity" className="row" style={{ gap: 8, marginTop: 12, alignItems: "center" }}>
-            {f !== "all" && <input type="hidden" name="f" value={f} />}
-            {industry && <input type="hidden" name="industry" value={industry} />}
-            {segment && <input type="hidden" name="segment" value={segment} />}
-            <label htmlFor="feed-site" className="small muted">One store:</label>
-            <select id="feed-site" name="site" className="field" style={{ height: 36, width: 260 }} defaultValue={site || ""}>
-              <option value="">All {scoped.length} stores</option>
-              {[...scoped].sort((a, b) => siteName(a).localeCompare(siteName(b))).map((s) => <option key={s.domain} value={s.domain}>{siteName(s)}</option>)}
-            </select>
-            <button className="chip" type="submit" style={{ cursor: "pointer" }}>Show</button>
-            {site && <Link className="small" href={q({ site: undefined })}>Clear</Link>}
-          </form>
-          {days.size === 0 && <div className="empty" style={{ marginTop: 20 }}>Nothing in this view yet.</div>}
+          <IndustryFilter path="/" sites={all} industry={industry} segment={segment} keep={{ f: f === "all" ? undefined : f, site }}
+            extra={<>
+              <FilterSelect label="Kind of change" param="f" value={f === "all" ? "" : f} path="/" query={{ industry, segment, site, f: f === "all" ? undefined : f }}
+                options={FILTERS.map(([k, t]) => ({ value: k === "all" ? "" : k, label: t }))} width={170} />
+              <FilterSelect label="Store" param="site" value={site} path="/" query={{ industry, segment, site, f: f === "all" ? undefined : f }}
+                options={[{ value: "", label: `All stores (${scoped.length})` }, ...[...scoped].sort((a, b) => siteName(a).localeCompare(siteName(b))).map((s) => ({ value: s.domain, label: siteName(s) }))]} width={240} />
+            </>} />
+          {days.size === 0 && <div className="empty" style={{ marginTop: 20 }}>Nothing matches these filters yet. Try “All kinds” or a wider industry or segment; new changes appear after each weekly scan.</div>}
           {[...days.entries()].map(([day, list_]) => (
             <div key={day}>
               <div className="small muted" style={{ fontWeight: 600, margin: "24px 0 10px", textTransform: "uppercase" }}>{dateAU(day + "T12:00:00", { weekday: "long", day: "numeric", month: "long" })}</div>

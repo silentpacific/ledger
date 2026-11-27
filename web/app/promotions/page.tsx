@@ -69,10 +69,10 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
             <h1 className="title">{year ? y : dateAU(new Date(start + DAY), { month: "long", year: "numeric" })}</h1>
           </div>
           <div className="row" style={{ gap: 8, alignItems: "center" }}>
-            <Link aria-label="Previous" className="chip" href={q({ m: year ? `${y - 1}-${String(mo).padStart(2, "0")}` : prevM })}>‹</Link>
-            <Link aria-label="Next" className="chip" href={q({ m: year ? `${y + 1}-${String(mo).padStart(2, "0")}` : nextM })}>›</Link>
-            <Link className={`chip${!year ? " on" : ""}`} href={q({ view: undefined })}>Month</Link>
-            <Link className={`chip${year ? " on" : ""}`} href={q({ view: "year" })}>Year</Link>
+            <Link scroll={false} aria-label="Previous" className="chip" href={q({ m: year ? `${y - 1}-${String(mo).padStart(2, "0")}` : prevM })}>‹</Link>
+            <Link scroll={false} aria-label="Next" className="chip" href={q({ m: year ? `${y + 1}-${String(mo).padStart(2, "0")}` : nextM })}>›</Link>
+            <Link scroll={false} className={`chip${!year ? " on" : ""}`} href={q({ view: undefined })}>Month</Link>
+            <Link scroll={false} className={`chip${year ? " on" : ""}`} href={q({ view: "year" })}>Year</Link>
           </div>
         </div>
 
@@ -86,8 +86,8 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
         </div>
 
         <div className="row" style={{ gap: 8, marginTop: 24 }}>
-          <Link className={`chip${!sp.type ? " on" : ""}`} href={q({ type: undefined })}>Discounts &amp; gifts</Link>
-          {typeCounts.map(([k, n, c]) => <Link key={k} className={`chip${sp.type === k ? " on" : ""}`} href={q({ type: k })}>{n} · {c}</Link>)}
+          <Link scroll={false} className={`chip${!sp.type ? " on" : ""}`} href={q({ type: undefined })}>Discounts &amp; gifts</Link>
+          {typeCounts.map(([k, n, c]) => <Link scroll={false} key={k} className={`chip${sp.type === k ? " on" : ""}`} href={q({ type: k })}>{n} · {c}</Link>)}
         </div>
 
         <div className="card scroll" style={{ marginTop: 16 }}>

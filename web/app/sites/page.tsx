@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import IndustryFilter from "@/components/IndustryFilter";
+import FilterSelect from "@/components/FilterSelect";
 import { filterSites, getPromotions, getSites, promotionsFor, Site } from "@/lib/data";
 import { KIND_NAMES, dateAU, facets, label, list, money, num, siteName, val } from "@/lib/format";
 import { industryName } from "@/lib/industries";
@@ -49,28 +50,20 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
         <h1 className="title">Stores we track</h1>
         <p className="lede">{every.length} Australian online stores across {new Set(every.map((s) => s.industry || "jewellery")).size} industries. Pick an industry, then narrow by payment option, tool, platform or policy. Open a store for its full profile, change history, promotions and prices.</p>
 
-        <IndustryFilter path="/sites" sites={every} industry={q.industry} segment={q.segment} />
-
-        <form action="/sites" className="card" style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
-          {q.industry && <input type="hidden" name="industry" value={q.industry} />}
-          {q.segment && <input type="hidden" name="segment" value={q.segment} />}
-          {KINDS.map((k) => (
-            <div key={k} style={{ flex: "1 1 180px" }}>
-              <label className="lbl" htmlFor={`f-${k}`} style={{ fontWeight: 500, color: "var(--muted)", fontSize: 13 }}>{KIND_NAMES[k].replace(/s$/, "")}</label>
-              <select id={`f-${k}`} name={k} className="field" defaultValue={q[k] || ""}>
-                <option value="">Any</option>
-                {fc[k].map((x: any) => <option key={x.value} value={x.value}>{x.name} ({x.n})</option>)}
-              </select>
-            </div>
-          ))}
-          <button className="btn" type="submit">Filter</button>
-          {chosen.length > 0 && <Link className="btn ghost" href={link({ payments: undefined, tech: undefined, platform: undefined, policy: undefined })}>Clear</Link>}
-        </form>
+        <IndustryFilter path="/sites" sites={every} industry={q.industry} segment={q.segment}
+          keep={{ payments: q.payments, tech: q.tech, platform: q.platform, policy: q.policy }}
+          extra={<>
+            {KINDS.map((k) => (
+              <FilterSelect key={k} label={KIND_NAMES[k].replace(/s$/, "")} param={k} value={q[k]} path="/sites" query={{ ...q }} width={190}
+                options={[{ value: "", label: "Any" }, ...fc[k].map((x: any) => ({ value: x.value, label: `${x.name} (${x.n})` }))]} />
+            ))}
+            {chosen.length > 0 && <Link scroll={false} className="small" href={link({ payments: undefined, tech: undefined, platform: undefined, policy: undefined })}>Clear filters</Link>}
+          </>} />
 
         {chosen.length === 0 && (
           <div className="grid g3" style={{ marginTop: 16 }}>
             {ready.map((r) => (
-              <Link key={r.title} href={r.href} className="card" style={{ color: "var(--ink)", textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: 16 }}>
+              <Link scroll={false} key={r.title} href={r.href} className="card" style={{ color: "var(--ink)", textDecoration: "none", display: "flex", alignItems: "center", gap: 14, padding: 16 }}>
                 <span className="display" style={{ fontSize: 26, fontWeight: 600, minWidth: 40 }}>{r.n}</span>
                 <span style={{ fontWeight: 600 }}>{r.title}</span>
               </Link>

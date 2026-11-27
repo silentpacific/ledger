@@ -78,10 +78,10 @@ body { overflow-anchor: none; }
 .hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: start; padding: 24px 0 8px; }
 .hero h1 { font-size: 52px; line-height: 1.04; margin: 0; max-width: 11em; letter-spacing: -0.03em; }
 .hero-text p { font-size: 17px; line-height: 1.55; color: var(--body); margin: 20px 0 0; max-width: 34em; }
-.hero-try { margin-top: 22px; font-size: 14px; color: var(--muted); }
+.hero-text .hero-try { margin-top: 22px; font-size: 14px; color: var(--muted); }
 .hero-try button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .hero-try button + button { margin-left: 12px; }
-.hero-note { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 34em; line-height: 1.55; }
+.hero-text .hero-note { margin-top: 28px; font-size: 13px; color: var(--muted); max-width: 34em; line-height: 1.55; }
 
 .lookup { position: relative; }
 .lookup-bar { position: relative; display: flex; align-items: center; background: var(--ink); border-radius: 14px 14px 0 0; padding: 10px 12px 10px 18px; }
@@ -118,3 +118,18 @@ body { overflow-anchor: none; }
   .record-row { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+/* ---- filters: industry tabs (primary), compact dropdowns (secondary) ------------------- */
+.filters { margin-top: 20px; }
+.ftabs { display: flex; gap: 26px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.ftabs a { padding: 10px 0 11px; font-size: 16px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; text-decoration: none; }
+.ftabs a:hover { color: var(--ink); text-decoration: none; }
+.ftabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.ftabs .n { font-weight: 400; font-size: 13px; color: var(--muted); margin-left: 6px; }
+.fsub { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 14px; }
+.fsel { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.fsel select { height: 34px; border: 1px solid #D5D2C8; border-radius: 8px; padding: 0 10px; background: #fff; font: 500 14px var(--font-inter), sans-serif; color: var(--ink); }
+.fsel select:focus-visible, .ftabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* a filtered list can be short; keep the section tall enough that filtering never pulls the page up */
+#activity, .filter-results { min-height: 100vh; }

@@ -49,8 +49,8 @@ export default async function FacetDetail({ kind, value, industry }: { kind: str
         <h1 className="title" style={{ fontSize: 40 }}>{facetTitle(kind, f.name)}</h1>
         <p className="lede">{matching.length} of the {sites.length} Australian {scope} we track{kind === "payments" ? ` show ${f.name} as a payment option` : kind === "tech" ? ` use ${f.name}` : kind === "platform" ? ` run on ${f.name}` : " match"}.</p>
         <div className="row" style={{ gap: 8, marginTop: 16 }}>
-          <Link href={base} className={`chip${!industry ? " on" : ""}`}>All industries</Link>
-          {byInd.map((r) => { const s_ = INDUSTRIES.find((i) => i.name === r.label)!.slug; return <Link key={s_} href={r.href} className={`chip${industry === s_ ? " on" : ""}`}>{r.label}</Link>; })}
+          <Link scroll={false} href={base} className={`chip${!industry ? " on" : ""}`}>All industries</Link>
+          {byInd.map((r) => { const s_ = INDUSTRIES.find((i) => i.name === r.label)!.slug; return <Link scroll={false} key={s_} href={r.href} className={`chip${industry === s_ ? " on" : ""}`}>{r.label}</Link>; })}
         </div>
 
         <div className="grid g2" style={{ marginTop: 24 }}>
