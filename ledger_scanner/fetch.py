@@ -24,14 +24,26 @@ RUN_CACHE: dict | None = None
 # Firecrawl calls take turns across the batch warm-up threads, and back off when Firecrawl itself
 # says "too many requests" (its account rate limit, not the store's).
 _FC_LOCK = threading.Lock()
+# Set when Firecrawl says the account has no credits (HTTP 402): no more Firecrawl calls this run; stores that
+# needed it get the issue NEEDS_FIRECRAWL so they can be rescanned once credits are back.
+FIRECRAWL_OUT = False
+NEEDS_FIRECRAWL = "needs Firecrawl: no credits during this scan, rescan when credits are back"
+
+
+def firecrawl_ready() -> bool:
+    return bool(config.FIRECRAWL_API_KEY) and not FIRECRAWL_OUT
 
 
 def firecrawl_post(payload: dict) -> requests.Response:
+    global FIRECRAWL_OUT
     with _FC_LOCK:
         for attempt in range(4):
             r = requests.post("https://api.firecrawl.dev/v2/scrape",
                               headers={"Authorization": f"Bearer {config.FIRECRAWL_API_KEY}"},
                               json=payload, timeout=120)
+            if r.status_code == 402:
+                FIRECRAWL_OUT = True  # out of credits: stop using Firecrawl for the rest of this run
+                return r
             if r.status_code != 429 or attempt == 3:
                 return r
             ra = r.headers.get("Retry-After", "")
@@ -168,7 +180,7 @@ class Fetcher:
             p = Page(url, None, robots_allowed=False, note="skipped: disallowed by robots.txt")
             self.pages.append(p)
             return p
-        if not config.FIRECRAWL_API_KEY or self.via_firecrawl or self.render_html:
+        if not firecrawl_ready() or self.via_firecrawl or self.render_html:
             return self.fetch(url)
         if RUN_CACHE is not None and ("render", url) in RUN_CACHE:
             p = Page(**RUN_CACHE[("render", url)].__dict__)
@@ -197,7 +209,7 @@ class Fetcher:
         """Fetch the homepage; if the site rejects direct requests, switch this site to Firecrawl."""
         home = self.fetch(url)
         if home.status == 200 and home.html:
-            if len(home.text) < JS_SHELL_CHARS and config.FIRECRAWL_API_KEY:
+            if len(home.text) < JS_SHELL_CHARS and firecrawl_ready():
                 # Built by JavaScript: the page arrives nearly empty. Render HTML pages from here on.
                 self.render_html = True
                 rendered = self.fetch(url)
@@ -220,7 +232,7 @@ class Fetcher:
                 return again
             url, home = www_url, again
         rejected = home.status in (None, 202, 403, 429, 503) and home.robots_allowed
-        if not rejected or not config.FIRECRAWL_API_KEY:
+        if not rejected or not firecrawl_ready():
             return home
         self.via_firecrawl = True
         self._load_robots_firecrawl()

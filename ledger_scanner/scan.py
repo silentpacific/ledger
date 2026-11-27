@@ -37,6 +37,9 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
     base, robots = f.base_url, f.robots_text   # fetch_home may have moved to www. or to Firecrawl
     status = "complete"
 
+    from . import fetch as _fetch
+    if config.FIRECRAWL_API_KEY and not _fetch.firecrawl_ready() and (home.status != 200 or not home.html or len(home.text) < 400):
+        issues.append(_fetch.NEEDS_FIRECRAWL)
     if home.status != 200 or not home.html:
         status = "failed"
         issues.append(f"homepage not readable: status {home.status} {home.note or ''}".strip())

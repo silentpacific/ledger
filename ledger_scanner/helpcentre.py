@@ -79,7 +79,8 @@ def _get(f: Fetcher, url: str, want_text: bool = True):
     robots.txt still applies: Fetcher.fetch has already refused disallowed URLs."""
     from . import config
     page = f.fetch(url, want_text=want_text)
-    if page.status in REJECTED and page.robots_allowed and config.FIRECRAWL_API_KEY and page.method != "firecrawl":
+    from .fetch import firecrawl_ready
+    if page.status in REJECTED and page.robots_allowed and firecrawl_ready() and page.method != "firecrawl":
         again = f._firecrawl_page(url, want_text)
         if again.status == 200:
             return again

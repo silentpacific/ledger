@@ -180,6 +180,15 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   Adult/tobacco names (clubx, sexyland, naughtyboy, bintel) switched off. Tranco is exhausted for .au: more
   stores need another source (e.g. platform store lists or directories). Firecrawl credits ran out 27 Nov ~22:00
   (Rahul asked about buying more).
+- Firecrawl out of credits (27 Nov, resets 23 Dec; Rahul declined the US$19 Smart Upgrade for now): on HTTP 402
+  the scanner stops calling Firecrawl for the rest of the run (fetch.FIRECRAWL_OUT) and stores that needed it get
+  the issue fetch.NEEDS_FIRECRAWL; rescan those when credits are back:
+  `select distinct d.domain from scans s join domains d on d.id=s.domain_id where s.issues::text like '%needs Firecrawl%'`.
+- Scaling to 5,000 stores (Rahul's goal, 27 Nov) hits limits: GitHub Actions minutes (private repo, ~1,365 of the
+  free 2,000/month used in Nov; batch mode idles while waiting so a store costs ~1-2 runner minutes), Supabase
+  free 500 MB (67 MB at ~565 stores, raw_payload is most of it), Vercel (web_sites would be ~25 MB; pages need
+  per-store RPCs instead of loading every store), and a new store source (Tranco .au is used up; Common Crawl
+  index next). Decisions put to Rahul 27 Nov.
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
 - Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name (then rename the crawler and

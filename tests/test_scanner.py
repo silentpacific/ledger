@@ -1000,3 +1000,16 @@ def test_help_centre_prefers_fee_articles_over_how_tos(monkeypatch):
     got = helpcentre._zendesk_search(f, "https://help.shop.example/hc/en-gb/", "shipping")
     assert got[:2] == ["https://help.shop.example/a/3", "https://help.shop.example/a/4"]
     assert "https://help.shop.example/a/1" not in got
+
+
+def test_firecrawl_out_of_credits_stops_further_calls(monkeypatch):
+    from ledger_scanner import fetch as fm, config as cfg
+    monkeypatch.setattr(cfg, "FIRECRAWL_API_KEY", "x")
+    monkeypatch.setattr(fm, "FIRECRAWL_OUT", False)
+    calls = []
+
+    class R:
+        status_code, ok, headers = 402, False, {}
+    monkeypatch.setattr(fm.requests, "post", lambda *a, **k: calls.append(1) or R())
+    fm.firecrawl_post({"url": "x"})
+    assert fm.FIRECRAWL_OUT and not fm.firecrawl_ready() and len(calls) == 1
