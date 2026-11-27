@@ -187,8 +187,14 @@ def main() -> int:
                 "payload": None, "scan_id": None}
         print(f"\n=== {t['domain']} ({mode}{', full rescan requested' if mode != args.mode else ''}, model {config.CLAUDE_MODEL}, escalation {config.ESCALATION_MODEL or 'off'}) ===", flush=True)
         try:
+            previous = None
+            if mode == "full":  # unchanged policy pages reuse their stored facts (no AI read)
+                try:
+                    previous = db.previous_pages(t["domain"])
+                except Exception as e:
+                    print("  could not load previous pages (everything will be read):", str(e)[:150])
             payload = scan_site(t["domain"], t["homepage_url"], t.get("platform"), mode=mode, use_ai=not args.no_ai,
-                                industry=t.get("industry"))
+                                industry=t.get("industry"), previous=previous)
             cost["payload"] = payload
             if extract.OUT_OF_CREDIT:
                 left = [x["domain"] for x in targets[n:]]

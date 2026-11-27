@@ -155,6 +155,12 @@ INDUSTRY_FIELDS: dict[str, dict[str, dict[str, dict]]] = {
 }
 
 
+def question_signature(industry: str | None = None) -> str:
+    """Changes whenever any question for this industry's pages, the instructions or the model change.
+    One signature per site (not per page type), since one page can be read as several types."""
+    return json.dumps([config.CLAUDE_MODEL, SYSTEM, {t: fields_for(t, industry) for t in FIELDS}], sort_keys=True)
+
+
 def fields_for(page_type: str, industry: str | None = None) -> dict[str, dict]:
     """The questions for one page: the common set plus the site's industry extras.
     Sites with no industry recorded are treated as jewellery (the first vertical)."""

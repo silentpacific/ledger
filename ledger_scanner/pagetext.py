@@ -36,3 +36,11 @@ def looks_empty(own: str, ptype: str) -> bool:
     if words is None:
         return False
     return len(own) < MIN_OWN_CHARS or not words.search(own)
+
+
+def fingerprint(own: str, questions: str) -> str:
+    """Stored as the page's content_hash. Same page text + same questions + same model = same answer,
+    so a matching fingerprint on the next scan means the page's stored facts can be reused."""
+    import hashlib
+    norm = "\n".join(" ".join(l.split()).lower() for l in own.splitlines() if l.strip())
+    return "own:" + hashlib.sha256((questions + "\n" + norm).encode()).hexdigest()

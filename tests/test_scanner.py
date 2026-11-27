@@ -596,3 +596,27 @@ def test_stronger_model_picks_pages_when_candidates_fail(monkeypatch):
                                   {right.url: "Our promise", wrong.url: "Returns"})
     # returns: candidates failed, so it asks; shipping: no page at all, so it asks too (within the per-site cap)
     assert asked == ["returns", "shipping"] and any(x["status"] == "observed" for x in facts)
+
+
+def test_unchanged_page_reuses_stored_facts(monkeypatch):
+    from ledger_scanner import extract, pagetext, scan
+    b = "https://shop.example.com.au/"
+    home = _Page(b, "Home")
+    page = _Page(b + "pages/returns", "Returns\n" + "Return any item within 14 days of delivery for a refund. " * 6)
+    own = pagetext.own_text(page.text, pagetext.shared_lines(home.text))
+    fp = pagetext.fingerprint(own, extract.question_signature("jewellery"))
+    previous = {"hashes": {page.url: fp}, "at": {page.url: "2026-11-26T08:00:00Z"},
+                "facts": {page.url: [{"category": "policies", "fact_key": "policies.returns.period_days", "status": "observed",
+                                      "value": 14, "evidence": "within 14 days", "evidence_verified": True, "confidence": "high"}]}}
+    calls = []
+    monkeypatch.setattr(extract, "read_page", lambda *a, **k: calls.append(1) or [])
+    facts = scan._read_info_pages(_Fetcher({page.url: page}), {"returns": [page.url]}, home, b, "jewellery", [], {}, previous)
+    assert calls == [] and facts[0]["key"] == "returns.period_days" and facts[0]["value"] == 14 and "unchanged" in facts[0]["note"]
+    assert page.content_hash == fp
+    # the page changed: read again
+    page.text += "\nNew: change of mind returns are no longer accepted."
+    scan._read_info_pages(_Fetcher({page.url: page}), {"returns": [page.url]}, home, b, "jewellery", [], {}, previous)
+    assert calls == [1]
+    # same text, but the questions changed (another industry's set): read again
+    page.text = _Page(b, "x").text or page.text
+    assert extract.question_signature("jewellery") != extract.question_signature("fashion")

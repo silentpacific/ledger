@@ -80,6 +80,24 @@ def current_facts(domain: str) -> dict[str, dict]:
     return {row["fact_key"]: row for row in r.json()}
 
 
+def previous_pages(domain: str) -> dict:
+    """What the last scans stored, for skipping unchanged pages:
+    {"hashes": {url: fingerprint}, "facts": {url: [observation, ...]}, "at": {url: when}}."""
+    rows = _rpc("previous_page_hashes", {"p_domain": domain}) or []
+    r = requests.get(
+        f"{config.SUPABASE_URL}/rest/v1/current_facts",
+        params={"domain": f"eq.{domain}", "method": "eq.ai_text",
+                "select": "category,fact_key,status,value,unit,confidence,evidence,evidence_verified,source_url,observed_at"},
+        headers=_headers(), timeout=60)
+    if not r.ok:
+        raise RuntimeError(f"current_facts failed: {r.status_code} {r.text[:300]}")
+    facts: dict[str, list] = {}
+    for f in r.json():
+        facts.setdefault(f["source_url"], []).append(f)
+    return {"hashes": {x["url"]: x["content_hash"] for x in rows}, "at": {x["url"]: x["scanned_at"] for x in rows},
+            "facts": facts}
+
+
 def domain_promotions(domain: str) -> list[dict]:
     """Stored promotions for a site (newest first), for matching this scan's sightings."""
     return _rpc("domain_promotions", {"p_domain": domain}) or []

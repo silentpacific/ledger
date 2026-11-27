@@ -48,6 +48,12 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 - Finding policy pages: up to 3 candidates per core type, follows links from summary pages, Shopify's
   /policies/* pages, empty pages rendered once then skipped, homepage boilerplate stripped before the AI read,
   free-shipping threshold also read from the homepage by code.
+- Unchanged pages are skipped (agreed 27 Nov 2026): each AI-read page stores a fingerprint "own:<sha256>"
+  of its own text + the site's question set + model in scan_pages.content_hash; a full scan that sees the
+  same fingerprint reuses that page's stored facts (previous_page_hashes RPC) with no AI call.
+- Batch API (half price) agreed 27 Nov 2026: to be built after the 30 Nov run (see plan in chat).
+- Scan cadence is the same for every industry: weekly = promotions, products watch list, content;
+  monthly (1st) = everything else. The 30 Nov non-jewellery full rescan is a one-off for new questions.
 - Runs pause at a budget (RUN_BUDGET_USD var, default $4) and exit 3 so GitHub emails him.
   If the Anthropic account runs out of credit, the run stops and stores nothing for that site.
 - Terms: scan sites with no terms page. The Shopify template anti-scraping clause is ignored

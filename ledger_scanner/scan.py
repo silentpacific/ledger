@@ -13,8 +13,11 @@ AU_TZ = timezone(timedelta(hours=10, minutes=30))
 
 
 def scan_site(domain: str, homepage_url: str, platform: str | None = None,
-              mode: str = "full", use_ai: bool = True, industry: str | None = None) -> dict:
-    """mode: 'full' (all categories, monthly) or 'weekly' (promotions, products, content only)."""
+              mode: str = "full", use_ai: bool = True, industry: str | None = None,
+              previous: dict | None = None) -> dict:
+    """mode: 'full' (all categories, monthly) or 'weekly' (promotions, products, content only).
+    previous: what earlier scans stored for this site (db.previous_pages), so unchanged pages
+    reuse their facts instead of being read by the AI again. None = read everything."""
     started = datetime.now(AU_TZ)
     parsed = urlparse(homepage_url)
     base = f"{parsed.scheme}://{parsed.netloc}/"
@@ -148,7 +151,7 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         if ai:
             site_links = {u: "" for u, _ in sm["pages"]}
             site_links.update(discover.link_texts(home.html, base))
-            facts += _read_info_pages(f, pages_by_type, home, base, industry, issues, site_links)
+            facts += _read_info_pages(f, pages_by_type, home, base, industry, issues, site_links, previous)
         missing = [t for t in ("returns", "shipping") if t not in pages_by_type]
         if missing:
             issues.append(f"no page found for: {', '.join(missing)}")
@@ -172,7 +175,8 @@ MAX_TRIES = 3  # pages read per core type before giving up
 
 
 def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry: str | None,
-                     issues: list[str], site_links: dict[str, str] | None = None) -> list[dict]:
+                     issues: list[str], site_links: dict[str, str] | None = None,
+                     previous: dict | None = None) -> list[dict]:
     """Read policy/info pages with the AI. For returns and shipping: if a page doesn't give the core
     facts, follow its links to a fuller page of the same type, then try the next candidate
     (up to MAX_TRIES pages). Pages with no content of their own (empty, or built by JavaScript)
@@ -226,12 +230,16 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
                 issues.append(f"{ptype} page has no {ptype} content of its own: {url}")
                 queue = [u for u in discover.links_of_type(page.html, base, ptype) if u not in tried] + queue
                 continue
-            budget -= 1
-            try:
-                got = extract.read_page(ptype, page.url, text, industry, core or ())
-            except Exception as e:  # one bad page must not sink the scan
-                issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
-                continue
+            fp = pagetext.fingerprint(text, extract.question_signature(industry))
+            page.content_hash = fp
+            got = _unchanged_facts(previous, page.url, fp)
+            if got is None:
+                budget -= 1
+                try:
+                    got = extract.read_page(ptype, page.url, text, industry, core or ())
+                except Exception as e:  # one bad page must not sink the scan
+                    issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
+                    continue
             facts += got
             if not core:
                 if ptype != "payments":
@@ -244,6 +252,24 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
         if core and tried and not answered:
             issues.append(f"{ptype}: core facts not found after reading {len(tried)} page(s): {', '.join(tried)}")
     return facts
+
+
+def _unchanged_facts(previous: dict | None, url: str, fp: str) -> list[dict] | None:
+    """The stored facts of a page whose fingerprint hasn't changed since the last scan, or None."""
+    if not previous or previous.get("hashes", {}).get(url) != fp:
+        return None
+    stored = previous.get("facts", {}).get(url)
+    if not stored:
+        return None
+    since = (previous.get("at", {}).get(url) or "")[:10]
+    out = []
+    for x in stored:
+        cat = x["category"]
+        out.append({"category": cat, "key": x["fact_key"][len(cat) + 1:], "status": x["status"], "value": x.get("value"),
+                    "unit": x.get("unit"), "evidence": x.get("evidence"), "evidence_verified": x.get("evidence_verified"),
+                    "source_url": url, "method": "ai_text", "confidence": x.get("confidence") or "medium",
+                    "note": f"page unchanged since {since}; facts carried over without a new AI read"})
+    return out
 
 
 UNION_KEYS = {"payments.bnpl_providers", "payments.payment_icons", "trust_support.support_channels",
