@@ -41,8 +41,17 @@ async function rpc<T>(fn: string, args: Record<string, unknown> = {}, revalidate
   return (await res.json()) as T;
 }
 
-export const getSites = () => rpc<Site[]>("web_sites");
-export const getPromotions = () => rpc<Promo[]>("web_promotions");
+export async function getSites(): Promise<Site[]> {
+  const sites = await rpc<Site[]>("web_sites");
+  const { rememberNames } = await import("./format");
+  rememberNames(sites); // so pages that only have a domain (feeds, promotions) show the store's real name
+  return sites;
+}
+/** "live" = seen in the site's latest scan AND not past its advertised end date, for every page. */
+export async function getPromotions(): Promise<Promo[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  return (await rpc<Promo[]>("web_promotions")).map((p) => ({ ...p, live: p.live && (!p.ends || p.ends.slice(0, 10) >= today) }));
+}
 export const getChanges = (days = 90) => rpc<Change[]>("web_changes", { p_days: days });
 export const getProducts = (domain: string) => rpc<Product[]>("web_products", { p_domain: domain });
 export const suggestSite = (domain: string) => rpc<{ outcome: string; domain?: string }>("web_suggest_site", { p_domain: domain }, false);

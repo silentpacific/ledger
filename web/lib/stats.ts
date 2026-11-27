@@ -39,6 +39,6 @@ export function groupStats(sites: Site[], promos: Promo[]) {
   };
 }
 export const STAT_COLUMNS = [
-  ["sites", "Sites tracked"], ["onSale", "On sale now"], ["freeShipping", "Median free-shipping threshold"],
-  ["returns", "Median returns window"], ["bnpl", "Offer buy now, pay later"], ["topTool", "Most-used tool"],
+  ["sites", "Stores monitored"], ["onSale", "Stores with an active offer"], ["freeShipping", "Median free-shipping minimum"],
+  ["returns", "Median returns window"], ["bnpl", "Buy now, pay later detected"], ["topTool", "Most-used tool"],
 ] as const;

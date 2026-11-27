@@ -34,8 +34,8 @@ export default async function Industries() {
             rows={rows} minWidth={1080} />
         </div>
         <p className="small muted" style={{ marginTop: 12, lineHeight: 1.6 }}>
-          Across all industries: {all.onSale.text} of stores on sale now, median free-shipping threshold {all.freeShipping.text.toLowerCase()}, median returns window {all.returns.text}.
-          {" "}A median is shown only when at least {Math.round(COVERAGE * 100)}% of an industry's stores publish the value; otherwise it says "Not enough data". "On sale now" counts discounts and gifts seen in the latest weekly scan.
+          Across all industries: {all.onSale.text} of stores have an active offer, median free-shipping threshold {all.freeShipping.text.toLowerCase()}, median returns window {all.returns.text}.
+          {" "}A median is shown only when at least {Math.round(COVERAGE * 100)}% of an industry's stores publish the value; otherwise it says "Not enough data". "Stores with an active offer" counts discounts and gifts seen in the latest weekly scan and not past their advertised end date.
         </p>
         <p className="small muted" style={{ marginTop: 8 }}>Want an industry that isn't listed? <Link href="/contact" style={{ fontWeight: 600 }}>Tell us</Link>, or suggest a store below.</p>
       </main>

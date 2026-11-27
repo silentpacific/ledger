@@ -171,6 +171,11 @@ def detect_homepage_signals(html: str, text: str, url: str) -> list[dict]:
     title = (soup.title.string or "").strip() if soup.title else ""
     if title:
         facts.append(fact("content_marketing", "homepage_title", " ".join(title.split()), source_url=url))
+    og = soup.find("meta", attrs={"property": "og:site_name"})
+    if og and og.get("content") and 1 < len(og["content"].strip()) <= 60:
+        # the store's own display name; schema.org Organization name (structured data, high confidence) wins if present
+        facts.append(fact("site_identity", "trading_name", " ".join(og["content"].split()), source_url=url,
+                          confidence="medium", note="From the homepage's og:site_name tag"))
     desc = soup.find("meta", attrs={"name": "description"})
     if desc and desc.get("content"):
         facts.append(fact("content_marketing", "homepage_meta_description", desc["content"].strip()[:500], source_url=url))

@@ -805,3 +805,10 @@ def test_unsettled_stored_facts_are_not_carried_over():
     prev = {"hashes": {"u": "fp"}, "at": {}, "facts": {"u": [
         {"category": "policies", "fact_key": "policies.returns.period_days", "status": "conflicting", "value": 14}]}}
     assert scan._unchanged_facts(prev, "u", "fp") is None
+
+
+def test_store_name_from_og_site_name():
+    from ledger_scanner import detect
+    html = '<html><head><title>Shop</title><meta property="og:site_name" content="Coco &amp; Eve"></head><body></body></html>'
+    f = [x for x in detect.detect_homepage_signals(html, "Shop", "u") if x["key"] == "trading_name"]
+    assert f and f[0]["value"] == "Coco & Eve"

@@ -13,13 +13,28 @@ const NAMES: Record<string, string> = {
   "pastiche.com.au": "Pastiche", "reliquiacollective.com": "Reliquia", "sarahandsebastian.com": "Sarah & Sebastian",
   "shjewellery.com.au": "SH Jewellery", "templeandgrace.com.au": "Temple & Grace", "wanderlustandco.com": "Wanderlust + Co",
 };
-export function siteName(s: Site | string): string {
-  const d = typeof s === "string" ? s : s.domain;
-  if (NAMES[d]) return NAMES[d];
-  const t = typeof s === "string" ? null : s.facts["site_identity.trading_name"]?.v;
-  if (typeof t === "string" && t.length < 40) return t;
-  const base = d.split(".")[0];
+const KNOWN = new Map<string, string>(); // domain -> display name, filled by rememberNames() when sites load
+const alnum = (x: string) => x.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+
+/** The store's own name: our list, then its schema.org / og:site_name name, then the part of its page title
+ * that matches the domain ("Coco & Eve | Official Store" for cocoandeve.com), then the domain itself. */
+export function displayName(s: Site): string {
+  if (NAMES[s.domain]) return NAMES[s.domain];
+  const base = s.domain.split(".")[0];
+  const t = s.facts["site_identity.trading_name"]?.v;
+  if (typeof t === "string" && t.length < 40 && t.trim()) return t.trim();
+  const title = s.facts["content_marketing.homepage_title"]?.v;
+  if (typeof title === "string") {
+    const seg = title.split(/\s[|–—:\-]\s|\s?\|\s?/).map((x) => x.trim()).filter((x) => x && x.length <= 40)
+      .find((x) => { const a = alnum(x), b = alnum(base); return a.length > 2 && (a === b || b.startsWith(a) || a.startsWith(b)); });
+    if (seg) return seg;
+  }
   return base.charAt(0).toUpperCase() + base.slice(1);
+}
+export function rememberNames(sites: Site[]) { sites.forEach((s) => KNOWN.set(s.domain, displayName(s))); }
+export function siteName(s: Site | string): string {
+  if (typeof s !== "string") return displayName(s);
+  return KNOWN.get(s) ?? NAMES[s] ?? (s.split(".")[0].charAt(0).toUpperCase() + s.split(".")[0].slice(1));
 }
 
 // ---------- values ----------
@@ -184,6 +199,8 @@ export const maxPct = (p: Promo) => {
   const m = [...t.matchAll(/(\d{1,2})\s*%/g)].map((x) => Number(x[1]));
   return m.length ? Math.max(...m) : 0;
 };
+/** Running now: seen in the site's latest scan, and its advertised end date (if any) hasn't passed. */
+export const isLive = (p: Promo, today = new Date().toISOString().slice(0, 10)) => p.live && (!p.ends || p.ends.slice(0, 10) >= today);
 export const isDiscount = (p: Promo) => maxPct(p) > 0 || ["percent_off", "dollar_off", "bogo", "gift_with_purchase"].includes(p.type || "");
 export const PROMO_TYPES: Record<string, string> = {
   percent_off: "% off", free_shipping: "Free shipping", finance_offer: "Finance offers", gift_with_purchase: "Gift with purchase",

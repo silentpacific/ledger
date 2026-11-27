@@ -58,8 +58,8 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
 
         {sites.length > 0 && <>
           <div className="grid g4" style={{ marginTop: 28 }}>
-            <Stat k="Sites tracked" v={sites.length} />
-            <Stat k="Promotions live" v={live.length} sub={`${best.size} sites running a discount`} />
+            <Stat k="Stores monitored" v={sites.length} />
+            <Stat k="Stores with an active offer" v={best.size} sub={`${live.length} offers running`} />
             <Stat k="Median free-shipping threshold" v={fs.length ? money(median(fs))! : "—"} sub={fs.length ? `${fs.length} sites state one` : "not stated yet"} />
             <Stat k="Median returns window" v={ret.length ? `${median(ret)} days` : "—"} sub={ret.length ? `${ret.length} sites state one` : "not stated yet"} />
           </div>

@@ -20,12 +20,18 @@ export function Bars({ rows, max, color = "var(--accent)" }: { rows: { label: st
   );
 }
 
-export function Stat({ k, v, sub }: { k: string; v: string | number; sub?: string }) {
+export function Stat({ k, v, sub, how }: { k: string; v: string | number; sub?: string; how?: string }) {
   return (
     <div className="card stat">
       <div className="k">{k}</div>
       <div className="v">{v}</div>
       {sub && <div className="small muted" style={{ marginTop: 4 }}>{sub}</div>}
+      {how && (
+        <details className="tiny muted" style={{ marginTop: 8 }}>
+          <summary style={{ cursor: "pointer" }}>How it's calculated</summary>
+          <div style={{ marginTop: 4, lineHeight: 1.5 }}>{how}</div>
+        </details>
+      )}
     </div>
   );
 }

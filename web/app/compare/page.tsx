@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import { getPromotions, getSites, Site } from "@/lib/data";
 import { Bars } from "@/components/ui";
 import SitePicker from "@/components/SitePicker";
-import { industryName } from "@/lib/industries";
+import { INDUSTRIES, industryName } from "@/lib/industries";
 import { isDiscount, list, maxPct, money, num, show, siteName, val } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -46,7 +46,11 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
       { label: "Programme", get: (s) => show(s, "loyalty.program") },
       { label: "Welcome offer", get: (s) => show(s, "loyalty.welcome_offer") },
       { label: "Birthday", get: (s) => show(s, "loyalty.birthday_reward") }]],
-    ["Promotions live now", [{ label: "Headline offer", get: headline }]],
+    ["Promotions", [
+      { label: "Headline offer now", get: headline },
+      { label: "Discounts seen since tracking began", get: (s) => String(promos.filter((x) => x.domain === s.domain && isDiscount(x)).length),
+        score: (s) => promos.filter((x) => x.domain === s.domain && isDiscount(x)).length },
+      { label: "Deepest discount seen", get: (s) => { const m = Math.max(0, ...promos.filter((x) => x.domain === s.domain).map(maxPct)); return m ? `Up to ${m}%` : "—"; } }]],
   ];
   const best = (r: RowDef) => {
     if (!r.score) return undefined;
@@ -54,6 +58,8 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     if (xs.length < 2) return undefined;
     return r.better === "low" ? Math.min(...xs) : Math.max(...xs);
   };
+  const suggestions = INDUSTRIES.map((i) => ({ name: i.name, sites: [...all.filter((x) => (x.industry || "jewellery") === i.slug)]
+      .sort((a, b) => Object.keys(b.facts).length - Object.keys(a.facts).length).slice(0, 3) })).filter((g) => g.sites.length >= 2);
   const options = [...all].sort((a, b) => siteName(a).localeCompare(siteName(b)))
     .map((s) => ({ domain: s.domain, name: siteName(s), industry: industryName(s.industry) }));
   const chartFs = sites.map((s) => ({ label: siteName(s), n: num(s, "shipping.free_shipping_threshold") ?? 0, text: num(s, "shipping.free_shipping_threshold") !== undefined ? money(num(s, "shipping.free_shipping_threshold"))! : "—" }));
@@ -63,13 +69,29 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
     <>
       <Header active="/compare" />
       <main className="wrap page">
-        <h1 className="title">Compare sites</h1>
-        <p className="lede">Pick up to 5 stores from any industry. Values are the latest quality-checked facts; highlighted cells are the most customer-friendly in the group.</p>
+        <div className="eyebrow">Analyse</div>
+        <h1 className="title">Compare stores side by side</h1>
+        <p className="lede">See how competitors differ on shipping, returns, buy now pay later, loyalty and promotions. Pick up to 5 stores from any industry. Values are the latest quality-checked facts; highlighted cells are the most customer-friendly in the group.</p>
         <SitePicker options={options} chosen={chosen} />
 
         {sites.length === 0 && (
-          <div className="empty" style={{ marginTop: 24 }}>
-            Start typing a store's name above and press Enter to add it. Add up to 5 stores from any industry; the comparison fills in as you go, and the page address can be shared.
+          <div className="grid g2" style={{ marginTop: 24 }}>
+            <section className="card">
+              <h2 style={{ fontSize: 18, margin: "0 0 8px" }}>Questions a comparison answers</h2>
+              {["Which competitor has the lowest free-shipping minimum?", "Who offers Afterpay, Zip or Klarna, and who doesn't?",
+                "Whose returns window is longest, and is change of mind accepted?", "Who discounts most often, and how deep?",
+                "Who has a loyalty programme, and what does joining get you?"].map((x) => <div key={x} className="kv"><span>{x}</span></div>)}
+              <p className="tiny muted" style={{ margin: "10px 0 0" }}>Start typing a store's name above and press Enter to add it. The page address can be shared.</p>
+            </section>
+            <section className="card">
+              <h2 style={{ fontSize: 18, margin: "0 0 8px" }}>Or start with one of these</h2>
+              {suggestions.map((g) => (
+                <div key={g.name} className="kv">
+                  <span><strong>{g.name}</strong> <span className="muted">· {g.sites.map((x) => siteName(x)).join(", ")}</span></span>
+                  <Link href={`/compare?sites=${g.sites.map((x) => x.domain).join(",")}`} className="small" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>Compare →</Link>
+                </div>
+              ))}
+            </section>
           </div>
         )}
         {sites.length > 0 && <>
