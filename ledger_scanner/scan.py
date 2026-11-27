@@ -238,7 +238,10 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
             tried.append(url)
             page = fetched.get(url)
             if page is None:
-                page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
+                if url in help_cache.get("picked", set()):
+                    page = helpcentre._get(f, url)  # help-centre article: Firecrawl if it rejects direct requests
+                else:
+                    page = f.fetch_rendered(url) if ptype == "stores" else f.fetch(url)
                 if page.status == 200 and len(page.text) < 300:
                     page = f.fetch_rendered(url)
                 fetched[url] = page
@@ -299,7 +302,9 @@ def _help_centre_articles(f: Fetcher, base: str, home, ptype: str, cache: dict) 
     out: list[str] = []
     for start in cache["starts"][:2]:
         out += [u for u in helpcentre.articles_for(f, start, ptype) if u not in out]
-    return out[:helpcentre.MAX_ARTICLES]
+    out = out[:helpcentre.MAX_ARTICLES]
+    cache.setdefault("picked", set()).update(out)
+    return out
 
 
 def _unchanged_facts(previous: dict | None, url: str, fp: str) -> list[dict] | None:

@@ -140,7 +140,8 @@ class Fetcher:
             p = Page(url, None, robots_allowed=False, note="skipped: disallowed by robots.txt")
             self.pages.append(p)
             return p
-        if self.via_firecrawl or (self.render_html and want_text and not _is_data_url(url)):
+        own_site = same_site(url, self.base_url)
+        if (self.via_firecrawl or self.render_html and want_text and not _is_data_url(url)) and own_site:
             return self._firecrawl_page(url, want_text)
         try:
             r = self._get(url)
