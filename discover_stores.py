@@ -74,50 +74,35 @@ def tranco_au() -> list[str]:
 
 
 def cc_au(want: int, start_page: int = 0) -> list[str]:
-    """.com.au hosts with shop-style page addresses in the latest Common Crawl, until `want` new ones are found.
-    The index is in address order, so pages are visited spread out over the whole list (every `step` pages)."""
+    """.com.au sites with shop-style page addresses in the latest Common Crawl, from its columnar URL index
+    (parquet files on data.commoncrawl.org, read with DuckDB over HTTPS: only the .au part of each file is fetched).
+    This is Common Crawl's recommended way to do bulk lookups; its search API rate-limits them."""
+    import gzip
     import random
-    coll = requests.get(f"{CC_INDEX}/collinfo.json", timeout=60).json()[0]
-    api = coll["cdx-api"]
-    q = {"url": "*.com.au", "output": "json", "fl": "url", "filter": f"~url:{CC_SHOP_PATH}"}
-    pages = int(requests.get(api, params={**q, "showNumPages": "true"}, timeout=120).json()["pages"])
-    order = list(range(start_page, pages))
-    random.Random(27).shuffle(order)  # the same spread every run, so later runs continue where earlier ones stopped
-    print(f"Common Crawl {coll['id']}: {pages} index pages for *.com.au", flush=True)
-    hosts: dict[str, None] = {}
-
-    def page(n: int) -> set[str]:
-        for attempt in range(4):
-            try:
-                r = requests.get(api, params={**q, "page": n}, timeout=180)
-                if r.status_code in (429, 503):
-                    import time; time.sleep(5 * (attempt + 1)); continue
-                if r.status_code == 404:
-                    return set()  # no matches on this page
-                r.raise_for_status()
-                out = set()
-                for line in r.text.splitlines():
-                    try:
-                        u = json.loads(line)["url"]
-                    except Exception:
-                        continue
-                    h = re.sub(r"^https?://", "", u).split("/")[0].split(":")[0].lower().removeprefix("www.")
-                    if h.endswith(".com.au") and h.count(".") == 2 and not SKIP_WORDS.search(h.split(".")[0]):
-                        out.add(h)
-                return out
-            except requests.RequestException:
-                import time; time.sleep(5)
-        return set()
-
-    with ThreadPoolExecutor(4) as ex:  # be gentle with the public index
-        for i in range(0, len(order), 8):
-            for got in ex.map(page, order[i:i + 8]):
-                for h in got:
-                    hosts.setdefault(h)
-            print(f"  {i + 8} pages read, {len(hosts)} shop hosts", flush=True)
-            if len(hosts) >= want:
-                break
-    return list(hosts)
+    import duckdb
+    crawl = requests.get(f"{CC_INDEX}/collinfo.json", timeout=60).json()[0]["id"]
+    paths = gzip.decompress(requests.get(f"https://data.commoncrawl.org/crawl-data/{crawl}/cc-index-table.paths.gz", timeout=120).content)
+    files = [f"https://data.commoncrawl.org/{p}" for p in paths.decode().split() if "/subset=warc/" in p]
+    print(f"Common Crawl {crawl}: {len(files)} index files", flush=True)
+    con = duckdb.connect()
+    con.execute("INSTALL httpfs; LOAD httpfs; SET http_retries=8; SET http_retry_wait_ms=2000; SET threads=8")
+    q = """select distinct url_host_registered_domain d from read_parquet(?)
+           where url_host_tld = 'au' and url_host_registered_domain like '%.com.au'
+             and (url_path like '/products/%' or url_path like '/collections/%' or url_path like '/product/%'
+                  or url_path like '/shop/products/%')"""
+    hosts: set[str] = set()
+    for i in range(0, len(files), 25):  # in groups, so progress shows and one bad file doesn't lose the rest
+        try:
+            for (d,) in con.execute(q, [files[i:i + 25]]).fetchall():
+                d = (d or "").lower().removeprefix("www.")
+                if d.count(".") == 2 and not SKIP_WORDS.search(d.split(".")[0]):
+                    hosts.add(d)
+        except Exception as e:
+            print(f"  files {i}-{i + 25}: {str(e)[:160]}", flush=True)
+        print(f"  {min(i + 25, len(files))}/{len(files)} files, {len(hosts)} shop sites", flush=True)
+    out = sorted(hosts)
+    random.Random(27).shuffle(out)  # spread across the alphabet; the same order every run
+    return out
 
 
 def existing_names() -> set[str]:
