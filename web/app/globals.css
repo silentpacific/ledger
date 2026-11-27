@@ -70,3 +70,6 @@ table.t td { padding: 11px 12px; border-top: 1px solid var(--line2); vertical-al
 }
 .sort-btn { display: inline-flex; width: 100%; gap: 6px; align-items: center; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-transform: inherit; letter-spacing: inherit; }
 .sort-btn:hover { color: var(--ink); }
+
+/* the compare picker restores its own position; stop the browser's scroll anchoring fighting it */
+body { overflow-anchor: none; }

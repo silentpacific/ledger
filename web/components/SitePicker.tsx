@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 type Opt = { domain: string; name: string; industry: string };
 
@@ -9,6 +9,18 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
   const router = useRouter();
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  const KEY = "ledger-picker-top";
+  // After adding or removing a store the page re-renders and the content around the picker changes height.
+  // Put the picker back at the same spot on screen it was at when the user acted, and keep typing in it.
+  useEffect(() => {
+    let saved: string | null = null;
+    try { saved = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch { /* storage unavailable */ }
+    if (saved === null || !wrap.current) return;
+    const delta = wrap.current.getBoundingClientRect().top - Number(saved);
+    if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: "instant" as ScrollBehavior });
+    input.current?.focus({ preventScroll: true });
+  }, [chosen.join(",")]);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [i, setI] = useState(0);
@@ -18,12 +30,15 @@ export default function SitePicker({ options, chosen, max = 5 }: { options: Opt[
     return options.filter((o) => !chosen.includes(o.domain) &&
       (!t || o.name.toLowerCase().includes(t) || o.domain.includes(t) || o.industry.toLowerCase().includes(t))).slice(0, 12);
   }, [q, options, chosen]);
-  const go = (list: string[]) => router.push(list.length ? `/compare?sites=${list.join(",")}` : "/compare", { scroll: false });
-  const add = (d: string) => { setQ(""); setI(0); go([...chosen, d]); input.current?.focus(); };
+  const go = (list: string[]) => {
+    try { if (wrap.current) sessionStorage.setItem(KEY, String(wrap.current.getBoundingClientRect().top)); } catch { /* storage unavailable */ }
+    router.push(list.length ? `/compare?sites=${list.join(",")}` : "/compare", { scroll: false });
+  };
+  const add = (d: string) => { setQ(""); setI(0); go([...chosen, d]); };
   const full = chosen.length >= max;
 
   return (
-    <div className="row" style={{ gap: 8, alignItems: "center", marginTop: 20 }}>
+    <div ref={wrap} className="row" style={{ gap: 8, alignItems: "center", marginTop: 20 }}>
       {chosen.map((d) => (
         <span key={d} className="chip" style={{ fontWeight: 600, gap: 8 }}>
           {byDomain.get(d)?.name || d}
