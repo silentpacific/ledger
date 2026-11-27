@@ -985,3 +985,18 @@ def test_help_centre_that_rejects_direct_requests_is_read_through_firecrawl(monk
     }
     monkeypatch.setattr(f, "_firecrawl_page", lambda url, want_text=True, record=True: via_fc.get(url, fm.Page(url, 404)))
     assert helpcentre.articles_for(f, "https://help.shop.example/", "returns") == ["https://help.shop.example/hc/en-gb/articles/9"]
+
+
+def test_help_centre_prefers_fee_articles_over_how_tos(monkeypatch):
+    import json
+    from ledger_scanner import helpcentre
+    base = "https://help.shop.example/api/v2/help_center/articles/search.json?query="
+    res = [{"title": "How do I update my delivery frequency?", "html_url": "https://help.shop.example/a/1"},
+           {"title": "How do I reschedule my delivery?", "html_url": "https://help.shop.example/a/2"},
+           {"title": "How much does delivery cost?", "html_url": "https://help.shop.example/a/3"},
+           {"title": "Where do you deliver?", "html_url": "https://help.shop.example/a/4"}]
+    pages = {base + w + "&per_page=10": json.dumps({"results": res}) for w in ("delivery", "deliver", "shipping")}
+    f, _ = _fake_fetcher(monkeypatch, pages)
+    got = helpcentre._zendesk_search(f, "https://help.shop.example/hc/en-gb/", "shipping")
+    assert got[:2] == ["https://help.shop.example/a/3", "https://help.shop.example/a/4"]
+    assert "https://help.shop.example/a/1" not in got

@@ -24,6 +24,12 @@ TOPIC_WORDS = {
     "returns": ("return", "refund", "exchange", "change of mind", "change-of-mind", "faulty", "cancel"),
     "shipping": ("delivery", "deliver", "shipping", "ship", "postage", "dispatch", "freight", "courier"),
 }
+# Titles that answer the core questions (fee, free threshold, window, policy) rank above how-to articles
+PRIORITY_WORDS = {
+    "returns": ("policy", "refund", "change of mind", "how long", "days", "return an item", "returns"),
+    "shipping": ("cost", "fee", "free", "how much", "charge", "price", "policy", "options", "where do you deliver"),
+}
+HOWTO_WORDS = ("update", "change my", "reschedule", "track", "address", "login", "log in", "password", "account")
 MAX_SECTIONS = 3
 MAX_ARTICLES = 3
 
@@ -85,25 +91,30 @@ def _matches(text: str, ptype: str) -> bool:
     return any(w in t for w in TOPIC_WORDS[ptype])
 
 
+def _rank(title: str, ptype: str) -> int:
+    t = title.lower()
+    return sum(2 for w in PRIORITY_WORDS[ptype] if w in t) - sum(3 for w in HOWTO_WORDS if w in t)
+
+
 def _zendesk_search(f: Fetcher, start: str, ptype: str) -> list[str]:
     """Zendesk's public article search: titles name the topic even when addresses are bare numbers."""
     p = urlparse(start)
-    found: list[str] = []
+    found: list[tuple[str, str]] = []
     for word in TOPIC_WORDS[ptype][:3]:
         page = _get(f, f"{p.scheme}://{p.netloc}/api/v2/help_center/articles/search.json?query={quote(word)}&per_page=10",
                     want_text=False)
         if page.status != 200:
-            return found
+            break
         try:
             results = json.loads(page.html).get("results", [])
         except (json.JSONDecodeError, AttributeError):
-            return found
-        for r in results:
-            if _matches(r.get("title", ""), ptype) and r.get("html_url") and r["html_url"] not in found:
-                found.append(r["html_url"])
-        if len(found) >= MAX_ARTICLES:
             break
-    return found[:MAX_ARTICLES]
+        for r in results:
+            if _matches(r.get("title", ""), ptype) and r.get("html_url") and r["html_url"] not in [u for u, _ in found]:
+                found.append((r["html_url"], r.get("title", "")))
+    # every search word is asked (three small API calls), then the most relevant titles win
+    found.sort(key=lambda x: -_rank(x[1], ptype))
+    return [u for u, t in found if _rank(t, ptype) >= 0][:MAX_ARTICLES]
 
 
 def _links(html: str, base: str) -> dict[str, str]:
@@ -138,5 +149,6 @@ def articles_for(f: Fetcher, start: str, ptype: str) -> list[str]:
                         articles.append(u)
             if len(articles) >= MAX_ARTICLES:
                 break
-    ranked = sorted(articles, key=lambda u: (not ARTICLE.search(u), len(u)))
+    ranked = sorted(articles, key=lambda u: (-_rank(f"{links.get(u, '')} {u.replace('-', ' ')}", ptype),
+                                             not ARTICLE.search(u), len(u)))
     return ranked[:MAX_ARTICLES]
