@@ -121,7 +121,8 @@ body { overflow-anchor: none; }
 
 /* ---- filters: industry tabs (primary), compact dropdowns (secondary) ------------------- */
 .filters { margin-top: 20px; }
-.ftabs { display: flex; gap: 26px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.ftabs { display: flex; gap: 26px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.ftabs::-webkit-scrollbar { display: none; }
 .ftabs a { padding: 10px 0 11px; font-size: 16px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; text-decoration: none; }
 .ftabs a:hover { color: var(--ink); text-decoration: none; }
 .ftabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }

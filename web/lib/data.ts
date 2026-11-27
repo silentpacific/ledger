@@ -52,7 +52,13 @@ export async function getPromotions(): Promise<Promo[]> {
   const today = new Date().toISOString().slice(0, 10);
   return (await rpc<Promo[]>("web_promotions")).map((p) => ({ ...p, live: p.live && (!p.ends || p.ends.slice(0, 10) >= today) }));
 }
-export const getChanges = (days = 90) => rpc<Change[]>("web_changes", { p_days: days });
+/** Changes by stores. Differences found while the starting record was being built (see BASELINE_UNTIL)
+ * are improvements in our reading, not changes by the store, so they're left out everywhere. */
+export async function getChanges(days = 90): Promise<Change[]> {
+  const { BASELINE_UNTIL } = await import("./schedule");
+  const cut = new Date(BASELINE_UNTIL).getTime();
+  return (await rpc<Change[]>("web_changes", { p_days: days })).filter((c) => new Date(c.at).getTime() > cut);
+}
 export const getProducts = (domain: string) => rpc<Product[]>("web_products", { p_domain: domain });
 export const suggestSite = (domain: string) => rpc<{ outcome: string; domain?: string }>("web_suggest_site", { p_domain: domain }, false);
 export const sendContact = (a: Record<string, string>) => rpc<{ ok: boolean; error?: string }>("web_contact", a, false);

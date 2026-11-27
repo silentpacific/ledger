@@ -14,3 +14,7 @@ export function nextMonthly(now = new Date()): Date {
   while (d <= now || SKIPPED.includes(d.toISOString().slice(0, 10))) d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 3, 17));
   return d;
 }
+
+/** Scans up to the end of this day built the starting record (and the scanner improved a lot meanwhile),
+ * so differences found up to then are not shown as changes by the store. Real change tracking starts after it. */
+export const BASELINE_UNTIL = "2026-11-28T00:00:00+10:30";
