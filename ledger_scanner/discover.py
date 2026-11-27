@@ -56,7 +56,8 @@ def read_sitemaps(f: Fetcher) -> dict:
             continue
         if "product" in name:
             result["product_files"] += 1
-            if result["product_files"] <= 10:
+            # Firecrawl mode is billed per page: count products from two files at most
+            if result["product_files"] <= (2 if getattr(f, "via_firecrawl", False) else 10):
                 p = f.fetch(u, want_text=False)
                 if p.status == 200:
                     product_count += len(parse_sitemap(p.html))

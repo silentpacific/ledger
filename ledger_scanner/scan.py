@@ -33,7 +33,7 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         issues.append("ANTHROPIC_API_KEY not set: AI page reading skipped")
 
     robots = f.load_robots()
-    home = f.fetch(homepage_url)
+    home = f.fetch_home(homepage_url)
     status = "complete"
 
     if home.status != 200 or not home.html:
@@ -41,6 +41,8 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
         issues.append(f"homepage not readable: status {home.status} {home.note or ''}".strip())
         return _payload(domain, started, status, f, facts, promos_live, promo_history, products, issues, mode)
 
+    if f.via_firecrawl:
+        issues.append(f"read through Firecrawl: {home.note}")
     if len(home.text) < 400:
         issues.append("homepage text very short; likely built by JavaScript")
 
@@ -416,7 +418,7 @@ def recheck_terms(domain: str, homepage_url: str) -> dict:
     base = f"{parsed.scheme}://{parsed.netloc}/"
     f = Fetcher(base)
     f.load_robots()
-    home = f.fetch(homepage_url)
+    home = f.fetch_home(homepage_url)
     if home.status in (401, 403) or (home.status != 200 and not home.html):
         return {"verdict": "blocked" if home.status in (401, 403) else "unclear", "url": homepage_url,
                 "evidence": f"homepage returned {home.status} to LedgerBot"}

@@ -1,12 +1,15 @@
 """Polite fetching: robots.txt first, rate limit per domain, honest user agent.
-Plain HTTP by default; Firecrawl only as a fallback for pages that need JavaScript.
-Never logs in, never gets around bot protection: a block is recorded, not fought."""
+Plain HTTP by default. Firecrawl (standard fetch, never stealth) is used for pages that need
+JavaScript, and for a whole site when its homepage rejects our direct requests (connection
+dropped, 429, 202 holding page, 403/503): Rahul's decision, 27 Nov 2026. Never logs in;
+robots.txt and the terms gate still apply in Firecrawl mode."""
 from __future__ import annotations
 
 import hashlib
 import time
 import urllib.robotparser
 from dataclasses import dataclass, field
+from html import unescape
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -43,6 +46,7 @@ class Fetcher:
     pages: list[Page] = field(default_factory=list)
     _robots: urllib.robotparser.RobotFileParser | None = None
     _last: float = 0.0
+    via_firecrawl: bool = False   # whole site read through Firecrawl (direct requests rejected)
 
     def __post_init__(self):
         self.session = requests.Session()
@@ -96,6 +100,8 @@ class Fetcher:
             p = Page(url, None, robots_allowed=False, note="skipped: disallowed by robots.txt")
             self.pages.append(p)
             return p
+        if self.via_firecrawl:
+            return self._firecrawl_page(url, want_text)
         try:
             r = self._get(url)
         except requests.RequestException as e:
@@ -121,7 +127,7 @@ class Fetcher:
             p = Page(url, None, robots_allowed=False, note="skipped: disallowed by robots.txt")
             self.pages.append(p)
             return p
-        if not config.FIRECRAWL_API_KEY:
+        if not config.FIRECRAWL_API_KEY or self.via_firecrawl:
             return self.fetch(url)
         if RUN_CACHE is not None and ("render", url) in RUN_CACHE:
             p = Page(**RUN_CACHE[("render", url)].__dict__)
@@ -148,6 +154,78 @@ class Fetcher:
             RUN_CACHE[("render", url)] = Page(**p.__dict__)
         self.pages.append(p)
         return p
+
+
+    # -- Firecrawl mode for sites that reject direct requests -------------
+    def fetch_home(self, url: str) -> Page:
+        """Fetch the homepage; if the site rejects direct requests, switch this site to Firecrawl."""
+        home = self.fetch(url)
+        if home.status == 200 and home.html:
+            return home
+        rejected = home.status in (None, 202, 403, 429, 503) and home.robots_allowed
+        if not rejected or not config.FIRECRAWL_API_KEY:
+            return home
+        self.via_firecrawl = True
+        self._load_robots_firecrawl()
+        again = self.fetch(url)
+        if again.status == 200 and again.html:
+            again.note = f"direct request rejected ({home.status or home.note}); read through Firecrawl"
+            return again
+        self.via_firecrawl = False
+        return home
+
+    def _load_robots_firecrawl(self) -> None:
+        robots_url = urljoin(self.base_url, "/robots.txt")
+        p = self._firecrawl_page(robots_url, True, record=False)
+        self.robots_text = p.text if p.status == 200 else ""
+        self._robots = urllib.robotparser.RobotFileParser()
+        self._robots.parse(self.robots_text.splitlines())
+        p.note = "robots.txt read through Firecrawl"
+        self.pages.append(p)
+
+    def _firecrawl_page(self, url: str, want_text: bool = True, record: bool = True) -> Page:
+        if RUN_CACHE is not None and ("fc", url) in RUN_CACHE:
+            p = Page(**RUN_CACHE[("fc", url)].__dict__)
+        else:
+            wait = config.SECONDS_BETWEEN_REQUESTS - (time.time() - self._last)
+            if wait > 0:
+                time.sleep(wait)
+            self._last = time.time()
+            try:
+                r = requests.post(
+                    "https://api.firecrawl.dev/v2/scrape",
+                    headers={"Authorization": f"Bearer {config.FIRECRAWL_API_KEY}"},
+                    json={"url": url, "formats": ["rawHtml"], "location": {"country": "AU"},
+                          "proxy": "basic", "maxAge": 0, "onlyMainContent": False},
+                    timeout=120,
+                )
+                data = r.json().get("data", {}) if r.ok else {}
+                meta = data.get("metadata") or {}
+                raw = data.get("rawHtml", "") or ""
+                ctype = (meta.get("contentType") or "text/html").lower()
+                status = meta.get("statusCode", r.status_code if not r.ok else None)
+                if "html" not in ctype:  # robots.txt, sitemaps, JSON: the browser wraps them in <pre>
+                    raw = _unwrap_pre(raw)
+                p = Page(url, status, html=raw, method="firecrawl",
+                         content_hash=hashlib.sha256(raw.encode()).hexdigest() if raw else None)
+                p.text = html_to_text(raw) if "html" in ctype else raw
+                if not r.ok:
+                    p.note = f"firecrawl error {r.status_code}"
+            except (requests.RequestException, ValueError) as e:
+                p = Page(url, None, method="firecrawl", note=f"firecrawl failed: {type(e).__name__}")
+            if RUN_CACHE is not None:
+                RUN_CACHE[("fc", url)] = Page(**p.__dict__)
+        if not want_text:
+            p.text = ""
+        if record:
+            self.pages.append(p)
+        return p
+
+
+def _unwrap_pre(raw: str) -> str:
+    import re
+    m = re.search(r"<pre[^>]*>(.*?)</pre>", raw, re.S | re.I)
+    return unescape(m.group(1)) if m else raw
 
 
 def _looks_blocked(body: str) -> bool:

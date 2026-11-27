@@ -812,3 +812,48 @@ def test_store_name_from_og_site_name():
     html = '<html><head><title>Shop</title><meta property="og:site_name" content="Coco &amp; Eve"></head><body></body></html>'
     f = [x for x in detect.detect_homepage_signals(html, "Shop", "u") if x["key"] == "trading_name"]
     assert f and f[0]["value"] == "Coco & Eve"
+
+
+def test_firecrawl_mode_when_site_rejects_direct_requests(monkeypatch):
+    import requests as rq
+    from ledger_scanner import fetch as fm, config as cfg
+    monkeypatch.setattr(cfg, "FIRECRAWL_API_KEY", "x")
+    monkeypatch.setattr(cfg, "SECONDS_BETWEEN_REQUESTS", 0)
+    monkeypatch.setattr(fm, "RUN_CACHE", None)
+    f = fm.Fetcher("https://shop.example/")
+
+    def boom(url):
+        raise rq.ConnectTimeout("dropped")
+    monkeypatch.setattr(f, "_get_live", boom)
+    calls = []
+
+    class R:
+        def __init__(self, data): self.ok, self.status_code, self._d = True, 200, data
+        def json(self): return {"data": self._d}
+
+    def post(url, headers, json, timeout):
+        calls.append(json["url"])
+        if json["url"].endswith("robots.txt"):
+            return R({"rawHtml": "<html><body><pre>User-agent: *\nDisallow: /checkout</pre></body></html>",
+                      "metadata": {"statusCode": 200, "contentType": "text/plain"}})
+        return R({"rawHtml": "<html><body><h1>Shop</h1><p>Free shipping over $99</p></body></html>",
+                  "metadata": {"statusCode": 200, "contentType": "text/html"}})
+    monkeypatch.setattr(fm.requests, "post", post)
+    home = f.fetch_home("https://shop.example/")
+    assert f.via_firecrawl and home.status == 200 and "Free shipping over $99" in home.text
+    assert "read through Firecrawl" in home.note
+    assert not f.allowed("https://shop.example/checkout")          # robots read through Firecrawl
+    blocked = f.fetch("/checkout")
+    assert blocked.robots_allowed is False and "https://shop.example/checkout" not in calls
+    page = f.fetch("/pages/returns")
+    assert page.method == "firecrawl" and page.status == 200
+
+
+def test_firecrawl_mode_not_used_for_robots_disallowed_or_404(monkeypatch):
+    from ledger_scanner import fetch as fm, config as cfg
+    monkeypatch.setattr(cfg, "FIRECRAWL_API_KEY", "x")
+    monkeypatch.setattr(fm, "RUN_CACHE", None)
+    f = fm.Fetcher("https://shop.example/")
+    monkeypatch.setattr(f, "fetch", lambda url, want_text=True: fm.Page(url, 404))
+    home = f.fetch_home("https://shop.example/")
+    assert home.status == 404 and not f.via_firecrawl

@@ -61,6 +61,13 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   monthly (1st) = everything else. The 30 Nov non-jewellery full rescan is a one-off for new questions.
 - Runs pause at a budget (RUN_BUDGET_USD var, default $4) and exit 3 so GitHub emails him.
   If the Anthropic account runs out of credit, the run stops and stores nothing for that site.
+- Firecrawl mode (Rahul, 27 Nov 2026): when a site's homepage rejects our direct requests (connection dropped,
+  429, 202 holding page, 403/503), Fetcher.fetch_home switches that site to Firecrawl's standard fetch (never
+  stealth) for the whole scan; robots.txt is re-read through Firecrawl and the terms gate still runs. Costs
+  ~US$0.10/site/month. Used for Bonds, Sheridan, Healthylife, Petstock, Pet Circle, PetPost, Snowy's.
+- Site cleanup 27 Nov 2026: domains fixed (wilsonandfrenchy.com.au, pe-nation.com, au.citta.com, peto.com.au
+  = ex My Pet Warehouse); switched off (scan_enabled=false, reason in last_scan_error, data kept):
+  wireless1.com.au, kohepets.com.au, milandirect.com.au.
 - Terms: scan sites with no terms page. The Shopify template anti-scraping clause is ignored
   (verdict template_clause, site scanned). Custom anti-scraping clauses block (Michael Hill,
   Paspaley, By Charlotte...). Blocked/prohibited sites are switched off and listed in the
@@ -112,7 +119,7 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   store names from og:site_name / page title (lib/format displayName); offers past their end date are not live;
   schedule line from lib/schedule.ts (mirror of scan.yml). Curasept is never used in suggested comparisons.
 - Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name. (No founder story: Rahul doesn't want one.)
-- ~19 sites failed to load (timeouts / wrong domains) and need cleanup with Rahul.
+- Still unreadable: myprotein.com.au (503 even via Firecrawl), anaconda.com.au (Firecrawl proxy errors).
 - Known gaps: JS-rendered prices (Goldmark, Prouds, Temple & Grace), store finders,
   over-time charts (need more weeks of data), real domain + brand, lawyer review,
   placeholders (email, city, ABN, privacy, terms).
