@@ -126,6 +126,10 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   "how it's calculated", findings, a compare entry, top changes, then the full feed; Explore/Analyse nav;
   store names from og:site_name / page title (lib/format displayName); offers past their end date are not live;
   schedule line from lib/schedule.ts (mirror of scan.yml). Curasept is never used in suggested comparisons.
+- Website look (27 Nov): the hero's "record" style across all pages (globals.css "the record look"): .card is a
+  ruled section (ink top rule, no box), .kv rows use dotted leaders, .stat is a big-number strip, .band is the dark
+  prompt (compare). No all-caps labels. Product name lives only in web/lib/brand.ts (BRAND) for the rename;
+  the crawler name LedgerBot is separate (ledger_scanner/config.py USER_AGENT).
 - Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name. (No founder story: Rahul doesn't want one.)
 - Switched off by their own terms once readable (27 Nov): snowys.com.au, healthylife.com.au.
 - Still unreadable: myprotein.com.au (503 even via Firecrawl), anaconda.com.au (no answer even on www).
