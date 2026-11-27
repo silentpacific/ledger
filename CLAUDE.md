@@ -39,9 +39,9 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 
 ## Rules Rahul set
 - No manual checks: quality comes from automatic rules.
-- Haiku reads each page once; a fact counts only if its quote is on the page and numbers/money appear
-  in the quote. Sonnet is a capped last resort (agreed 27 Nov 2026): re-reads a core fact (returns window,
-  change of mind, free-shipping threshold, delivery fee) that fails the checks, and picks likely policy pages
+- Haiku reads each page twice (Rahul, 27 Nov 2026: keep two reads); a fact counts only if both reads agree,
+  its quote is on the page and numbers/money appear in the quote. Keep overall costs extremely low. Sonnet is a capped last resort (agreed 27 Nov 2026): re-reads a core fact (returns window,
+  change of mind, free-shipping threshold, delivery fee) the two reads can't settle, and picks likely policy pages
   from the site's link list when returns/shipping can't be found. Caps: ESCALATION_MAX_PER_SITE (2) and
   ESCALATION_RUN_BUDGET_USD ($0.50) per run; ESCALATION_MODEL 'off' disables. The terms gate still needs
   two Haiku reads to clear a keyword hit.

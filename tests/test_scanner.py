@@ -143,46 +143,45 @@ def _reset_escalation():
     extract.ESCALATION_SPENT, extract.ESCALATION_CALLS_SITE = 0.0, 0
 
 
-def test_single_read_with_quote_checks(monkeypatch):
-    _reset_escalation()
-    text = "You can return items within 14 days of delivery for a refund."
-    calls = []
-    def one(answer):
-        def f(*a, **k):
-            calls.append(k.get("model"))
-            return [answer]
-        return f
-    monkeypatch.setattr(extract, "_ask", one({"key": "returns.period_days", "status": "observed", "value": 14,
-                                               "evidence": "within 14 days of delivery", "confidence": "high"}))
-    out = extract.read_page("returns", "u", text, core=CORE_R)
-    assert out[0]["evidence_verified"] is True and out[0]["confidence"] == "high" and calls == [None]  # one read only
+def _reads(seq, calls):
+    it = iter(seq)
+    def f(*a, **k):
+        calls.append(k.get("model"))
+        return [next(it)]
+    return f
 
-    # value not in its own quote: fails the check; not a core fact here, so no stronger model
+
+R14 = {"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days of delivery", "confidence": "high"}
+R30 = {"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}
+RTEXT = "You can return items within 14 days of delivery for a refund."
+
+
+def test_two_reads_with_quote_checks(monkeypatch):
+    _reset_escalation()
+    calls = []
+    monkeypatch.setattr(extract, "_ask", _reads([R14, R14], calls))
+    out = extract.read_page("returns", "u", RTEXT, core=CORE_R)
+    assert out[0]["evidence_verified"] is True and out[0]["confidence"] == "high" and calls == [None, None]
+    # both reads agree but the value isn't in the quote: fails; not core here, so no stronger model
     calls.clear()
-    monkeypatch.setattr(extract, "_ask", one({"key": "returns.period_days", "status": "observed", "value": 30,
-                                               "evidence": "within 14 days of delivery", "confidence": "high"}))
-    out = extract.read_page("returns", "u", text)
-    assert out[0]["evidence_verified"] is False and out[0]["confidence"] == "low" and calls == [None]
+    bad = dict(R14, value=30)
+    monkeypatch.setattr(extract, "_ask", _reads([bad, bad], calls))
+    out = extract.read_page("returns", "u", RTEXT)
+    assert out[0]["evidence_verified"] is False and out[0]["confidence"] == "low" and calls == [None, None]
 
 
 def test_stronger_model_settles_core_fact_within_caps(monkeypatch):
     _reset_escalation()
-    text = "You can return items within 14 days of delivery for a refund."
-    reads = iter([
-        [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
-        [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days of delivery", "confidence": "high"}],
-    ])
     calls = []
-    def fake(*a, **k):
-        calls.append(k.get("model"))
-        return next(reads)
-    monkeypatch.setattr(extract, "_ask", fake)
-    out = extract.read_page("returns", "u", text, core=CORE_R)
+    monkeypatch.setattr(extract, "_ask", _reads([R14, R30, R14], calls))  # reads disagree; Sonnet agrees with read 1
+    out = extract.read_page("returns", "u", RTEXT, core=CORE_R)
     assert out[0]["value"] == 14 and out[0]["evidence_verified"] is True and calls[-1] == extract.config.ESCALATION_MODEL
-    # per-site cap reached: no more stronger-model calls
+    calls.clear()
+    monkeypatch.setattr(extract, "_ask", _reads([R14, R30], calls))  # not a core fact: stays conflicting, no Sonnet
+    out = extract.read_page("returns", "u", RTEXT)
+    assert out[0]["status"] == "conflicting" and len(calls) == 2
     extract.ESCALATION_CALLS_SITE = extract.config.ESCALATION_MAX_PER_SITE
     assert not extract.escalation_allowed()
-    # run budget spent: none either
     _reset_escalation()
     extract.ESCALATION_SPENT = extract.config.ESCALATION_RUN_BUDGET_USD
     assert not extract.escalation_allowed()

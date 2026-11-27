@@ -1,8 +1,9 @@
 """AI reading of policy / promo / info pages, with automatic quality checks (no human review):
 1. Every fact must quote evidence; code checks the quote really is on the page.
 2. Numbers and money must appear in that quote ("14 days" for a 14-day window).
-3. Each page is read once by the first model (Haiku). The stronger model (Sonnet) is a capped
-   last resort, only for core facts that fail the checks (see escalation_allowed)."""
+3. Each page is read twice by the first model (Haiku); a fact counts only if both reads agree.
+   The stronger model (Sonnet) is a capped last resort, only for core facts the two reads
+   can't settle (see escalation_allowed)."""
 from __future__ import annotations
 
 import json
@@ -386,8 +387,24 @@ def _check(meta: dict, key: str, f: dict, url: str, text: str, model: str) -> di
     }
 
 
+def _agree(meta: dict, key: str, fa: dict | None, fb: dict | None, url: str, text: str, model: str) -> dict:
+    """Two reads of one field: both must agree, and the answer must pass the quote checks."""
+    x = _check(meta, key, fa or fb, url, text, model)
+    if fa and fb:
+        same = fa.get("status") == fb.get("status") and _values_agree(meta["type"], fa.get("value"), fb.get("value"))
+        if not same:
+            if fa.get("status") == fb.get("status") == "observed":
+                x["status"] = "conflicting"
+            x["evidence_verified"], x["confidence"] = False, "low"
+            x["note"] = ("; ".join(filter(None, [x.get("note"), f"two reads disagreed: {json.dumps(fa.get('value'))[:120]} vs {json.dumps(fb.get('value'))[:120]}"])))
+    elif x["status"] in ("observed", "not_offered"):  # only one read answered: not confirmed
+        x["evidence_verified"], x["confidence"] = False, "low"
+        x["note"] = "; ".join(filter(None, [x.get("note"), "only one of two reads gave this"]))
+    return x
+
+
 def _unsettled(x: dict) -> bool:
-    return x["status"] in ("observed", "not_offered") and x["evidence_verified"] is False
+    return x["status"] == "conflicting" or (x["status"] in ("observed", "not_offered") and x["evidence_verified"] is False)
 
 
 # -- the stronger model: a capped last resort --------------------------------------------
@@ -420,19 +437,29 @@ def _escalate(page_type: str, url: str, text: str, fields: dict) -> list[dict]:
 
 def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom",
                      core: tuple[str, ...] = ()) -> list[dict]:
-    """One read by the first model, then the quote checks. Core facts (e.g. the returns window)
-    that fail the checks get one re-read by the stronger model, within its caps."""
+    """Two reads by the first model, agreement and quote checks. Core facts (e.g. the returns window)
+    the two reads can't settle get one re-read by the stronger model, within its caps; that read must
+    agree with one of the first two and pass the quote checks."""
     a = {f.get("key"): f for f in _ask(page_type, url, text, 0, fields) if f.get("key") in fields}
-    out = {k: _check(fields[k], k, a[k], url, text, config.CLAUDE_MODEL) for k in fields if a.get(k)}
+    b = {f.get("key"): f for f in _ask(page_type, url, text, 1, fields) if f.get("key") in fields}
+    out = {k: _agree(fields[k], k, a.get(k), b.get(k), url, text, config.CLAUDE_MODEL)
+           for k in fields if a.get(k) or b.get(k)}
     todo = [k for k, x in out.items() if _unsettled(x) and f"{fields[k]['cat']}.{k}" in core]
     if todo and escalation_allowed():
         sub = {k: fields[k] for k in todo}
         c = {f.get("key"): f for f in _escalate(page_type, url, text, sub) if f.get("key") in sub}
         for k in todo:
             if c.get(k):
-                x = _check(fields[k], k, c[k], url, text, config.ESCALATION_MODEL)
-                if not _unsettled(x):
-                    out[k] = x
+                settled = None
+                for prior in (a.get(k), b.get(k)):
+                    if prior:
+                        x = _agree(fields[k], k, c[k], prior, url, text, config.ESCALATION_MODEL)
+                        if not _unsettled(x):
+                            settled = x
+                            break
+                if settled:
+                    settled["note"] = f"settled by {config.ESCALATION_MODEL} agreeing with one first read"
+                    out[k] = settled
                 else:
                     out[k]["note"] = ((out[k].get("note") or "") + f"; {config.ESCALATION_MODEL} did not settle it").lstrip("; ")
     return list(out.values())
