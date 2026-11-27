@@ -146,7 +146,9 @@ def scan_site(domain: str, homepage_url: str, platform: str | None = None,
 
         # ---- AI reading of policy / info pages -----------------------------
         if ai:
-            facts += _read_info_pages(f, pages_by_type, home, base, industry, issues)
+            site_links = {u: "" for u, _ in sm["pages"]}
+            site_links.update(discover.link_texts(home.html, base))
+            facts += _read_info_pages(f, pages_by_type, home, base, industry, issues, site_links)
         missing = [t for t in ("returns", "shipping") if t not in pages_by_type]
         if missing:
             issues.append(f"no page found for: {', '.join(missing)}")
@@ -170,11 +172,12 @@ MAX_TRIES = 3  # pages read per core type before giving up
 
 
 def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry: str | None,
-                     issues: list[str]) -> list[dict]:
+                     issues: list[str], site_links: dict[str, str] | None = None) -> list[dict]:
     """Read policy/info pages with the AI. For returns and shipping: if a page doesn't give the core
     facts, follow its links to a fuller page of the same type, then try the next candidate
     (up to MAX_TRIES pages). Pages with no content of their own (empty, or built by JavaScript)
-    are rendered once, and skipped without an AI call if still empty."""
+    are rendered once, and skipped without an AI call if still empty. Last resort, within its caps:
+    the stronger model picks likely pages from the site's link list, and those are read too."""
     facts: list[dict] = []
     budget = config.MAX_INFO_PAGES
     home_lines = pagetext.shared_lines(home.text)
@@ -188,7 +191,18 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
         limit = MAX_TRIES if core else (2 if ptype == "payments" else 1)
         tried: list[str] = []
         answered = False
-        while queue and len(tried) < limit and budget > 0 and not answered:
+        asked_for_links = False
+        while budget > 0 and not answered:
+            if not queue or len(tried) >= limit:
+                if not core or asked_for_links:
+                    break
+                asked_for_links = True  # last resort: let the stronger model pick from the link list
+                picks = extract.pick_policy_links(ptype, {u: t for u, t in (site_links or {}).items() if u not in tried})
+                if not picks:
+                    break
+                issues.append(f"{ptype}: {config.ESCALATION_MODEL} suggested {', '.join(picks)}")
+                queue, limit = picks, len(tried) + len(picks)
+                continue
             url = queue.pop(0)
             if url in tried:
                 continue
@@ -214,7 +228,7 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
                 continue
             budget -= 1
             try:
-                got = extract.read_page(ptype, page.url, text, industry)
+                got = extract.read_page(ptype, page.url, text, industry, core or ())
             except Exception as e:  # one bad page must not sink the scan
                 issues.append(f"AI read failed for {url}: {type(e).__name__}: {str(e)[:200]}")
                 continue

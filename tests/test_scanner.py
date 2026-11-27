@@ -136,40 +136,66 @@ def test_merge_conflict_and_priority():
     assert merged[0]["status"] == "observed" and merged[0]["source_url"] == "ship"
 
 
-def test_read_page_two_reads(monkeypatch):
+CORE_R = ("policies.returns.period_days",)
+
+
+def _reset_escalation():
+    extract.ESCALATION_SPENT, extract.ESCALATION_CALLS_SITE = 0.0, 0
+
+
+def test_single_read_with_quote_checks(monkeypatch):
+    _reset_escalation()
+    text = "You can return items within 14 days of delivery for a refund."
+    calls = []
+    def one(answer):
+        def f(*a, **k):
+            calls.append(k.get("model"))
+            return [answer]
+        return f
+    monkeypatch.setattr(extract, "_ask", one({"key": "returns.period_days", "status": "observed", "value": 14,
+                                               "evidence": "within 14 days of delivery", "confidence": "high"}))
+    out = extract.read_page("returns", "u", text, core=CORE_R)
+    assert out[0]["evidence_verified"] is True and out[0]["confidence"] == "high" and calls == [None]  # one read only
+
+    # value not in its own quote: fails the check; not a core fact here, so no stronger model
+    calls.clear()
+    monkeypatch.setattr(extract, "_ask", one({"key": "returns.period_days", "status": "observed", "value": 30,
+                                               "evidence": "within 14 days of delivery", "confidence": "high"}))
+    out = extract.read_page("returns", "u", text)
+    assert out[0]["evidence_verified"] is False and out[0]["confidence"] == "low" and calls == [None]
+
+
+def test_stronger_model_settles_core_fact_within_caps(monkeypatch):
+    _reset_escalation()
     text = "You can return items within 14 days of delivery for a refund."
     reads = iter([
-        [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days of delivery", "confidence": "high"}],
+        [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
         [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days of delivery", "confidence": "high"}],
     ])
-    monkeypatch.setattr(extract, "_ask", lambda *a, **k: next(reads))
-    out = extract.read_page("returns", "u", text)
-    assert out[0]["evidence_verified"] is True and out[0]["confidence"] == "high"
-
-    # reads disagree; the stronger model also says 30 (quote not on page) -> stays conflicting
-    reads = iter([
-        [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days", "confidence": "high"}],
-        [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
-        [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
-    ])
-    monkeypatch.setattr(extract, "_ask", lambda *a, **k: next(reads))
-    out = extract.read_page("returns", "u", text)
-    assert out[0]["status"] == "conflicting" and out[0]["evidence_verified"] is False
-
-    # reads disagree; the stronger model agrees with the first read and its quote is on the page -> settled
     calls = []
-    reads = iter([
-        [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days", "confidence": "high"}],
-        [{"key": "returns.period_days", "status": "observed", "value": 30, "evidence": "within 30 days", "confidence": "high"}],
-        [{"key": "returns.period_days", "status": "observed", "value": 14, "evidence": "within 14 days of delivery", "confidence": "high"}],
-    ])
     def fake(*a, **k):
         calls.append(k.get("model"))
         return next(reads)
     monkeypatch.setattr(extract, "_ask", fake)
-    out = extract.read_page("returns", "u", text)
-    assert out[0]["status"] == "observed" and out[0]["evidence_verified"] is True and out[0]["value"] == 14
-    assert calls[-1] == extract.config.ESCALATION_MODEL
+    out = extract.read_page("returns", "u", text, core=CORE_R)
+    assert out[0]["value"] == 14 and out[0]["evidence_verified"] is True and calls[-1] == extract.config.ESCALATION_MODEL
+    # per-site cap reached: no more stronger-model calls
+    extract.ESCALATION_CALLS_SITE = extract.config.ESCALATION_MAX_PER_SITE
+    assert not extract.escalation_allowed()
+    # run budget spent: none either
+    _reset_escalation()
+    extract.ESCALATION_SPENT = extract.config.ESCALATION_RUN_BUDGET_USD
+    assert not extract.escalation_allowed()
+    _reset_escalation()
+
+
+def test_value_in_quote():
+    assert extract.value_in_quote("integer", 14, "returns within 14 days")
+    assert not extract.value_in_quote("integer", 30, "returns within 14 days")
+    assert extract.value_in_quote("money", {"amount": 80}, "Free shipping over $80")
+    assert extract.value_in_quote("money", {"amount": 9.95}, "$9.95 for standard delivery")
+    assert extract.value_in_quote("money", 0, "Free shipping on all orders")
+    assert extract.value_in_quote("boolean", True, "anything")
 
 
 def test_classify_and_categories():
@@ -515,7 +541,7 @@ class _Fetcher:
 
 
 def _fake_read(found_on):
-    def read_page(ptype, url, text, industry=None):
+    def read_page(ptype, url, text, industry=None, core=()):
         if ptype == "returns" and url in found_on:
             return [{"category": "policies", "key": "returns.period_days", "status": "observed", "value": 14}]
         return [{"category": "policies", "key": "returns.period_days", "status": "not_observed", "value": None}]
@@ -544,7 +570,7 @@ def test_empty_first_candidate_falls_through_to_next(monkeypatch):
     policy = _Page(a + "policies/refund-policy", "Refund policy\n" + "Eligible orders must be shipped back within 7 days of delivery for a refund. " * 5)
     f = _Fetcher({empty.url: empty, policy.url: policy})
     calls = []
-    def read(ptype, url, text, industry=None):
+    def read(ptype, url, text, industry=None, core=()):
         calls.append(url)
         return _fake_read({policy.url})(ptype, url, text, industry)
     monkeypatch.setattr(extract, "read_page", read)
@@ -553,3 +579,21 @@ def test_empty_first_candidate_falls_through_to_next(monkeypatch):
     assert calls == [policy.url]  # the empty page cost no AI call
     assert any(x["status"] == "observed" for x in facts)
     assert any("no returns content of its own" in i for i in issues)
+
+
+def test_stronger_model_picks_pages_when_candidates_fail(monkeypatch):
+    from ledger_scanner import extract, scan
+    _reset_escalation()
+    b = "https://shop.example.com.au/"
+    home = _Page(b, "Home")
+    wrong = _Page(b + "pages/returns", "Returns\n" + "Our returns team is happy to help with any question you have. " * 6)
+    right = _Page(b + "pages/customer-care-promise", "Our promise\n" + "Return any item within 14 days for a full refund. " * 6)
+    f = _Fetcher({wrong.url: wrong, right.url: right})
+    monkeypatch.setattr(extract, "read_page", _fake_read({right.url}))
+    asked = []
+    monkeypatch.setattr(extract, "pick_policy_links", lambda ptype, links: asked.append(ptype) or ([right.url] if ptype == "returns" else []))
+    issues = []
+    facts = scan._read_info_pages(f, {"returns": [wrong.url]}, home, b, "jewellery", issues,
+                                  {right.url: "Our promise", wrong.url: "Returns"})
+    # returns: candidates failed, so it asks; shipping: no page at all, so it asks too (within the per-site cap)
+    assert asked == ["returns", "shipping"] and any(x["status"] == "observed" for x in facts)

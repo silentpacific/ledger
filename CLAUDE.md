@@ -39,7 +39,15 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
 
 ## Rules Rahul set
 - No manual checks: quality comes from automatic rules.
-- Haiku first; Sonnet only for facts Haiku can't settle (ESCALATION_MODEL, 'off' disables).
+- Haiku reads each page once; a fact counts only if its quote is on the page and numbers/money appear
+  in the quote. Sonnet is a capped last resort (agreed 27 Nov 2026): re-reads a core fact (returns window,
+  change of mind, free-shipping threshold, delivery fee) that fails the checks, and picks likely policy pages
+  from the site's link list when returns/shipping can't be found. Caps: ESCALATION_MAX_PER_SITE (2) and
+  ESCALATION_RUN_BUDGET_USD ($0.50) per run; ESCALATION_MODEL 'off' disables. The terms gate still needs
+  two Haiku reads to clear a keyword hit.
+- Finding policy pages: up to 3 candidates per core type, follows links from summary pages, Shopify's
+  /policies/* pages, empty pages rendered once then skipped, homepage boilerplate stripped before the AI read,
+  free-shipping threshold also read from the homepage by code.
 - Runs pause at a budget (RUN_BUDGET_USD var, default $4) and exit 3 so GitHub emails him.
   If the Anthropic account runs out of credit, the run stops and stores nothing for that site.
 - Terms: scan sites with no terms page. The Shopify template anti-scraping clause is ignored

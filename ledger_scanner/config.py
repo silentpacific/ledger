@@ -14,11 +14,14 @@ FIRECRAWL_API_KEY = _env("FIRECRAWL_API_KEY")
 
 # AI model used for reading policy/promo text. Override with the CLAUDE_MODEL secret or variable.
 CLAUDE_MODEL = _env("CLAUDE_MODEL", "claude-haiku-5-5")
-# Stronger model asked only about the facts the first model could not settle
-# (its two reads disagreed, or its quote was not on the page). Set to 'off' to never escalate.
+# Stronger model, a last resort: re-reads a core fact whose quote check failed, and picks likely
+# policy pages from the site's links when returns/shipping can't be found. Set to 'off' to never use it.
 ESCALATION_MODEL = _env("ESCALATION_MODEL", "claude-sonnet-5-5")
 if ESCALATION_MODEL.lower() in ("off", "none", "0"):
     ESCALATION_MODEL = ""
+# Last-resort caps for the stronger model (27 Nov 2026): per site, and per run in USD.
+ESCALATION_MAX_PER_SITE = int(_env("ESCALATION_MAX_PER_SITE", "2"))
+ESCALATION_RUN_BUDGET_USD = float(_env("ESCALATION_RUN_BUDGET_USD", "0.50"))
 
 # Crawler identity (honest user agent with a contact address)
 CRAWLER_CONTACT = _env("CRAWLER_CONTACT")

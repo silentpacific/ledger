@@ -88,12 +88,19 @@ def _prohibition(page) -> str | None:
     quote = " ".join(m.group(0).split())[:400]
     if config.ANTHROPIC_API_KEY:
         # AI confirms the keyword hit is really a prohibition (not e.g. "we may crawl...")
-        try:
-            facts = extract.read_page_custom(PROMPT_FIELDS, page.url, page.text)
-        except Exception:
-            facts = []  # AI unavailable: keep the conservative keyword verdict
-        f0 = next((x for x in facts if x["key"] == "anti_scraping_clause"), None)
-        if f0 and f0["status"] == "observed" and f0["value"] is False and f0.get("evidence_verified"):
+        # compliance stays strict: two independent reads must both clear it, each with its quote on the page
+        cleared = 0
+        for _ in range(2):
+            try:
+                facts = extract.read_page_custom(PROMPT_FIELDS, page.url, page.text)
+            except Exception:
+                facts = []  # AI unavailable: keep the conservative keyword verdict
+            f0 = next((x for x in facts if x["key"] == "anti_scraping_clause"), None)
+            if f0 and f0["status"] == "observed" and f0["value"] is False and f0.get("evidence_verified"):
+                cleared += 1
+            else:
+                break
+        if cleared == 2:
             return None
     return quote
 

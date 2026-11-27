@@ -1,7 +1,8 @@
-"""AI reading of policy / promo / info pages, with automatic quality checks:
+"""AI reading of policy / promo / info pages, with automatic quality checks (no human review):
 1. Every fact must quote evidence; code checks the quote really is on the page.
-2. The page is read twice; a fact counts only if both reads agree.
-No human review anywhere."""
+2. Numbers and money must appear in that quote ("14 days" for a 14-day window).
+3. Each page is read once by the first model (Haiku). The stronger model (Sonnet) is a capped
+   last resort, only for core facts that fail the checks (see escalation_allowed)."""
 from __future__ import annotations
 
 import json
@@ -188,7 +189,10 @@ PRICES = {"claude-haiku-5-5": (0.10, 0.50), "claude-sonnet-5-5": (2.0, 10.0), "c
 
 
 def reset_usage() -> None:
+    """Called per site: clears token counts and the per-site stronger-model count (not the run budget)."""
+    global ESCALATION_CALLS_SITE
     USAGE.clear()
+    ESCALATION_CALLS_SITE = 0
 
 
 def usage_cost() -> float:
@@ -336,73 +340,138 @@ def _canon(v):
     return v
 
 
-def read_page(page_type: str, url: str, text: str, industry: str | None = None) -> list[dict]:
-    return read_page_custom(fields_for(page_type, industry), url, text, page_type)
+def read_page(page_type: str, url: str, text: str, industry: str | None = None,
+              core: tuple[str, ...] = ()) -> list[dict]:
+    return read_page_custom(fields_for(page_type, industry), url, text, page_type, core)
 
 
-def _combine(meta: dict, key: str, fa: dict | None, fb: dict | None, url: str, text: str) -> dict:
-    f = fa or fb
+_NUM = re.compile(r"\d+(?:[.,]\d+)?")
+
+
+def value_in_quote(ftype: str, value, evidence: str | None) -> bool:
+    """For numbers and money, the stored number must appear in the quote; other types pass."""
+    if ftype not in ("integer", "money"):
+        return True
+    a = money(value)["amount"] if ftype == "money" and money(value) and isinstance(money(value), dict) else value
+    if not isinstance(a, (int, float)):
+        return False
+    nums = {float(n.replace(",", "")) for n in _NUM.findall(evidence or "")}
+    return float(a) in nums or (ftype == "money" and a == 0 and bool(re.search(r"\bfree\b", evidence or "", re.I)))
+
+
+def _check(meta: dict, key: str, f: dict, url: str, text: str, model: str) -> dict:
+    """One read's answer for one field, turned into an observation with its checks applied."""
     status = f.get("status", "not_observed")
-    agree = bool(fa and fb and fa.get("status") == fb.get("status")
-                 and _values_agree(meta["type"], fa.get("value"), fb.get("value")))
-    verified = evidence_on_page(f.get("evidence"), text) if status in ("observed", "not_offered") else None
-    note = []
-    if fa and fb and not agree:
-        if fa.get("status") == fb.get("status") == "observed":
-            status = "conflicting"
-        note.append(f"two reads disagreed: {json.dumps(fa.get('value'))[:120]} vs {json.dumps(fb.get('value'))[:120]}")
-    if status in ("observed", "not_offered") and not verified:
-        note.append("evidence quote not found on page")
-    conf = f.get("confidence", "medium")
-    if status in ("observed", "not_offered") and not (agree and verified):
-        conf = "low"
-    value = f.get("value") if status in ("observed", "not_offered", "conflicting") else None
+    value = f.get("value") if status in ("observed", "not_offered") else None
     if meta["type"] == "money":
         value = money(value)
+    note = []
+    verified = None
+    if status in ("observed", "not_offered"):
+        verified = evidence_on_page(f.get("evidence"), text)
+        if not verified:
+            note.append("evidence quote not found on page")
+        elif status == "observed" and not value_in_quote(meta["type"], value, f.get("evidence")):
+            verified = False
+            note.append("value not in the quoted text")
+    conf = f.get("confidence", "medium") if verified is not False else "low"
+    if model != config.CLAUDE_MODEL:
+        note.append(f"read by {model}")
     return {
         "category": meta["cat"], "key": key, "status": status, "value": value,
         "evidence": (f.get("evidence") or "")[:300] or None,
-        "evidence_verified": bool(verified and agree) if verified is not None else None,
+        "evidence_verified": verified,
         "source_url": url, "method": "ai_text", "confidence": conf,
         "note": "; ".join(note) or None,
     }
 
 
 def _unsettled(x: dict) -> bool:
-    return x["status"] == "conflicting" or (x["status"] in ("observed", "not_offered") and not x["evidence_verified"])
+    return x["status"] in ("observed", "not_offered") and x["evidence_verified"] is False
 
 
-def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom") -> list[dict]:
-    """Two reads, evidence check, agreement check -> observation dicts for ingest.
-    Facts the two reads can't settle get one more read from the stronger model; a fact is
-    settled when that read agrees with one of the first two and its quote is on the page."""
-    a = {f.get("key"): f for f in _ask(page_type, url, text, 0, fields) if f.get("key") in fields}
-    b = {f.get("key"): f for f in _ask(page_type, url, text, 1, fields) if f.get("key") in fields}
-    out = {}
-    for key, meta in fields.items():
-        if a.get(key) or b.get(key):
-            out[key] = _combine(meta, key, a.get(key), b.get(key), url, text)
+# -- the stronger model: a capped last resort --------------------------------------------
+ESCALATION_SPENT = 0.0          # USD spent on the stronger model in this run (not reset per site)
+ESCALATION_CALLS_SITE = 0       # calls for the current site; run.py resets it per site
 
-    todo = [k for k, x in out.items() if _unsettled(x)]
+
+def escalation_allowed() -> bool:
     esc = config.ESCALATION_MODEL
-    if todo and esc and esc != config.CLAUDE_MODEL:
+    return bool(esc and esc != config.CLAUDE_MODEL and ESCALATION_CALLS_SITE < config.ESCALATION_MAX_PER_SITE
+                and ESCALATION_SPENT < config.ESCALATION_RUN_BUDGET_USD)
+
+
+def _escalation_cost(before: dict) -> float:
+    m = config.ESCALATION_MODEL
+    u, b = USAGE.get(m, {}), before or {}
+    pin, pout = PRICES.get(m, (0, 0))
+    return (u.get("input", 0) - b.get("input", 0)) / 1e6 * pin + (u.get("output", 0) - b.get("output", 0)) / 1e6 * pout
+
+
+def _escalate(page_type: str, url: str, text: str, fields: dict) -> list[dict]:
+    global ESCALATION_SPENT, ESCALATION_CALLS_SITE
+    before = dict(USAGE.get(config.ESCALATION_MODEL, {}))
+    ESCALATION_CALLS_SITE += 1
+    try:
+        return _ask(page_type, url, text, 1, fields, model=config.ESCALATION_MODEL)
+    finally:
+        ESCALATION_SPENT += _escalation_cost(before)
+
+
+def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom",
+                     core: tuple[str, ...] = ()) -> list[dict]:
+    """One read by the first model, then the quote checks. Core facts (e.g. the returns window)
+    that fail the checks get one re-read by the stronger model, within its caps."""
+    a = {f.get("key"): f for f in _ask(page_type, url, text, 0, fields) if f.get("key") in fields}
+    out = {k: _check(fields[k], k, a[k], url, text, config.CLAUDE_MODEL) for k in fields if a.get(k)}
+    todo = [k for k, x in out.items() if _unsettled(x) and f"{fields[k]['cat']}.{k}" in core]
+    if todo and escalation_allowed():
         sub = {k: fields[k] for k in todo}
-        c = {f.get("key"): f for f in _ask(page_type, url, text, 1, sub, model=esc) if f.get("key") in sub}
+        c = {f.get("key"): f for f in _escalate(page_type, url, text, sub) if f.get("key") in sub}
         for k in todo:
-            fc = c.get(k)
-            if not fc:
-                continue
-            for prior in (a.get(k), b.get(k)):
-                if not prior:
-                    continue
-                settled = _combine(fields[k], k, fc, prior, url, text)
-                if not _unsettled(settled):
-                    settled["note"] = f"settled by {esc} agreeing with one first read"
-                    out[k] = settled
-                    break
-            else:
-                out[k]["note"] = ((out[k].get("note") or "") + f"; {esc} did not settle it").lstrip("; ")
+            if c.get(k):
+                x = _check(fields[k], k, c[k], url, text, config.ESCALATION_MODEL)
+                if not _unsettled(x):
+                    out[k] = x
+                else:
+                    out[k]["note"] = ((out[k].get("note") or "") + f"; {config.ESCALATION_MODEL} did not settle it").lstrip("; ")
     return list(out.values())
+
+
+LINK_PICK = ("Below are links found on an Australian online store. Which ones most likely hold the store's {what}? "
+             "Return up to 3 URLs from the list, best first, or none if no link fits. Only URLs from the list.")
+
+
+def pick_policy_links(ptype: str, links: dict[str, str]) -> list[str]:
+    """Stronger model, last resort: given the site's links (address + link words), pick the pages most likely
+    to hold its returns or shipping policy. Cheap: no page text is sent. Returns [] when not allowed."""
+    if not links or not config.ANTHROPIC_API_KEY or not escalation_allowed():
+        return []
+    global ESCALATION_SPENT, ESCALATION_CALLS_SITE
+    what = {"returns": "returns, refunds and exchanges policy", "shipping": "shipping and delivery policy (fees, free-shipping threshold, times)"}[ptype]
+    listing = "\n".join(f"{u} | {t}" for u, t in list(links.items())[:250])
+    schema = {"type": "object", "additionalProperties": False, "required": ["urls"],
+              "properties": {"urls": {"type": "array", "items": {"type": "string"}}}}
+    before = dict(USAGE.get(config.ESCALATION_MODEL, {}))
+    ESCALATION_CALLS_SITE += 1
+    try:
+        msg = _client().messages.create(
+            model=config.ESCALATION_MODEL, max_tokens=500, system="You help find pages on a website. Use only the list given.",
+            output_config={"format": {"type": "json_schema", "schema": schema}},
+            messages=[{"role": "user", "content": LINK_PICK.format(what=what) + "\n\n" + listing}])
+        u = getattr(msg, "usage", None)
+        if u is not None:
+            m = USAGE.setdefault(config.ESCALATION_MODEL, {"calls": 0, "input": 0, "output": 0})
+            m["calls"] += 1
+            m["input"] += getattr(u, "input_tokens", 0) or 0
+            m["output"] += getattr(u, "output_tokens", 0) or 0
+        raw = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text")
+        urls = json.loads(raw).get("urls") or []
+    except Exception:
+        return []
+    finally:
+        ESCALATION_SPENT += _escalation_cost(before)
+    return [x for x in urls if x in links][:3]
 
 
 def read_promotions(url: str, text: str) -> list[dict]:
