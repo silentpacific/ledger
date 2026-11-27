@@ -194,6 +194,8 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
     for ptype in ("returns", "shipping", "payments", "loyalty", "warranty", "contact", "faq", "stores"):
         core = CORE_FACTS.get(ptype)
         queue = list(pages_by_type.get(ptype) or [])
+        builtin = [u for u in queue if "/policies/" in u]  # Shopify's own policy pages: after the store's own pages
+        queue = [u for u in queue if u not in builtin] + builtin
         if core:  # last resorts: the FAQ, then the general terms
             queue += (pages_by_type.get("faq") or [])[:1]
             queue += [u for u in (pages_by_type.get("terms") or []) if terms.is_general_terms(u)][:1]
@@ -201,6 +203,7 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
         tried: list[str] = []
         answered = False
         asked_for_links = False
+        found: set[str] = set()
         while budget > 0 and not answered:
             if not queue or len(tried) >= limit:
                 if not core or asked_for_links:
@@ -255,8 +258,8 @@ def _read_info_pages(f: Fetcher, pages_by_type: dict, home, base: str, industry:
                 if ptype != "payments":
                     answered = True
                 continue
-            answered = any(f"{x['category']}.{x['key']}" in core and x["status"] in ("observed", "not_offered")
-                           for x in got)
+            found |= {f"{x['category']}.{x['key']}" for x in got if x["status"] in ("observed", "not_offered")}
+            answered = all(k in found for k in core)  # keep going (within MAX_TRIES) until every core fact is found
             if not answered:  # a summary page: try the fuller page it links to first
                 queue = [u for u in discover.links_of_type(page.html, base, ptype) if u not in tried] + queue
         if core and tried and not answered:
@@ -295,7 +298,8 @@ def _merge(facts: list[dict]) -> list[dict]:
 
     def strength(x):
         observed = x["status"] in ("observed", "not_offered")
-        return (observed, x.get("evidence_verified") is True, x["method"] == "ai_text",
+        # a disagreement shows the page does say something: it ranks above "not on this page"
+        return (observed, x["status"] == "conflicting", x.get("evidence_verified") is True, x["method"] == "ai_text",
                 {"high": 2, "medium": 1, "low": 0}.get(x.get("confidence"), 0))
 
     out = []

@@ -746,3 +746,55 @@ def test_run_loop_batch_end_to_end(monkeypatch, tmp_path):
     assert len(fake.messages.batches.sent) == 1 and len(fake.messages.batches.sent[0]) == 4  # 2 sites x 2 reads, one batch
     assert len(costs) == 2 and all(c["outcome"] == "stored" for c in costs)
     assert all(c["ai_usage"]["claude-haiku-5-5"]["batch"] for c in costs) and all(c["ai_cost_usd"] > 0 for c in costs)
+
+
+# -- fixes after the 5-site test (27 Nov 2026) ------------------------------------
+def test_collection_pages_are_not_policy_pages():
+    from ledger_scanner import discover
+    b = "https://www.bevilles.com.au/"
+    got = discover.classify_pages([b + "collections/armani-exchange", b + "products/gift-card", b + "pages/return-landing"], b)
+    assert got["returns"] == [b + "pages/return-landing"]
+
+
+def test_conflicting_beats_not_observed_in_merge():
+    from ledger_scanner import scan
+    a = {"category": "policies", "key": "returns.change_of_mind", "status": "not_observed", "value": None,
+         "source_url": "x", "method": "ai_text", "confidence": "high"}
+    c = {"category": "policies", "key": "returns.change_of_mind", "status": "conflicting", "value": "conditional",
+         "source_url": "y", "method": "ai_text", "confidence": "low", "evidence_verified": False}
+    assert scan._merge([a, c])[0]["status"] == "conflicting"
+
+
+def test_reading_continues_until_every_core_fact_is_found(monkeypatch):
+    from ledger_scanner import extract, scan
+    b = "https://www.princesspolly.com.au/"
+    home = _Page(b, "Home")
+    pol = _Page(b + "policies/shipping-policy", "Shipping\n" + "Free shipping on orders over $60 within Australia. " * 6)
+    own = _Page(b + "pages/shipping", "Shipping\n" + "Standard delivery is $7.95 and takes 3-5 days. " * 6)
+    def read(ptype, url, text, industry=None, core=()):
+        if url == pol.url:
+            return [{"category": "shipping", "key": "free_shipping_threshold", "status": "observed", "value": {"amount": 60}}]
+        return [{"category": "shipping", "key": "standard_shipping_cost", "status": "observed", "value": {"amount": 7.95}}]
+    monkeypatch.setattr(extract, "read_page", read)
+    order = []
+    f = _Fetcher({pol.url: pol, own.url: own})
+    orig = f.fetch
+    f.fetch = lambda url, want_text=True: order.append(url) or orig(url)
+    facts = scan._read_info_pages(f, {"shipping": [pol.url, own.url]}, home, b, "fashion", [], {}, None)
+    assert order[0] == own.url  # the store's own page first, Shopify's built-in page after
+    assert {x["key"] for x in facts} == {"free_shipping_threshold", "standard_shipping_cost"}
+
+
+def test_unmentioned_fields_are_filled_in_by_code(monkeypatch):
+    _reset_escalation()
+    calls = []
+    monkeypatch.setattr(extract, "_ask", _reads([R14, R14], calls))  # reads mention only the returns window
+    out = {x["key"]: x for x in extract.read_page("returns", "u", RTEXT)}
+    assert out["returns.period_days"]["status"] == "observed"
+    assert out["returns.free_returns"]["status"] == "not_observed" and len(calls) == 2
+
+
+def test_relevant_text_for_rechecks():
+    text = "\n".join(["Menu"] * 50 + ["Returns", "Return within 14 days of delivery.", "Contact us"] + ["Footer"] * 50)
+    t = extract.relevant_text(text, {})
+    assert "14 days" in t and len(t) < 200

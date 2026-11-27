@@ -242,8 +242,9 @@ def _spec_for(page_type: str, fields: dict | None = None) -> tuple[str, dict]:
                     "placement": {"type": "string"}, "evidence": {"type": "string"}}}}}}
         return PROMO_INSTRUCTIONS + " Use an empty string for unknown dates.", schema
     fields = fields or FIELDS[page_type]
-    instructions = ("Return one entry per field below. value_json is the value encoded as JSON "
-                    "(e.g. 14, true, \"text\", [\"a\",\"b\"], {\"amount\": 70}) or null when not observed.\nFields:\n"
+    instructions = ("Return an entry only for fields the page states, or explicitly says are not offered; leave out "
+                    "fields the page doesn't mention. value_json is the value encoded as JSON "
+                    "(e.g. 14, true, \"text\", [\"a\",\"b\"], {\"amount\": 70}).\nFields:\n"
                     + "\n".join(f"- {k} ({v['type']}): {v['desc']}" for k, v in fields.items()))
     schema = {"type": "object", "additionalProperties": False, "required": ["facts"], "properties": {
         "facts": {"type": "array", "items": {
@@ -457,6 +458,21 @@ def _escalate(page_type: str, url: str, text: str, fields: dict) -> list[dict]:
         ESCALATION_SPENT += _escalation_cost(before)
 
 
+_TOPIC = re.compile(r"return|refund|exchange|change of mind|days?\b|ship|deliver|postage|dispatch|free|\$", re.I)
+
+
+def relevant_text(text: str, fields: dict, around: int = 2, limit: int = 12_000) -> str:
+    """For the stronger model: only the lines about the facts in question (with a little context),
+    so a re-check costs a fraction of a full-page read. Quotes are still checked against the full page."""
+    lines = text.splitlines()
+    keep = set()
+    for i, l in enumerate(lines):
+        if _TOPIC.search(l):
+            keep.update(range(max(0, i - around), min(len(lines), i + around + 1)))
+    out = "\n".join(lines[i] for i in sorted(keep))
+    return (out or text)[:limit]
+
+
 def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom",
                      core: tuple[str, ...] = ()) -> list[dict]:
     """Two reads by the first model, agreement and quote checks. Core facts (e.g. the returns window)
@@ -474,10 +490,12 @@ def read_page_custom(fields: dict, url: str, text: str, page_type: str = "custom
     a, b = reads
     out = {k: _agree(fields[k], k, a.get(k), b.get(k), url, text, config.CLAUDE_MODEL)
            for k in fields if a.get(k) or b.get(k)}
+    for k in fields:  # fields neither read mentioned: recorded as not on this page, without paying for the AI to say so
+        out.setdefault(k, _check(fields[k], k, {"status": "not_observed", "confidence": "high"}, url, text, config.CLAUDE_MODEL))
     todo = [k for k, x in out.items() if _unsettled(x) and f"{fields[k]['cat']}.{k}" in core]
     if todo and escalation_allowed():
         sub = {k: fields[k] for k in todo}
-        c = {f.get("key"): f for f in _escalate(page_type, url, text, sub) if f.get("key") in sub}
+        c = {f.get("key"): f for f in _escalate(page_type, url, relevant_text(text, sub), sub) if f.get("key") in sub}
         for k in todo:
             if c.get(k):
                 settled = None

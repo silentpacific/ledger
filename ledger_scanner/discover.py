@@ -101,6 +101,9 @@ def _match_score(path: str, keys: list[str]) -> tuple[int, int] | None:
     return best
 
 
+# product, category and blog pages are never policy or info pages
+NOT_INFO = re.compile(r"^/(collections|products|product|product-category|category|shop|blogs?|news|articles?)(/|$)")
+
 # a URL can be more than one type (/pages/shipping-returns is both); these types stay exclusive
 EXCLUSIVE = {"promo_terms"}
 
@@ -122,6 +125,8 @@ def classify_pages(urls: list[str], base: str, lastmods: dict[str, str] | None =
             continue
         seen_paths.add(key)
         path = urlparse(u).path.lower()
+        if NOT_INFO.search(path):  # /collections/armani-exchange is a product range, not an exchange policy
+            continue
         label = "/" + re.sub(r"[^a-z0-9]+", "-", texts.get(u, "").lower()).strip("-")
         for ptype, keys in PAGE_TYPES:
             score = _match_score(path, keys)
