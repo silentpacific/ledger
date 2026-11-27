@@ -64,6 +64,22 @@ def guess_help_centres(site_url: str) -> list[str]:
     return [f"https://help.{root}/", f"https://support.{root}/"]
 
 
+REJECTED = (None, 202, 403, 429, 503)
+
+
+def _get(f: Fetcher, url: str, want_text: bool = True):
+    """Fetch a help-centre page; if the help centre rejects direct requests (Zendesk often answers 403),
+    read it through Firecrawl's standard fetch, as for stores that reject us (Rahul, 27 Nov 2026).
+    robots.txt still applies: Fetcher.fetch has already refused disallowed URLs."""
+    from . import config
+    page = f.fetch(url, want_text=want_text)
+    if page.status in REJECTED and page.robots_allowed and config.FIRECRAWL_API_KEY and page.method != "firecrawl":
+        again = f._firecrawl_page(url, want_text)
+        if again.status == 200:
+            return again
+    return page
+
+
 def _matches(text: str, ptype: str) -> bool:
     t = text.lower()
     return any(w in t for w in TOPIC_WORDS[ptype])
@@ -74,8 +90,8 @@ def _zendesk_search(f: Fetcher, start: str, ptype: str) -> list[str]:
     p = urlparse(start)
     found: list[str] = []
     for word in TOPIC_WORDS[ptype][:3]:
-        page = f.fetch(f"{p.scheme}://{p.netloc}/api/v2/help_center/articles/search.json?query={quote(word)}&per_page=10",
-                       want_text=False)
+        page = _get(f, f"{p.scheme}://{p.netloc}/api/v2/help_center/articles/search.json?query={quote(word)}&per_page=10",
+                    want_text=False)
         if page.status != 200:
             return found
         try:
@@ -103,7 +119,7 @@ def _links(html: str, base: str) -> dict[str, str]:
 
 def articles_for(f: Fetcher, start: str, ptype: str) -> list[str]:
     """Up to MAX_ARTICLES article URLs about returns or shipping in one help centre."""
-    home = f.fetch(start)
+    home = _get(f, start)
     if home.status != 200 or not home.html:
         return []
     if "zendesk" in (home.html[:20000].lower()) or "/hc/" in start:
@@ -115,7 +131,7 @@ def articles_for(f: Fetcher, start: str, ptype: str) -> list[str]:
     if len(articles) < MAX_ARTICLES:  # look one level down, in the sections whose names match
         sections = [u for u, t in links.items() if SECTION.search(u) and _matches(f"{t} {u}", ptype)][:MAX_SECTIONS]
         for s in sections:
-            page = f.fetch(s)
+            page = _get(f, s)
             if page.status == 200:
                 for u, t in _links(page.html, s).items():
                     if (ARTICLE.search(u) or _matches(u, ptype)) and _matches(f"{t} {u}", ptype) and u not in articles:

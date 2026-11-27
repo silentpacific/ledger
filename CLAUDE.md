@@ -72,7 +72,8 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   after the store's own pages, the scanner looks for a help centre linked from the homepage (help./support.
   subdomains, Zendesk, Gorgias, Intercom, Freshdesk...) or tries help.<store> and support.<store>, then reads up to
   3 matching articles (Zendesk search API, else article links by title). Runs before Sonnet's link-picking.
-  Each help-centre host's own robots.txt is respected (Fetcher._other_host_robots).
+  Each help-centre host's own robots.txt is respected (Fetcher._other_host_robots). A help centre that rejects
+  direct requests (Zendesk 403, e.g. Lyka) is read through Firecrawl's standard fetch (helpcentre._get).
 - Site cleanup 27 Nov 2026: domains fixed (wilsonandfrenchy.com.au, pe-nation.com, au.citta.com, peto.com.au
   = ex My Pet Warehouse, savour-life.com.au); switched off (scan_enabled=false, reason in last_scan_error, data kept):
   wireless1.com.au, kohepets.com.au, milandirect.com.au.

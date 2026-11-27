@@ -970,3 +970,18 @@ def test_js_built_homepage_switches_to_render_mode(monkeypatch):
     assert rendered == ["https://www.shop.example/"]          # data files are fetched directly, not rendered
     f.fetch("/pages/returns")
     assert rendered[-1] == "https://www.shop.example/pages/returns"
+
+
+def test_help_centre_that_rejects_direct_requests_is_read_through_firecrawl(monkeypatch):
+    import json
+    from ledger_scanner import helpcentre, config as cfg, fetch as fm
+    monkeypatch.setattr(cfg, "FIRECRAWL_API_KEY", "x")
+    f, _ = _fake_fetcher(monkeypatch, {})          # every direct request: 404 ...
+    monkeypatch.setattr(f, "fetch", lambda url, want_text=True: fm.Page(url, 403))   # ... no: 403 from Zendesk
+    api = "https://help.shop.example/api/v2/help_center/articles/search.json?query=return&per_page=10"
+    via_fc = {
+        "https://help.shop.example/": fm.Page("https://help.shop.example/", 200, html="<html>zendesk</html>", text="zendesk"),
+        api: fm.Page(api, 200, html=json.dumps({"results": [{"title": "Returns policy", "html_url": "https://help.shop.example/hc/en-gb/articles/9"}]})),
+    }
+    monkeypatch.setattr(f, "_firecrawl_page", lambda url, want_text=True, record=True: via_fc.get(url, fm.Page(url, 404)))
+    assert helpcentre.articles_for(f, "https://help.shop.example/", "returns") == ["https://help.shop.example/hc/en-gb/articles/9"]

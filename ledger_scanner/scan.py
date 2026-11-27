@@ -291,7 +291,8 @@ def _help_centre_articles(f: Fetcher, base: str, home, ptype: str, cache: dict) 
         if not starts:  # not linked from the homepage: try the usual addresses (two requests)
             for guess in helpcentre.guess_help_centres(base):
                 page = f.fetch(guess)
-                if page.status == 200 and page.html:
+                # a help centre that answers at all exists (Zendesk often says 403 to direct requests)
+                if page.status in (200, 202, 403, 429, 503) and page.robots_allowed:
                     starts = helpcentre.find_help_centres(base, [page.url or guess]) or [guess]
                     break
         cache["starts"] = starts
