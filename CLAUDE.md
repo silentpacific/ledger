@@ -98,10 +98,14 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   and `select * from cost_index_sites order by cost_index desc;` (typical month = avg full scan + 4.33 x avg weekly).
 
 ## Status (27 Nov 2026)
-- 27 Nov: non-jewellery sites flagged for a full rescan on the Mon 30 Nov weekly run (new industry questions).
-- 134 sites with full data (jewellery 33, beauty 18, fashion 15, health 14, homewares 12,
-  baby-kids 12, sports 12, electronics 12, pet 6). First 9-industry scan cost ~$5.12 total
-  (Haiku $1.69, Sonnet $3.45): Sonnet escalation is ~2/3 of spend; Rahul may want it capped.
+- 27 Nov: full scan of all 152 enabled sites started in batch mode as two runs (45924871812, 45924889305).
+  5-site tests: ~US$0.006/site full scan in batch; key-fact coverage up (Amber Sceats, Bevilles, Bed Bath N' Table now 4/4).
+  Still weak: JS-built sites (JB Hi-Fi, Tentworld), help-centre policies (Lyka), rate-limited sites (Healthylife 429).
+- Website (27 Nov, from UX feedback): homepage leads with what Ledger is, how it works, market numbers with
+  "how it's calculated", findings, a compare entry, top changes, then the full feed; Explore/Analyse nav;
+  store names from og:site_name / page title (lib/format displayName); offers past their end date are not live;
+  schedule line from lib/schedule.ts (mirror of scan.yml). Curasept is never used in suggested comparisons.
+- Waiting on Rahul: privacy policy, terms, opt-out response time, founder story, final brand name.
 - ~19 sites failed to load (timeouts / wrong domains) and need cleanup with Rahul.
 - Known gaps: JS-rendered prices (Goldmark, Prouds, Temple & Grace), store finders,
   over-time charts (need more weeks of data), real domain + brand, lawyer review,
