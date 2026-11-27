@@ -52,7 +52,7 @@ jobs:
       - run: pip install -r requirements.txt duckdb
       - name: Review stores already added
         if: inputs.review_since != ''
-        run: python discover_stores.py --review-since "${{ inputs.review_since }}"
+        run: python discover_stores.py --review-since "${{ inputs.review_since }}" --review-limit "${{ inputs.max_check }}" ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
       - name: Find stores
         if: inputs.review_since == ''
         run: python discover_stores.py --target "${{ inputs.target }}" --chunks "${{ inputs.chunks }}" --per-industry "${{ inputs.per_industry }}" --source "${{ inputs.source }}" --max-check "${{ inputs.max_check }}" ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}

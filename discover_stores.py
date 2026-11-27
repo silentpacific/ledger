@@ -161,11 +161,15 @@ def judge(domain: str, head: str, text: str) -> dict | None:
                 messages=[{"role": "user", "content": f"Site: {domain}\nTitle and description: {head[:400]}\nHomepage text: {text[:1800]}"}])
             out = json.loads(re.search(r"\{.*\}", msg.content[0].text, re.S).group(0))
             return out if out.get("industry") in INDUSTRIES + ["none"] else None
-        except Exception:
+        except Exception as e:
+            with _LOCK:
+                k = f"{type(e).__name__}: {str(e)[:120]}"
+                JUDGE_ERRORS[k] = JUDGE_ERRORS.get(k, 0) + 1
             time.sleep(3 * (attempt + 1))
     return None
 
 
+JUDGE_ERRORS: dict[str, int] = {}  # why the AI check failed, for the run log
 HAVE: set[str] = set()      # domains already tracked or found this run (filled by main)
 NAMES: set[str] = set()     # store names already tracked
 _LOCK = __import__("threading").Lock()
@@ -240,11 +244,14 @@ def main() -> int:
     ap.add_argument("--chunks", type=int, default=8)
     ap.add_argument("--per-industry", type=int, default=110)
     ap.add_argument("--max-check", type=int, default=6000)
+    ap.add_argument("--review-limit", type=int, default=0)
     ap.add_argument("--source", choices=["tranco", "commoncrawl"], default="commoncrawl")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--review-since", help="re-judge stores added since this UTC time (e.g. 2026-11-27T10:35) instead of discovering")
     a = ap.parse_args()
     if a.review_since:
+        global LIMIT
+        LIMIT = a.review_limit
         return review(a.review_since, a.dry_run)
 
     have = existing()
@@ -291,18 +298,24 @@ def main() -> int:
     return 0
 
 
+LIMIT = 0
+
+
 def review(since: str, dry: bool) -> int:
     """Re-judge stores added since a time: correct the industry, switch off adult/out-of-scope ones (never delete)."""
     h = {"apikey": config.SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {config.SUPABASE_SERVICE_KEY}"}
     rows = requests.get(f"{config.SUPABASE_URL}/rest/v1/domains?select=domain,homepage_url,industry"
                         f"&created_at=gt.{since}&scan_enabled=is.true&limit=5000", headers=h, timeout=60).json()
+    rows = rows[:LIMIT] if LIMIT else rows
     print(f"reviewing {len(rows)} stores", flush=True)
 
     def one(r: dict):
         try:
             res = requests.get(r["homepage_url"] or f"https://{r['domain']}/", timeout=12, headers={"User-Agent": config.USER_AGENT})
             html = res.text[:400_000]
-        except requests.RequestException:
+        except requests.RequestException as e:
+            with _LOCK:
+                JUDGE_ERRORS[f"homepage: {type(e).__name__}"] = JUDGE_ERRORS.get(f"homepage: {type(e).__name__}", 0) + 1
             return r, None
         title = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
         desc = re.search(r"<meta[^>]+name=[\"']description[\"'][^>]+content=[\"']([^\"']*)", html, re.I)
@@ -330,6 +343,8 @@ def review(since: str, dry: bool) -> int:
                     requests.patch(f"{config.SUPABASE_URL}/rest/v1/domains?domain=eq.{r['domain']}",
                                    headers={**h, "Content-Type": "application/json", "Prefer": "return=minimal"}, json=patch, timeout=30)
     print(f"review done: {moved} moved to another industry, {off} switched off, {unjudged} could not be judged", flush=True)
+    for k, n in sorted(JUDGE_ERRORS.items(), key=lambda x: -x[1])[:8]:
+        print(f"  {n} x {k}", flush=True)
     return 0
 
 
