@@ -6,6 +6,7 @@ robots.txt and the terms gate still apply in Firecrawl mode."""
 from __future__ import annotations
 
 import hashlib
+import threading
 import time
 import urllib.robotparser
 from dataclasses import dataclass, field
@@ -19,6 +20,23 @@ from . import config
 # Batch mode scans each site in several rounds; this keeps every response of the run so later
 # rounds don't contact the site again. None outside batch mode.
 RUN_CACHE: dict | None = None
+
+# Firecrawl calls take turns across the batch warm-up threads, and back off when Firecrawl itself
+# says "too many requests" (its account rate limit, not the store's).
+_FC_LOCK = threading.Lock()
+
+
+def firecrawl_post(payload: dict) -> requests.Response:
+    with _FC_LOCK:
+        for attempt in range(4):
+            r = requests.post("https://api.firecrawl.dev/v2/scrape",
+                              headers={"Authorization": f"Bearer {config.FIRECRAWL_API_KEY}"},
+                              json=payload, timeout=120)
+            if r.status_code != 429 or attempt == 3:
+                return r
+            ra = r.headers.get("Retry-After", "")
+            time.sleep(min(int(ra), 90) if ra.isdigit() else 15 * (attempt + 1))
+        return r
 
 
 @dataclass
@@ -134,13 +152,8 @@ class Fetcher:
             self.pages.append(p)
             return p
         try:
-            r = requests.post(
-                "https://api.firecrawl.dev/v2/scrape",
-                headers={"Authorization": f"Bearer {config.FIRECRAWL_API_KEY}"},
-                json={"url": url, "formats": ["markdown"], "location": {"country": "AU"},
-                      "proxy": "basic", "maxAge": 0},
-                timeout=120,
-            )
+            r = firecrawl_post({"url": url, "formats": ["markdown"], "location": {"country": "AU"},
+                                "proxy": "basic", "maxAge": 0})
             data = r.json().get("data", {}) if r.ok else {}
             md = data.get("markdown", "") or ""
             status = (data.get("metadata") or {}).get("statusCode", r.status_code)
@@ -192,25 +205,20 @@ class Fetcher:
                 time.sleep(wait)
             self._last = time.time()
             try:
-                r = requests.post(
-                    "https://api.firecrawl.dev/v2/scrape",
-                    headers={"Authorization": f"Bearer {config.FIRECRAWL_API_KEY}"},
-                    json={"url": url, "formats": ["rawHtml"], "location": {"country": "AU"},
-                          "proxy": "basic", "maxAge": 0, "onlyMainContent": False},
-                    timeout=120,
-                )
+                r = firecrawl_post({"url": url, "formats": ["rawHtml"], "location": {"country": "AU"},
+                                    "proxy": "basic", "maxAge": 0, "onlyMainContent": False})
                 data = r.json().get("data", {}) if r.ok else {}
                 meta = data.get("metadata") or {}
                 raw = data.get("rawHtml", "") or ""
                 ctype = (meta.get("contentType") or "text/html").lower()
-                status = meta.get("statusCode", r.status_code if not r.ok else None)
+                status = meta.get("statusCode") if r.ok else None
                 if "html" not in ctype:  # robots.txt, sitemaps, JSON: the browser wraps them in <pre>
                     raw = _unwrap_pre(raw)
                 p = Page(url, status, html=raw, method="firecrawl",
                          content_hash=hashlib.sha256(raw.encode()).hexdigest() if raw else None)
                 p.text = html_to_text(raw) if "html" in ctype else raw
                 if not r.ok:
-                    p.note = f"firecrawl error {r.status_code}"
+                    p.note = f"Firecrawl API error {r.status_code} (not the store's answer)"
             except (requests.RequestException, ValueError) as e:
                 p = Page(url, None, method="firecrawl", note=f"firecrawl failed: {type(e).__name__}")
             if RUN_CACHE is not None:

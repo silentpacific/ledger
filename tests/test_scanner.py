@@ -831,7 +831,7 @@ def test_firecrawl_mode_when_site_rejects_direct_requests(monkeypatch):
         def __init__(self, data): self.ok, self.status_code, self._d = True, 200, data
         def json(self): return {"data": self._d}
 
-    def post(url, headers, json, timeout):
+    def post(url, headers, json, timeout):  # noqa
         calls.append(json["url"])
         if json["url"].endswith("robots.txt"):
             return R({"rawHtml": "<html><body><pre>User-agent: *\nDisallow: /checkout</pre></body></html>",
@@ -857,3 +857,15 @@ def test_firecrawl_mode_not_used_for_robots_disallowed_or_404(monkeypatch):
     monkeypatch.setattr(f, "fetch", lambda url, want_text=True: fm.Page(url, 404))
     home = f.fetch_home("https://shop.example/")
     assert home.status == 404 and not f.via_firecrawl
+
+
+def test_firecrawl_rate_limit_is_retried(monkeypatch):
+    from ledger_scanner import fetch as fm, config as cfg
+    monkeypatch.setattr(cfg, "FIRECRAWL_API_KEY", "x")
+    monkeypatch.setattr(fm.time, "sleep", lambda s: None)
+    answers = [429, 429, 200]
+
+    class R:
+        def __init__(self, code): self.status_code, self.ok, self.headers = code, code == 200, {}
+    monkeypatch.setattr(fm.requests, "post", lambda *a, **k: R(answers.pop(0)))
+    assert fm.firecrawl_post({"url": "x"}).status_code == 200 and not answers
