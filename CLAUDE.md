@@ -173,8 +173,13 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   confirmation sent to a role address (legal@/privacy@); email alone is never enough. Needs a schema change
   (approval) and the final crawler name. Rationale given: robots.txt is the industry norm; a narrow opt-out
   reduces disputes and blocking; lawyer review (item 15) should decide whether removal covers past data.
-- 27 Nov night: goal 1,000 stores on the site. Discovery run 45982623141 (target 900, 10 parallel scans, US$4
-  cap each) started ~21:30 Adelaide; plus scan 45982604136 for 22 good stores from the discovery tests.
+- 27 Nov night: goal 1,000 stores. Discovery 45982623141 found only 319 qualifying stores in the 5,385 untracked
+  Tranco .au domains (strict filter); all scanned. Spot check showed ~25% wrong (incl. adult stores filed under
+  baby-kids), so Haiku now makes the final call in discovery (discover_stores.judge) and a review run re-judged
+  everything added since 10:00 UTC: 13 moved industry, 15 switched off (Pet City and Petso wrongly, restored).
+  Adult/tobacco names (clubx, sexyland, naughtyboy, bintel) switched off. Tranco is exhausted for .au: more
+  stores need another source (e.g. platform store lists or directories). Firecrawl credits ran out 27 Nov ~22:00
+  (Rahul asked about buying more).
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
 - Waiting on Rahul: privacy policy, terms, opt-out response time, final brand name (then rename the crawler and
