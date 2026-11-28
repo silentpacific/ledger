@@ -248,3 +248,6 @@
 .ov .eyebrow { text-transform: none; letter-spacing: 0; color: #B45309; font-size: 15px; font-weight: 600; }
 .ov .i-stand { max-width: 900px; }
 .ov { --accent: #0F172A; --accent-dark: #0F172A; --accent-soft: #FEF3C7; --accent-light: #94A3B8; }
+/* one dark grey band on every overview page: full-bleed behind a block inside the page column */
+.ov-dark { background: #374151; box-shadow: 0 0 0 100vmax #374151; clip-path: inset(0 -100vmax); padding: 48px 0; color: #FFFFFF; }
+.ov { overflow-x: clip; }

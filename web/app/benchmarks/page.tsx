@@ -64,7 +64,7 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
           const ok = ov.filter((r) => r.n > 0 && r.fs !== null && r.fsCov >= 60), okR = ov.filter((r) => r.n > 0 && r.ret !== null && r.retCov >= 60);
           const lo = [...ok].sort((a, b) => a.fs! - b.fs!)[0], hi = [...ok].sort((a, b) => b.fs! - a.fs!)[0], minR = Math.min(...okR.map((r) => r.ret!));
           const short = okR.filter((r) => r.ret === minR).map((r) => r.name.split(" & ")[0]);
-          return lo && hi ? <p className="i-stand" style={{ marginTop: 16 }}>Free-shipping minimums run from {money(lo.fs)} in {lo.name.split(" & ")[0].toLowerCase()} to {money(hi.fs)} in {hi.name.split(" & ")[0].toLowerCase()}.{short.length ? ` ${short.join(" and ")} ${short.length > 1 ? "give" : "gives"} the shortest returns, at ${minR} days.` : ""}</p> : null;
+          return lo && hi ? <div className="ov-dark" style={{ marginTop: 24 }}><p className="h-eye" style={{ color: "#FACC15" }}>What stands out</p><p className="i-stand" style={{ margin: 0, color: "#FFFFFF" }}>Free-shipping minimums run from {money(lo.fs)} in {lo.name.split(" & ")[0].toLowerCase()} to {money(hi.fs)} in {hi.name.split(" & ")[0].toLowerCase()}.{short.length ? ` ${short.join(" and ")} ${short.length > 1 ? "give" : "gives"} the shortest returns, at ${minR} days.` : ""}</p></div> : null;
         })()}
         <p className="small muted" style={{ margin: "8px 0 0" }}>{sites.length} stores · facts seen {latest ? dateAU(latest) : "—"} · trends appear after four weekly scans</p>
         <IndustryFilter path="/benchmarks" counts={counts} industry={industry} />

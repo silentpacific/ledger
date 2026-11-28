@@ -78,10 +78,11 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
             deep: { text: `${r.deep}%`, sort: r.deep, bg: heat("deep", r.deep) }, kind: { text: r.topKind ?? "—", sort: r.topKind } } }));
           const topBf = [...rows].sort((a, b) => b.bf - a.bf)[0], topDeep = [...rows].sort((a, b) => b.deep - a.deep)[0];
           return (
-            <section style={{ marginTop: 28 }} aria-labelledby="pi-h">
-              <p className="i-stand" style={{ margin: 0 }}>{topBf ? `${topBf.name} leans hardest into Black Friday: ${topBf.bf}% of its stores mention it.` : ""}{topDeep ? ` ${topDeep.name} discounts deepest, with ${topDeep.deep}% of its offers at 50% off or more.` : ""}</p>
-              <h2 id="pi-h" className="h-h2" style={{ fontSize: 24, marginTop: 28 }}>This week, by industry</h2>
-              <p className="h-lede" style={{ fontSize: 15 }}>Darker yellow is higher within each column. Click a heading to sort, or an industry to see its calendar.</p>
+            <section className="ov-dark" style={{ marginTop: 32 }} aria-labelledby="pi-h">
+              <p className="h-eye" style={{ color: "#FACC15" }}>This week</p>
+              <p className="i-stand" style={{ margin: 0, color: "#FFFFFF" }}>{topBf ? `${topBf.name} leans hardest into Black Friday: ${topBf.bf}% of its stores mention it.` : ""}{topDeep ? ` ${topDeep.name} discounts deepest, with ${topDeep.deep}% of its offers at 50% off or more.` : ""}</p>
+              <h2 id="pi-h" className="h-h2" style={{ fontSize: 24, marginTop: 28, color: "#FFFFFF" }}>This week, by industry</h2>
+              <p className="h-lede" style={{ fontSize: 15, color: "#D1D5DB" }}>Darker yellow is higher within each column. Click a heading to sort, or an industry to see its calendar.</p>
               <div className="ov-score" style={{ marginTop: 14 }}>
                 <SortTable minWidth={860} initial="n" initialDesc rows={t} cols={[{ key: "industry", label: "Industry" }, { key: "n", label: "Stores" },
                   { key: "offer", label: "Running an offer" }, { key: "bf", label: "Black Friday or Cyber Monday" }, { key: "deep", label: "Offers at 50% off or more" }, { key: "kind", label: "Most common kind" }]} />
