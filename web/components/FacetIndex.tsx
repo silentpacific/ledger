@@ -7,12 +7,26 @@ import { industryName } from "@/lib/industries";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
 import "@/app/home.css";
+import FacetOverview, { type Matrix } from "@/components/FacetOverview";
 
 
 /** Overview of one kind of list (platforms, policies): every option, how many stores, where it's most common. */
 export default async function FacetIndex({ kind, title, lede, label, industry }: { kind: string; title: string; lede: string; label: string; industry?: string }) {
   const [v, counts] = await Promise.all([getView<{ n: number; options: { name: string; value: string }[]; rows: any[] }>(`${kind}:${industry || "all"}`), getCounts()]);
   const sites = { length: v?.n ?? 0 }, options = v?.options ?? [], rows = v?.rows ?? [];
+  if (!industry) {
+    const m = await getView<Matrix>(`matrix:${kind}`);
+    if (m && m.all[0]) {
+      const [a1, a2, a3] = m.all;
+      const isPlat = kind === "platform";
+      return FacetOverview({ kind, crumb: title, eyebrow: title, title: isPlat ? "The platforms Australian online stores run on" : "What Australian online stores promise",
+        headline: isPlat ? `${a1.name} runs ${a1.pct}% of the stores we track.${a2 ? ` ${a2.name} is next, at ${a2.pct}%.` : ""}`
+          : `${a1.name} is the most common policy, at ${a1.pct}% of stores.${a2 ? ` ${a2.name} follows at ${a2.pct}%.` : ""}`,
+        lede: `${lede} Across ${m.total} stores we track.`, m,
+        figs: [a1, a2, a3].filter(Boolean).map((o) => [`${o.pct}%`, o.name, `${o.n} of ${m.total} stores`] as [string, string, string])
+          .concat([[String(m.all.length), isPlat ? "platforms seen" : "policies tracked", "across every store"]]) });
+    }
+  }
   return (
     <div className="h ov">
       <Header active={KIND_HOME[kind]} />

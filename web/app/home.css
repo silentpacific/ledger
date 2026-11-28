@@ -240,3 +240,11 @@
 @media (max-width: 1023px) { .ov main.wrap.page { padding: 32px 24px 64px; } .ov .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ov .g2 { grid-template-columns: 1fr; } }
 @media (max-width: 767px) { .ov main.wrap.page { text-align: center; } .ov .lede { margin-left: auto; margin-right: auto; } .ov table { text-align: left; } }
 .h table a, .ov table a { color: #0F172A; }
+.ov-chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 26px; }
+.ov-chip { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; color: #0F172A; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.ov-chip:hover { border-color: #0F172A; box-shadow: 0 6px 18px rgba(15,23,42,.08); text-decoration: none; color: #0F172A; }
+.ov-chip b { font-size: 16px; } .ov-chip span { font-size: 13px; color: #64748B; }
+@media (max-width: 1023px) { .ov-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ov .eyebrow { text-transform: none; letter-spacing: 0; color: #B45309; font-size: 15px; font-weight: 600; }
+.ov .i-stand { max-width: 900px; }
+.ov { --accent: #0F172A; --accent-dark: #0F172A; --accent-soft: #FEF3C7; --accent-light: #94A3B8; }

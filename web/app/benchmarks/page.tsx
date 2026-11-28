@@ -5,7 +5,7 @@ import IndustryFilter from "@/components/IndustryFilter";
 import { Bars, JsonLd } from "@/components/ui";
 import { getCounts, getView } from "@/lib/data";
 import type { Bar } from "@/lib/views";
-import { dateAU } from "@/lib/format";
+import { dateAU, money } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { COVERAGE } from "@/lib/stats";
 import { SITE_URL } from "@/lib/site";
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 
 const COLORS = ["#0E6B62", "#8FC9C0", "#2F5FA7", "#9DB6DC", "#B9B5A8"];
 
+type OvRow = { slug: string; name: string; n: number; fs: number | null; fsCov: number; ret: number | null; retCov: number };
 export default async function Benchmarks({ searchParams }: { searchParams: Promise<{ industry?: string; segment?: string }> }) {
   const { industry, segment } = await searchParams;
   type Num = { count: number; median: string | null; low: { v: string; name: string } | null; high: { v: string; name: string } | null; rows: Bar[] };
@@ -30,7 +31,7 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
     pay: { count: number; rows: Bar[]; avg: string; byInd: Bar[] };
     loy: { count: number; tags: { domain: string; program: string; name: string }[]; byInd: Bar[] };
     tools: { value: string; name: string; pct: number }[] };
-  const [v, counts] = await Promise.all([getView<V>(`benchmarks:${industry || "all"}`), getCounts()]);
+  const [v, counts, ov] = await Promise.all([getView<V>(`benchmarks:${industry || "all"}`), getCounts(), getView<OvRow[]>("overview")]);
   if (!v) return null;
   const sites = { length: v.n }, latest = v.latest;
   const big = (x: string, k: string) => <div><div className="display" style={{ fontSize: 30, fontWeight: 600 }}>{x}</div><div className="tiny muted">{k}</div></div>;
@@ -59,6 +60,12 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
       <main className="wrap page">
         <div className="eyebrow">Benchmarks{industry ? ` · ${industryName(industry)}` : " · All industries"}</div>
         <h1 className="title">How Australian {scope} compare</h1>
+        {!industry && ov && (() => {
+          const ok = ov.filter((r) => r.n > 0 && r.fs !== null && r.fsCov >= 60), okR = ov.filter((r) => r.n > 0 && r.ret !== null && r.retCov >= 60);
+          const lo = [...ok].sort((a, b) => a.fs! - b.fs!)[0], hi = [...ok].sort((a, b) => b.fs! - a.fs!)[0], minR = Math.min(...okR.map((r) => r.ret!));
+          const short = okR.filter((r) => r.ret === minR).map((r) => r.name.split(" & ")[0]);
+          return lo && hi ? <p className="i-stand" style={{ marginTop: 16 }}>Free-shipping minimums run from {money(lo.fs)} in {lo.name.split(" & ")[0].toLowerCase()} to {money(hi.fs)} in {hi.name.split(" & ")[0].toLowerCase()}.{short.length ? ` ${short.join(" and ")} ${short.length > 1 ? "give" : "gives"} the shortest returns, at ${minR} days.` : ""}</p> : null;
+        })()}
         <p className="small muted" style={{ margin: "8px 0 0" }}>{sites.length} stores · facts seen {latest ? dateAU(latest) : "—"} · trends appear after four weekly scans</p>
         <IndustryFilter path="/benchmarks" counts={counts} industry={industry} />
         <nav className="tabs" style={{ marginTop: 24 }}><a className="on" href="#ship">Shipping</a><a href="#ret">Returns</a><a href="#pay">Payments</a><a href="#loy">Loyalty</a><a href="#tech">Tech</a><Link href={`/promotions${industry ? `?industry=${industry}` : ""}`}>Promotions</Link></nav>

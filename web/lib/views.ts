@@ -465,6 +465,20 @@ export function buildAll(all: Site[], promos: Promo[], changes365: Change[], not
   views.industries = { all: groupStats(all, promos), ind: Object.fromEntries(INDUSTRIES.map((i) => [i.slug, groupStats(filterSites(all, i.slug), promos)])) };
   for (const i of INDUSTRIES) views[`industry:${i.slug}`] = industryPage(all, promos, i.slug);
   standOut(views);
+  const fcAll = facets(all);
+  // overview pages (28 Nov 2026 redesign): for payments, tech, platforms and policies, the share of each industry's stores using
+  // each of the most common options (the heat-map scorecard), plus every option's overall share for the bars and cards
+  for (const kind of ["payments", "tech", "platform", "policy"]) {
+    const opts = ((fcAll[kind] || []) as any[]).filter((o) => kind !== "tech" || !PLUMBING.has(techCategory(o.name)));
+    const groups = INDUSTRIES.map((i) => ({ i, xs: filterSites(all, i.slug) })).filter((g) => g.xs.length > 0);
+    const top = opts.slice(0, kind === "platform" ? 6 : 7);
+    views[`matrix:${kind}`] = {
+      total: all.length,
+      all: opts.map((o) => ({ value: o.value, name: o.name, n: o.n, pct: pct(o.n, all.length) })),
+      cols: top.map((o) => ({ value: o.value, name: o.name })),
+      rows: groups.map(({ i, xs }) => ({ slug: i.slug, name: i.name, n: xs.length, vals: top.map((o) => pct(xs.filter(o.test).length, xs.length)) })),
+    };
+  }
   // the Industries overview (28 Nov 2026 redesign): one row per industry for the scorecard, dot charts and cards
   views.overview = INDUSTRIES.map((i) => {
     const v: any = views[`industry:${i.slug}`] ?? {};
@@ -472,7 +486,9 @@ export function buildAll(all: Site[], promos: Promo[], changes365: Change[], not
     const shop = (v.platforms ?? []).find((p: [string, number]) => p[0] === "Shopify")?.[1] ?? 0;
     return { slug: i.slug, name: i.name, n, fs: v.fsNum ?? null, fsCov: pc(v.fsN ?? 0), fee: v.feeNum ?? null, feeCov: pc(v.feeN ?? 0),
       ret: v.ret ?? null, retCov: pc(v.retN ?? 0), bnpl: pc(v.bnplN ?? 0), offer: pc(v.offerN ?? 0), bf: pc(v.bf ?? 0),
-      shopify: v.platformN ? Math.round((100 * shop) / v.platformN) : null, standOut: v.standOut ?? null };
+      shopify: v.platformN ? Math.round((100 * shop) / v.platformN) : null, standOut: v.standOut ?? null,
+      deep: v.offerN ? Math.round((100 * (v.depth ?? []).slice(5).reduce((a: number, d: [string, number]) => a + d[1], 0)) / v.offerN) : 0,
+      topKind: v.kinds?.[0]?.[0] ?? null };
   });
   for (const sc of SCOPES) {
     views[`feed:${sc}`] = feed(all, promos, changes60, sc);
