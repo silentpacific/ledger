@@ -46,17 +46,30 @@
 .s-ph .s-glow { position: absolute; inset: 0; border-radius: 54px; }
 .s-ph .s-screen { position: absolute; left: 12px; top: 12px; width: 300px; height: 620px; border-radius: 42px; background: #FFFFFF; overflow: hidden; }
 @media (max-width: 1439px) { .s-box { zoom: .9; } } @media (max-width: 1299px) { .s-box { zoom: .8; } } @media (max-width: 1159px) and (min-width: 1024px) { .s-box { zoom: .7; } }
-/* phones, tablets and browsers without scroll-linked animation: the opening frame only */
+.s-texts { position: absolute; inset: 0; pointer-events: none; }
+.s-art { position: absolute; inset: 0; }
+.s-art-in { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; }
+.s-hint-m { display: none; }
+/* phones and tablets: intro on top, then the picture (cropped to the phone and layers, scaled to fit), then the layer text.
+   Swiping up on the picture plays it; swiping elsewhere scrolls the page. */
 @media (max-width: 1023px) {
-  .s-scn { height: auto; } .s-stage { position: relative; height: auto; display: block; } .s-box { width: auto; height: auto; zoom: 1; padding: 48px 24px 56px; }
-  .s-layers, .s-pn, .s-outro, .s-barw, .s-scroller { display: none; }
-  .s-intro { position: static !important; width: auto !important; animation: none !important; }
-  .s-ph { position: relative; left: auto; top: auto; margin: 40px auto 0; zoom: .8; }
-  .s-ph .s-frame, .s-ph .s-screen, .s-ph .s-glow, .s-fo0 { animation: none !important; } .s-ph .s-glow { opacity: 1; } .s-fo0 { position: static !important; }
-  .s-intro h1 { font-size: 40px !important; white-space: normal !important; }
+  .s-box { width: 100%; flex: 1 1 auto; min-width: 0; height: auto; zoom: 1; padding: 40px 0 8px; }
+  .s-art-wrap { overflow: hidden; }
+  .s-intro { position: static !important; width: auto !important; animation: none !important; padding: 0 24px; }
+  .s-intro h1 { font-size: min(40px, 5.6vw) !important; }
+  .s-hint-d { display: none; } .s-hint-m { display: inline; }
+  .s-hint { margin-top: 24px !important; }
+  .s-art { position: relative; inset: auto; width: 640px; height: 840px; margin: 8px auto 0; overflow: hidden; }
+  .s-art-in { left: -690px; }
+  .s-box { display: flex; flex-direction: column; } .s-texts { position: relative; inset: auto; height: 280px; order: 3; animation: s-th linear both; animation-timeline: --story; }
+  .s-pn, .s-outro { left: 24px !important; right: 24px; width: auto !important; top: 8px !important; }
+  .s-pn h2, .s-outro h2 { font-size: 28px !important; }
+  .s-barw { display: none; }
 }
+@media (max-width: 599px) { .s-art { zoom: .86; } } @media (max-width: 519px) { .s-art { zoom: .74; } }
+@media (max-width: 449px) { .s-art { zoom: .66; } } @media (max-width: 399px) { .s-art { zoom: .6; } } @media (max-width: 359px) { .s-art { zoom: .55; } }
 @supports not (animation-timeline: scroll()) {
-  .s-layers, .s-pn, .s-outro, .s-barw, .s-scroller { display: none; }
+  .s-layers, .s-pn, .s-outro, .s-barw, .s-scroller, .s-hint, .s-texts { display: none; }
   .s-intro, .s-ph .s-frame, .s-ph .s-screen, .s-fo0 { animation: none !important; opacity: 1 !important; transform: none !important; }
   .s-ph .s-glow { opacity: 1; animation: none; }
 }
@@ -123,3 +136,41 @@
 .m-ring{animation-name:m-ring}@keyframes m-ring{0%,48%{opacity:0;transform:scale(.6)}50%{opacity:.7}62%,100%{opacity:0;transform:scale(2.4)}}
 .m-was{animation-name:m-was}@keyframes m-was{0%,50%{opacity:0}56%,92%{opacity:1}97%,100%{opacity:0}}
 @media (prefers-reduced-motion: reduce) { .q-a, .m-a, .s-breathe, .s-step { animation: none !important; } .s-step { opacity: 1; } }
+
+/* phones: the two animations are cropped to their key part and scaled to fit; text that falls outside the crop is shown above it */
+.m-only { display: none; }
+@media (max-width: 767px) {
+  .m-only { display: block; }
+  .qf, .mm { zoom: 1; width: 600px; overflow: hidden; margin: 0 auto; }
+  .qf { padding: 24px 0 40px; } .mm { padding: 8px 0 24px; }
+  .qf .h-fixed { margin-left: -540px; height: 1020px; }
+  .qf .q-card { left: 700px !important; top: 560px !important; }
+  .qf .q-chip1 { left: 700px !important; top: 888px !important; } .qf .q-chip2 { left: 700px !important; top: 944px !important; }
+  .qf .q-fly, .qf .q-fly2 { display: none; }
+  .mm .h-fixed { margin-left: -76px; height: 1100px; }
+  .mm .m-card { left: 96px !important; top: 660px !important; }
+  .h-nums { display: flex !important; flex-wrap: wrap; justify-content: center; } .h-nums > div { flex: 0 0 calc(50% - 8px); }
+  .h-bm { display: block; margin-top: 6px; }
+  .h-sec { padding-top: 56px; padding-bottom: 56px; }
+  .h-line { display: block; }
+}
+@media (max-width: 599px) { .qf, .mm { zoom: .86; } } @media (max-width: 519px) { .qf, .mm { zoom: .74; } }
+@media (max-width: 449px) { .qf, .mm { zoom: .66; } } @media (max-width: 399px) { .qf, .mm { zoom: .6; } } @media (max-width: 359px) { .qf, .mm { zoom: .55; } }
+@media (max-width: 479px) { .h-look { flex-wrap: wrap; } .h-look input { flex: 1 1 100%; } .h-look .h-btn { flex: 1 1 100%; } .h-look ul { top: 58px; } }
+/* the break (28 Nov): one section on a soft yellow, between the white and grey bands */
+.h-break { background: #374151; color: #FFFFFF; }
+.qf .h-fixed { height: 740px; }
+.h-faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 56px; border-bottom: 1px solid #E2E8F0; align-items: start; }
+@media (max-width: 767px) { .h-faq { grid-template-columns: 1fr; } }
+/* phones: everything centred (FAQ rows stay left so the questions are easy to scan) */
+@media (max-width: 767px) {
+  .h .h-col, .h .m-only, .s-intro, .s-pn, .s-outro, .h-break, .h-dark { text-align: center; }
+  .h .h-lede { margin-left: auto; margin-right: auto; }
+  .s-trust, .h-tabs { justify-content: center; }
+  .h details { text-align: left; }
+  .qf .h-fixed { height: 1000px; } .qf { padding-bottom: 0; }
+  .h-col[style*="flex-wrap: wrap"] { justify-content: center; }
+}
+/* phones: the space for the layer text opens only once the picture starts to play, so there's no empty gap before it */
+@keyframes s-th { 0%, 2% { height: 0; } 9%, 100% { height: 280px; } }
+@supports not (animation-timeline: scroll()) { .s-texts { animation: none; } }

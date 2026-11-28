@@ -1,7 +1,13 @@
 // "How it works": a returns page is scanned, a sentence is highlighted and becomes a fact card (12 s CSS loop). Example store.
 export default function QuoteFact() {
   return (
-    <div className="h-zoom" role="img" aria-label="Animation: a store's returns page is read, the sentence about the returns window is highlighted and becomes a fact card showing 30 days, the quote, the page and the date read, marked as agreed by both reads.">
+    <>
+    <div className="m-only h-col" style={{ paddingTop: 48 }}>
+      <p className="h-eye">How it works</p>
+      <h2 className="h-h2">Every fact comes with its quote.</h2>
+      <p className="h-lede">We read each store's own pages, keep the exact sentence a fact comes from, and date it. A fact counts only when two separate reads agree.</p>
+    </div>
+    <div className="h-zoom qf" role="img" aria-label="Animation: a store's returns page is read, the sentence about the returns window is highlighted and becomes a fact card showing 30 days, the quote, the page and the date read, marked as agreed by both reads.">
 <div className="h-fixed">
 <div style={{ position: "absolute", left: "96px", top: "250px", width: "400px" }}>
 <p style={{ margin: "0 0 10px", fontSize: "15px", fontWeight: "600", color: "#B45309" }}>How it works</p>
@@ -44,5 +50,6 @@ export default function QuoteFact() {
 <div className="q-a q-chip2" style={{ position: "absolute", left: "984px", top: "576px", width: "360px", boxSizing: "border-box", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "12px", padding: "12px 16px", display: "flex", justifyContent: "space-between", fontSize: "14px" }}><span style={{ color: "#64748B" }}>Sale items</span><b>Exchange only</b></div>
 </div>
     </div>
+    </>
   );
 }
