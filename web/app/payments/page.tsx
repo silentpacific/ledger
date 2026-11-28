@@ -10,6 +10,7 @@ import { dateAU } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
+import "../home.css";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -29,12 +30,11 @@ export default async function Payments({ searchParams }: { searchParams: Promise
   const sites = { length: v.n }, withBnpl = { length: v.withBnpl }, options = v.options, avg = v.avg, top = v.top, rows = v.rows;
   const topCombos = v.combos, changes = v.changes;
   return (
-    <>
+    <div className="h ov">
       <Header active="/payments" />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "How Australian online stores take payment", path: "/payments", crumbs: [["Payments"]], items: options.map((o) => ({ name: o.name, path: `/payments/${o.value}` })) })} />
       <main className="wrap page">
-        <div className="eyebrow">Explore</div>
-        <h1 className="title">How Australian online stores take payment</h1>
+                <h1 className="title">How Australian online stores take payment</h1>
         <p className="lede">Buy now, pay later providers and wallets shown at checkout or on product pages, across {sites.length} {industry ? `${industryName(industry).toLowerCase()} ` : ""}stores we track. Every figure links to the stores behind it.</p>
         <IndustryFilter path="/payments" counts={counts} industry={industry} />
 
@@ -81,6 +81,6 @@ export default async function Payments({ searchParams }: { searchParams: Promise
         </div>
         <p className="tiny muted" style={{ marginTop: 16 }}>{withBnpl.length ? `Industries: ${v.represented} represented. ` : ""}"No provider found" means none is named on the pages we read, not that the store never offers one.</p>
       </main>
-    </>
+    </div>
   );
 }

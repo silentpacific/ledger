@@ -11,6 +11,7 @@ import { COVERAGE } from "@/lib/stats";
 import { SITE_URL } from "@/lib/site";
 import { BRAND } from "@/lib/brand";
 import { pageSchema } from "@/lib/schema";
+import "../home.css";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -49,7 +50,7 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
   const buckets = new Map(v.ret.buckets);
   const bnplSites = { length: v.pay.count }, bnpl = v.pay.rows, avgProviders = v.pay.avg, tools = v.tools;
   return (
-    <>
+    <div className="h ov">
       <Header active="/benchmarks" />
       <JsonLd data={pageSchema({ name: "How Australian stores compare", path: "/benchmarks", crumbs: [["Benchmarks"]] })} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "Dataset", name: `Australian ecommerce benchmarks${industry ? `: ${industryName(industry)}` : ""}`,
@@ -119,6 +120,6 @@ export default async function Benchmarks({ searchParams }: { searchParams: Promi
           </section>
         </div>
       </main>
-    </>
+    </div>
   );
 }

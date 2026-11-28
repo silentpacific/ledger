@@ -9,6 +9,7 @@ import { dateAU } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
+import "../home.css";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export default async function Tech({ searchParams }: { searchParams: Promise<{ i
   const q = industry ? `?industry=${industry}` : "";
 
   return (
-    <>
+    <div className="h ov">
       <Header active="/tech" />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "Technology used by Australian online stores", path: "/tech", crumbs: [["Technology"]] })} />
       <main className="wrap page">
@@ -83,6 +84,6 @@ export default async function Tech({ searchParams }: { searchParams: Promise<{ i
         </div>
         <p className="small muted" style={{ marginTop: 12 }}>Tools are detected from each store's public homepage code on the monthly scan. "Most used in" only counts industries with at least 5 stores tracked.</p>
       </main>
-    </>
+    </div>
   );
 }

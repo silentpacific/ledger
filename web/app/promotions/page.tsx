@@ -8,6 +8,7 @@ import { industryName } from "@/lib/industries";
 import { PROMO_TYPES, dateAU, dayKey } from "@/lib/format";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
+import "../home.css";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -47,7 +48,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const q = (o: Record<string, string | undefined>) => "/promotions?" + new URLSearchParams(Object.entries({ m: month, type: sp.type, view: sp.view, industry: sp.industry, ...o }).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
-    <>
+    <div className="h ov">
       <Header active="/promotions" />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "Promotions calendar", path: "/promotions", crumbs: [["Promotions"]], items: [...new Map(shown.map((r) => [r.p.domain, r.p.store])).entries()].map(([d, name]) => ({ name, path: `/sites/${d}` })) })} />
       <main className="wrap page">
@@ -128,6 +129,6 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
           </section>
         </div>
       </main>
-    </>
+    </div>
   );
 }

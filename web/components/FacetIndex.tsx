@@ -6,6 +6,7 @@ import { KIND_HOME, facetHref } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
+import "@/app/home.css";
 
 
 /** Overview of one kind of list (platforms, policies): every option, how many stores, where it's most common. */
@@ -13,12 +14,11 @@ export default async function FacetIndex({ kind, title, lede, label, industry }:
   const [v, counts] = await Promise.all([getView<{ n: number; options: { name: string; value: string }[]; rows: any[] }>(`${kind}:${industry || "all"}`), getCounts()]);
   const sites = { length: v?.n ?? 0 }, options = v?.options ?? [], rows = v?.rows ?? [];
   return (
-    <>
+    <div className="h ov">
       <Header active={KIND_HOME[kind]} />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: title, path: KIND_HOME[kind], crumbs: [[title]], items: options.map((o) => ({ name: o.name, path: facetHref(kind, o.value) })) })} />
       <main className="wrap page">
-        <div className="eyebrow">Explore</div>
-        <h1 className="title">{title}</h1>
+                <h1 className="title">{title}</h1>
         <p className="lede">{lede} Across {sites.length} {industry ? `${industryName(industry).toLowerCase()} ` : ""}stores we track.</p>
         <IndustryFilter path={KIND_HOME[kind]} counts={counts} industry={industry} />
         <section className="card" style={{ marginTop: 28 }}>
@@ -30,6 +30,6 @@ export default async function FacetIndex({ kind, title, lede, label, industry }:
         </section>
         <p className="tiny muted" style={{ marginTop: 12 }}>Counts come from each store's latest scan. A store that doesn't state something isn't counted.</p>
       </main>
-    </>
+    </div>
   );
 }

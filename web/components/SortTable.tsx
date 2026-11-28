@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-export type SortCell = { text: string; sort: number | string | null; sub?: string; href?: string; muted?: boolean };
+export type SortCell = { text: string; sort: number | string | null; sub?: string; href?: string; muted?: boolean; bg?: string };
 export type SortRow = { id: string; cells: Record<string, SortCell> };
 export type SortCol = { key: string; label: string; align?: "left" | "right" };
 
@@ -40,7 +40,7 @@ export default function SortTable({ cols, rows, initial, initialDesc = false, mi
               {cols.map((c, i) => {
                 const v = r.cells[c.key];
                 return (
-                  <td key={c.key} style={{ textAlign: c.align || "left", paddingLeft: i === 0 ? 20 : undefined }}>
+                  <td key={c.key} style={{ textAlign: c.align || "left", paddingLeft: i === 0 ? 20 : undefined, background: v?.bg, fontWeight: v?.bg ? 700 : undefined }}>
                     {v?.href ? <Link href={v.href} style={{ fontWeight: 600 }}>{v.text}</Link>
                       : <span className={v?.muted ? "muted" : undefined}>{v?.text ?? "—"}</span>}
                     {v?.sub && <div className="tiny muted">{v.sub}</div>}

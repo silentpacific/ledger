@@ -465,6 +465,15 @@ export function buildAll(all: Site[], promos: Promo[], changes365: Change[], not
   views.industries = { all: groupStats(all, promos), ind: Object.fromEntries(INDUSTRIES.map((i) => [i.slug, groupStats(filterSites(all, i.slug), promos)])) };
   for (const i of INDUSTRIES) views[`industry:${i.slug}`] = industryPage(all, promos, i.slug);
   standOut(views);
+  // the Industries overview (28 Nov 2026 redesign): one row per industry for the scorecard, dot charts and cards
+  views.overview = INDUSTRIES.map((i) => {
+    const v: any = views[`industry:${i.slug}`] ?? {};
+    const n = v.n ?? 0, pc = (a: number) => (n ? Math.round((100 * a) / n) : 0);
+    const shop = (v.platforms ?? []).find((p: [string, number]) => p[0] === "Shopify")?.[1] ?? 0;
+    return { slug: i.slug, name: i.name, n, fs: v.fsNum ?? null, fsCov: pc(v.fsN ?? 0), fee: v.feeNum ?? null, feeCov: pc(v.feeN ?? 0),
+      ret: v.ret ?? null, retCov: pc(v.retN ?? 0), bnpl: pc(v.bnplN ?? 0), offer: pc(v.offerN ?? 0), bf: pc(v.bf ?? 0),
+      shopify: v.platformN ? Math.round((100 * shop) / v.platformN) : null, standOut: v.standOut ?? null };
+  });
   for (const sc of SCOPES) {
     views[`feed:${sc}`] = feed(all, promos, changes60, sc);
     views[`payments:${sc}`] = payments(all, changes365, sc);
