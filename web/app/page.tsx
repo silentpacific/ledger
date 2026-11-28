@@ -74,11 +74,12 @@ export default async function Home() {
 
         <section aria-labelledby="snap-h" style={{ borderTop: "1px solid #EEF2F6", borderBottom: "1px solid #EEF2F6" }}>
           <h2 id="snap-h" style={{ margin: "40px 0 0", textAlign: "center", fontSize: 15, fontWeight: 600, color: "#B45309" }}>{month} snapshot</h2>
-          <div className="h-col h-nums" style={{ paddingTop: 18, paddingBottom: 40, display: "grid", gridTemplateColumns: `repeat(${nums.length}, minmax(0, ${nums.length < 4 ? "240px" : "1fr"}))`, justifyContent: "center", gap: 16 }}>
-            {nums.map(([n, l, c]) => (
-              <div key={l} style={{ minWidth: 0, textAlign: "center", border: "1px solid #E2E8F0", borderTop: `3px solid ${c}`, borderRadius: 16, padding: "22px 18px" }}>
-                <div style={{ fontSize: "clamp(28px, 2.7vw, 42px)", fontWeight: 800, letterSpacing: "-1.2px" }}>{n}</div>
-                <div style={{ fontSize: 14, color: "#64748B", marginTop: 2 }}>{l}</div>
+          <div className="h-col h-nums" style={{ paddingTop: 22, paddingBottom: 44, display: "grid", gridTemplateColumns: `repeat(${nums.length}, minmax(0, ${nums.length < 4 ? "240px" : "1fr"}))`, justifyContent: "center", gap: 0 }}>
+            {nums.map(([n, l], k) => (
+              <div key={l} className="h-num" style={{ minWidth: 0, textAlign: "center", padding: "6px 16px", borderLeft: k ? "1px solid #E2E8F0" : undefined }}>
+                <div style={{ fontSize: "clamp(30px, 3vw, 46px)", fontWeight: 800, letterSpacing: "-1.4px", lineHeight: 1.1 }}>
+                  <span style={{ background: "linear-gradient(transparent 60%, #FDE68A 60%, #FDE68A 92%, transparent 92%)", padding: "0 6px" }}>{n}</span></div>
+                <div style={{ fontSize: 14, color: "#64748B", marginTop: 8 }}>{l}</div>
               </div>
             ))}
           </div>

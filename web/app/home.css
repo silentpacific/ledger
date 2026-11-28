@@ -168,3 +168,4 @@
   .qf .h-fixed { height: 1000px; } .qf { padding-bottom: 0; }
   .h-col[style*="flex-wrap: wrap"] { justify-content: center; }
 }
+@media (max-width: 767px) { .h-nums { row-gap: 24px !important; } .h-num:nth-child(odd) { border-left: 0 !important; } }
