@@ -14,7 +14,7 @@ export default function StoreTable({ rows, industry = true, bnplLabel = "Buy now
   const th = (key: string, text: string, first = false) => {
     const on = sort?.key === key, next = on && sort?.dir !== "desc" ? "desc" : "asc";
     return (
-      <th aria-sort={on ? (sort?.dir === "desc" ? "descending" : "ascending") : "none"} style={{ textAlign: "center", paddingLeft: first ? 20 : undefined }}>
+      <th aria-sort={on ? (sort?.dir === "desc" ? "descending" : "ascending") : "none"} style={{ textAlign: first ? "left" : "center", paddingLeft: first ? 20 : undefined }}>
         {sort ? <Link scroll={false} href={sort.href(key, next)} className="st-sort" title={`Sort by ${text.toLowerCase()}`}>{text}<span aria-hidden="true" className={on ? "st-arrow on" : "st-arrow"}>{on ? (sort?.dir === "desc" ? "↓" : "↑") : "↕"}</span></Link> : text}
       </th>
     );
