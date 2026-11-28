@@ -185,10 +185,15 @@ export default async function Home() {
           <h2 id="faq-h" className="h-h2">FAQs</h2>
           <div>
             {[
-              ["Where does the data come from?", "Each store's own public pages: policies, shipping, checkout and homepage. Every fact links to the quote it came from."],
-              ["How fresh is it?", "Promotions, products and content are checked weekly; everything else on the 1st of each month. Each fact shows the date it was read."],
-              ["Is it allowed?", "We read only public pages, obey robots.txt and skip stores whose terms forbid it."],
-              ["Is my store listed? Can I correct it?", "Search for it above. Each store page has an “Is this your store?” link."],
+              ["What is SentientLogs?", `A record of how Australian online stores sell: returns, shipping, payments, promotions and tech, read from each store's own pages and dated. It covers ${v.total} stores across ${v.industries} industries.`],
+              ["Where does the data come from, and how do you know it's right?", "From each store's public pages. A fact counts only when two separate reads agree and the exact sentence is on the page, and every fact links to that quote."],
+              ["How often is it updated?", "Promotions, products and content every week; policies, shipping, payments and tech on the 1st of each month. Every fact shows the date it was read."],
+              ["Which stores do you track? Can I suggest one?", `${v.total} Australian online stores across ${v.industries} industries. Use the suggest-a-store box at the bottom of any page; we add stores whose terms allow it.`],
+              ["Do you show sales, traffic or revenue?", "No. Only what a shopper can see on the store's own site. We don't estimate private numbers."],
+              ["Is collecting this allowed?", "We read only public pages, obey robots.txt and skip stores whose terms forbid automated reading."],
+              ["Is it free?", "Yes, everything is free right now. From early 2027 we plan to start charging for access to some parts of the data, such as change history and exports."],
+              ["Can I get alerts when a competitor changes something?", "Not yet. When we introduce paid Premium accounts, we hope to include custom alerts, for example when a store you follow changes its returns, shipping, payments or promotions."],
+              ["Do you cover stores outside Australia?", "Not yet. New Zealand and other countries are planned."],
             ].map(([q, a], n, all) => (
               <details key={q} style={{ borderTop: "1px solid #E2E8F0", borderBottom: n === all.length - 1 ? "1px solid #E2E8F0" : undefined, padding: "18px 0" }}>
                 <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 17 }}>{q}</summary>
