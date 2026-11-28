@@ -10,6 +10,9 @@ import { dateAU } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
+import "../home.css";
+import FacetOverview, { type Matrix } from "@/components/FacetOverview";
+import { HBars, type Pair } from "@/components/charts";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -26,15 +29,28 @@ export default async function Payments({ searchParams }: { searchParams: Promise
     byInd: any[]; combos: [string, number][]; changes: ChangeLine[]; represented: number };
   const [v, counts] = await Promise.all([getView<V>(`payments:${industry || "all"}`), getCounts()]);
   if (!v) return null;
+  if (!industry) {
+    const m = await getView<Matrix>("matrix:payments");
+    if (m) {
+      const p = pct(v.withBnpl, v.n);
+      return FacetOverview({ kind: "payments", crumb: "Payments", eyebrow: "Payments", title: "How Australian online stores take payment",
+        headline: `${p}% of stores offer buy now, pay later.${v.top ? ` ${v.top.name} is the most common, at ${pct(v.top.n, v.n)}% of all stores.` : ""}`,
+        lede: `Buy now, pay later providers and wallets shown at checkout or on product pages, across ${v.n} stores we track. Every figure links to the stores behind it.`,
+        m, changes: v.changes,
+        figs: [[`${p}%`, "offer buy now, pay later", `${v.withBnpl} of ${v.n} stores`], [v.avg, "providers per store", "among stores that offer one"],
+          [v.top?.name ?? "—", "most offered", v.top ? `${v.top.n} of ${v.n} stores` : ""], [String(v.n - v.withBnpl), "no provider found", "none named on the pages we read"]],
+        side: v.combos.length ? { title: "Offered together", sub: "The most common sets of buy now, pay later providers",
+          body: <HBars rows={v.combos.map(([k, n]) => [k, n] as Pair)} of={Math.max(...v.combos.map((c) => c[1]))} colors="#FACC15" track="#FEF3C7" pct={false} /> } : undefined });
+    }
+  }
   const sites = { length: v.n }, withBnpl = { length: v.withBnpl }, options = v.options, avg = v.avg, top = v.top, rows = v.rows;
   const topCombos = v.combos, changes = v.changes;
   return (
-    <>
+    <div className="h ov">
       <Header active="/payments" />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "How Australian online stores take payment", path: "/payments", crumbs: [["Payments"]], items: options.map((o) => ({ name: o.name, path: `/payments/${o.value}` })) })} />
       <main className="wrap page">
-        <div className="eyebrow">Explore</div>
-        <h1 className="title">How Australian online stores take payment</h1>
+                <h1 className="title">How Australian online stores take payment</h1>
         <p className="lede">Buy now, pay later providers and wallets shown at checkout or on product pages, across {sites.length} {industry ? `${industryName(industry).toLowerCase()} ` : ""}stores we track. Every figure links to the stores behind it.</p>
         <IndustryFilter path="/payments" counts={counts} industry={industry} />
 
@@ -81,6 +97,6 @@ export default async function Payments({ searchParams }: { searchParams: Promise
         </div>
         <p className="tiny muted" style={{ marginTop: 16 }}>{withBnpl.length ? `Industries: ${v.represented} represented. ` : ""}"No provider found" means none is named on the pages we read, not that the store never offers one.</p>
       </main>
-    </>
+    </div>
   );
 }

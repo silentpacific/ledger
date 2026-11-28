@@ -9,6 +9,9 @@ import { dateAU } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
+import "../home.css";
+import FacetOverview, { type Matrix } from "@/components/FacetOverview";
+import { HBars, type Pair } from "@/components/charts";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -23,12 +26,26 @@ export default async function Tech({ searchParams }: { searchParams: Promise<{ i
     cats: { cat: string; tools: { value: string; name: string; n: number; lead: { ind: string; pct: number } | null }[] }[] };
   const [v, counts] = await Promise.all([getView<V>(`tech:${industry || "all"}`), getCounts()]);
   if (!v) return null;
+  if (!industry) {
+    const m = await getView<Matrix>("matrix:tech");
+    if (m && m.all[0]) {
+      const t = m.all[0], cats = v.cats.map((c) => [c.cat, c.tools.length] as Pair).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      return FacetOverview({ kind: "tech", crumb: "Technologies", eyebrow: "Technologies", title: "The tools behind Australian online stores",
+        headline: `${t.name} is the most-used commerce tool, at ${t.pct}% of stores. The average store runs ${v.perSite} tools we can see.`,
+        lede: `Email, reviews, loyalty, subscriptions, search, chat and testing tools found on ${v.n} stores' pages. Ad pixels and site plumbing are left out of the charts.`,
+        m, changes: v.changes,
+        figs: [[`${t.pct}%`, `use ${t.name}`, `${t.n} of ${v.n} stores`], [String(v.toolsN), "tools seen", "across every store"], [v.perSite, "tools per store", "on average"],
+          [v.plat[0]?.[0] ?? "—", "most-used platform", v.plat[0] ? `${v.plat[0][1]} of ${v.n} stores` : ""]],
+        side: cats.length ? { title: "Kinds of tool", sub: "How many different tools we've seen in each kind",
+          body: <HBars rows={cats} of={Math.max(...cats.map((c) => c[1]))} colors="#FACC15" track="#FEF3C7" pct={false} /> } : undefined });
+    }
+  }
   const n = v.n, perSite = v.perSite, changes = v.changes;
   const groups = new Map(v.cats.map((c) => [c.cat, c.tools])), order = v.cats.map((c) => c.cat);
   const q = industry ? `?industry=${industry}` : "";
 
   return (
-    <>
+    <div className="h ov">
       <Header active="/tech" />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "Technology used by Australian online stores", path: "/tech", crumbs: [["Technology"]] })} />
       <main className="wrap page">
@@ -83,6 +100,6 @@ export default async function Tech({ searchParams }: { searchParams: Promise<{ i
         </div>
         <p className="small muted" style={{ marginTop: 12 }}>Tools are detected from each store's public homepage code on the monthly scan. "Most used in" only counts industries with at least 5 stores tracked.</p>
       </main>
-    </>
+    </div>
   );
 }

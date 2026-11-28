@@ -236,6 +236,12 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   and market-moves animations (example store "Linden Goods", no real store named), industry plates (lib/iso.ts), industry tabs,
   Locked placeholder (GA4 event locked_feature_click). The old activity feed moved to /changes; /pricing is a placeholder.
   Release flow (Rahul, 28 Nov): push work to a branch, send him the Vercel preview link; merge to main (= live) only when he says so.
+  Released 28 Nov (night): homepage mobile work; industry pages (each industry's own plate, colour and a "what stands out"
+  line from lib/views.ts standOut(); charts in components/charts.tsx; returns and promotions on dark grey bands); every stores
+  table sorts by any column across the whole list (data.listSitesSorted, no DB change) with centred cells and a left first column;
+  overview pages: Industries (scorecard from views.overview), Payments/Tech/Platforms/Policies via components/FacetOverview
+  (views matrix:<kind>), Promotions and Benchmarks with a heat-map/headline; one dark grey band per page (.h-break / .ov-dark).
+  Greyed-out Export buttons say "Coming early 2027" (components/ComingSoon). Previews that need new page data: run views.yml on the branch.
 - Homepage v2 "Questions" (FAQ) section: keep for now; Rahul will most likely ask to remove it before launch (28 Nov).
 - Waiting on Rahul: privacy policy, terms, opt-out response time, a crawler contact email on sentientlogs.com
   (CRAWLER_CONTACT; not his personal one), a logo, lawyer review. (No founder story.)

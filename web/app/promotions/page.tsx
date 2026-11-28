@@ -3,11 +3,13 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { Stat } from "@/components/ui";
 import IndustryFilter from "@/components/IndustryFilter";
-import { getCounts, promoCalendar } from "@/lib/data";
+import { getCounts, getView, promoCalendar } from "@/lib/data";
 import { industryName } from "@/lib/industries";
 import { PROMO_TYPES, dateAU, dayKey } from "@/lib/format";
 import { pageSchema } from "@/lib/schema";
 import { JsonLd } from "@/components/ui";
+import "../home.css";
+import SortTable, { type SortRow } from "@/components/SortTable";
 
 export const revalidate = 3600;
 export const metadata: Metadata = {
@@ -35,7 +37,8 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const nowT = Date.now();
   const byType = sp.type && PROMO_TYPES[sp.type] ? sp.type : undefined;
   // worked out in the database (web_promo_calendar): rows to draw (at most 200), pill counts and the stats
-  const [cal, counts] = await Promise.all([promoCalendar(new Date(w0), new Date(w1), sp.industry, byType, year), getCounts()]);
+  const [cal, counts, ov] = await Promise.all([promoCalendar(new Date(w0), new Date(w1), sp.industry, byType, year), getCounts(),
+    getView<{ slug: string; name: string; n: number; offer: number; bf: number; deep: number; topKind: string | null }[]>("overview")]);
   // 100 rows a page (the database sends the first 200)
   const ROWS = 100, pages = Math.ceil(Math.min(cal.rows.length, 200) / ROWS), pg = Math.min(Math.max(1, Number(sp.p) || 1), Math.max(1, pages));
   const shown = cal.rows.slice((pg - 1) * ROWS, pg * ROWS).map((p) => ({ p, s: [new Date(p.a).getTime(), new Date(p.b).getTime()] as const }));
@@ -47,7 +50,7 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
   const q = (o: Record<string, string | undefined>) => "/promotions?" + new URLSearchParams(Object.entries({ m: month, type: sp.type, view: sp.view, industry: sp.industry, ...o }).filter(([, v]) => v) as [string, string][]).toString();
 
   return (
-    <>
+    <div className="h ov">
       <Header active="/promotions" />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "Promotions calendar", path: "/promotions", crumbs: [["Promotions"]], items: [...new Map(shown.map((r) => [r.p.domain, r.p.store])).entries()].map(([d, name]) => ({ name, path: `/sites/${d}` })) })} />
       <main className="wrap page">
@@ -65,6 +68,28 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
         </div>
 
         <IndustryFilter path="/promotions" counts={counts} industry={sp.industry} keep={{ m: sp.m, type: sp.type, view: sp.view }} />
+
+        {!sp.industry && ov && ov.length > 0 && (() => {
+          const rows = ov.filter((r) => r.n > 0), heat = (k: "offer" | "bf" | "deep", v: number) => { const xs = rows.map((r) => r[k]), mn = Math.min(...xs), mx = Math.max(...xs);
+            return `rgba(250,204,21,${(0.08 + 0.62 * (mx === mn ? 0.5 : (v - mn) / (mx - mn))).toFixed(2)})`; };
+          const t: SortRow[] = rows.map((r) => ({ id: r.slug, cells: {
+            industry: { text: r.name, sort: r.name, href: `/promotions?industry=${r.slug}` }, n: { text: String(r.n), sort: r.n },
+            offer: { text: `${r.offer}%`, sort: r.offer, bg: heat("offer", r.offer) }, bf: { text: `${r.bf}%`, sort: r.bf, bg: heat("bf", r.bf) },
+            deep: { text: `${r.deep}%`, sort: r.deep, bg: heat("deep", r.deep) }, kind: { text: r.topKind ?? "—", sort: r.topKind } } }));
+          const topBf = [...rows].sort((a, b) => b.bf - a.bf)[0], topDeep = [...rows].sort((a, b) => b.deep - a.deep)[0];
+          return (
+            <section className="ov-dark" style={{ marginTop: 32 }} aria-labelledby="pi-h">
+              <p className="h-eye" style={{ color: "#FACC15" }}>This week</p>
+              <p className="i-stand" style={{ margin: 0, color: "#FFFFFF" }}>{topBf ? `${topBf.name} leans hardest into Black Friday: ${topBf.bf}% of its stores mention it.` : ""}{topDeep ? ` ${topDeep.name} discounts deepest, with ${topDeep.deep}% of its offers at 50% off or more.` : ""}</p>
+              <h2 id="pi-h" className="h-h2" style={{ fontSize: 24, marginTop: 28, color: "#FFFFFF" }}>This week, by industry</h2>
+              <p className="h-lede" style={{ fontSize: 15, color: "#D1D5DB" }}>Darker yellow is higher within each column. Click a heading to sort, or an industry to see its calendar.</p>
+              <div className="ov-score" style={{ marginTop: 14 }}>
+                <SortTable minWidth={860} initial="n" initialDesc rows={t} cols={[{ key: "industry", label: "Industry" }, { key: "n", label: "Stores" },
+                  { key: "offer", label: "Running an offer" }, { key: "bf", label: "Black Friday or Cyber Monday" }, { key: "deep", label: "Offers at 50% off or more" }, { key: "kind", label: "Most common kind" }]} />
+              </div>
+            </section>
+          );
+        })()}
 
         <div className="grid g4" style={{ marginTop: 24 }}>
           <Stat k="Sites with a promotion live" v={`${cal.live_sites} of ${cal.sites}`} />
@@ -128,6 +153,6 @@ export default async function Promotions({ searchParams }: { searchParams: Promi
           </section>
         </div>
       </main>
-    </>
+    </div>
   );
 }
