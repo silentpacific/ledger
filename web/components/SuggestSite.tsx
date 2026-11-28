@@ -38,7 +38,7 @@ export default function SuggestSite({ dark = true }: { dark?: boolean }) {
       <div style={{ display: "flex", gap: 8 }}>
         <input id="suggest-site" value={v} onChange={(e) => setV(e.target.value)} placeholder="e.g. yourstore.com.au"
           style={{ flex: "1 1 auto", minWidth: 0, height: 44, borderRadius: 8, border: `1px solid ${dark ? "#3A3F4A" : "#D5D2C8"}`, background: dark ? "#23262E" : "#fff", color: dark ? "#F6F5F1" : "#15171C", padding: "0 14px" }} />
-        <button type="submit" disabled={busy} style={{ height: 44, padding: "0 18px", border: 0, borderRadius: 8, background: dark ? "#5FD3C4" : "#0E6B62", color: dark ? "#15171C" : "#fff", fontWeight: 600, cursor: "pointer" }}>{busy ? "Checking…" : "Check"}</button>
+        <button type="submit" disabled={busy} style={{ height: 44, padding: "0 18px", border: 0, borderRadius: 8, background: dark ? "#FACC15" : "#0E6B62", color: dark ? "#0F172A" : "#fff", fontWeight: 600, cursor: "pointer" }}>{busy ? "Checking…" : "Check"}</button>
       </div>
       {res && (
         <div role="status" style={{ marginTop: 10, borderRadius: 8, padding: "10px 14px", lineHeight: 1.45, background: bg, color: fg, fontSize: 14 }}>

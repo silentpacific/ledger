@@ -172,7 +172,8 @@ export function industryPlates(counts: Record<string, number>) {
     const s = 0.8, c = 0.866, n = 0.5, ox = 720, oy = 70, f1 = (v) => v.toFixed(1);
     let shapes = [], texts = [];
     let TX = 0, TY = 0;
-    const P = (x, y, z) => [ox + (x + TX - (y + TY)) * c * s, oy + (x + TX + y + TY) * n * s - z * s];
+    // drawn mirrored (Rahul, 28 Nov: turned the other way), so the labels on the plates read upwards
+    const P = (x, y, z) => [ox - (x + TX - (y + TY)) * c * s, oy + (x + TX + y + TY) * n * s - z * s];
     const path = (pts) => "M" + pts.map((p) => f1(p[0]) + "," + f1(p[1])).join(" L") + " Z";
     const open = (pts) => "M" + pts.map((p) => f1(p[0]) + "," + f1(p[1])).join(" L");
     const add = (d, f, st, sw, o) => shapes.push({ d, f, st: st || "none", sw: sw || 0, o: o == null ? 1 : o });
@@ -195,8 +196,8 @@ export function industryPlates(counts: Record<string, number>) {
       add(open(fr.slice(0, 12).map((t) => P(x + r * 0.96 * Math.cos(t), y + r * 0.96 * Math.sin(t), z + h))), "none", "#FFFFFF", 0.7, 0.6);
     };
     const shadow = (x, y, w, d) => add(flat(x + 4, y + 4, 10.05, w, d), "#0F172A", null, 0, 0.07);
-    const mTop = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(n * s).toFixed(3)},${(-c * s).toFixed(3)},${(n * s).toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
-    const mRight = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(-n * s).toFixed(3)},0,${s.toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
+    const mTop = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(-n * s).toFixed(3)},${(c * s).toFixed(3)},${(n * s).toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
+    const mRight = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(n * s).toFixed(3)},0,${s.toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
     const txt = (m, str, size, fill, w) => texts.push({ m, s: str, size, f: fill, w: w || 800 });
 
     const draw = {
@@ -329,6 +330,7 @@ export function industryPlates(counts: Record<string, number>) {
     const inds = [["Fashion", 0, "#B45309", "#FEF3C7", "#FDE68A"], ["Homewares", 0, "#1D4ED8", "#DBEAFE", "#BFDBFE"], ["Beauty", 0, "#BE185D", "#FCE7F3", "#FBCFE8"],
       ["Baby & kids", 0, "#7C3AED", "#EDE9FE", "#DDD6FE"], ["Sports & outdoors", 0, "#15803D", "#DCFCE7", "#BBF7D0"], ["Jewellery", 0, "#0E7C6B", "#CCFBF1", "#99F6E4"],
       ["Health", 0, "#0E7490", "#CFFAFE", "#A5F3FC"], ["Electronics", 0, "#475569", "#E2E8F0", "#CBD5E1"], ["Pet", 0, "#C2410C", "#FFEDD5", "#FED7AA"]];
+    inds.sort((a, b) => a[0].localeCompare(b[0])); // alphabetical, back to front
     const cells = inds.map((d, i) => ({ d, gx: i % 3, gy: Math.floor(i / 3) })).sort((a, b) => a.gx + a.gy - (b.gx + b.gy) || a.gx - b.gx);
     const SLUG = { Fashion: "fashion", Homewares: "homewares", Beauty: "beauty", "Baby & kids": "baby-kids", "Sports & outdoors": "sports-outdoors", Jewellery: "jewellery", Health: "health", Electronics: "electronics", Pet: "pet" };
     inds.forEach((d) => (d[1] = counts[SLUG[d[0]]] || 0));

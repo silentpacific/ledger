@@ -1,40 +1,35 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import MenuCloser from "./MenuCloser";
+import { COMPANY, INDUSTRY_LINKS, INSIGHTS } from "./nav";
 
-const INSIGHTS: [string, string, string][] = [
-  ["/payments", "Payments", "Cards, wallets and buy now, pay later"],
-  ["/promotions", "Promotions", "Who's on sale, how deep, how long"],
-  ["/policies", "Policies", "Returns, warranty and delivery terms"],
-  ["/tech", "Technologies", "Apps and tools behind each store"],
-  ["/platforms", "Platforms", "Shopify, BigCommerce and the rest"],
-  ["/benchmarks", "Benchmarks", "What's normal, with the full spread"],
-  ["/changes", "What changed", "Every change, dated"],
-];
-
-/** Site header (redesign, 28 Nov 2026): white, logo placeholder, Insights opens a panel of the analysis pages. */
+/** Site header (redesign, 28 Nov 2026): white, logo placeholder, three drop-down menus that close on a click outside. */
 export default function Header({ active }: { active?: string }) {
   const link = (href: string, text: string) => (
     <Link href={href} aria-current={active === href ? "page" : undefined} className="hd-link">{text}</Link>
   );
+  const menu = (name: string, items: [string, string, string?][], wide = true, extra?: React.ReactNode) => (
+    <details className="hd-menu">
+      <summary className="hd-link">{name}</summary>
+      <div className={wide ? "hd-panel" : "hd-panel one"}>
+        {items.map(([h, t, d]) => <Link key={h} href={h} className="hd-item"><b>{t}</b>{d && <span>{d}</span>}</Link>)}
+        {extra}
+      </div>
+    </details>
+  );
   return (
     <header className="hd">
+      <MenuCloser />
       <div className="hd-in">
         <Link href="/" className="hd-logo" aria-label={`${BRAND} home`}>
           <span className="hd-mark" aria-hidden="true">SL</span><span>{BRAND}</span>
         </Link>
         <nav aria-label="Main" className="hd-nav">
-          {link("/industries", "Industries")}
-          <details className="hd-menu">
-            <summary className="hd-link">Insights</summary>
-            <div className="hd-panel">
-              {INSIGHTS.map(([h, t, d]) => (
-                <Link key={h} href={h} className="hd-item"><b>{t}</b><span>{d}</span></Link>
-              ))}
-            </div>
-          </details>
+          {menu("Industries", INDUSTRY_LINKS, true, <Link href="/industries" className="hd-item hd-all"><b>All industries, side by side</b></Link>)}
+          {menu("Insights", INSIGHTS)}
           {link("/compare", "Compare")}
           {link("/pricing", "Pricing")}
-          {link("/about", "About")}
+          {menu("Company", COMPANY, false)}
         </nav>
         <form action="/search" role="search" className="hd-search">
           <label htmlFor="site-search" className="sr">Search</label>

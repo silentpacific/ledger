@@ -213,11 +213,14 @@ html, body { background: #FFFFFF; }
 .hd-search input { border: 0; outline: 0; background: transparent; flex: 1; min-width: 0; font-size: 14px; color: #0F172A; }
 .hd-search:focus-within { border-color: #0F172A; }
 @media (max-width: 1023px) { .hd-in { padding: 10px 24px; } .hd-search { margin-left: 0; width: 100%; } .hd-panel { width: min(560px, 90vw); grid-template-columns: 1fr; } }
-.ft { border-top: 1px solid #EEF2F6; background: #FFFFFF; font-size: 14px; color: #475569; }
+.hd-panel.one { width: 300px; grid-template-columns: 1fr; }
+.hd-all { grid-column: 1 / -1; border-top: 1px solid #F1F5F9; border-radius: 0 0 10px 10px; }
+.ft { background: #1F2937; color: #E5E7EB; font-size: 14px; }
 .ft-in { max-width: 1440px; margin: 0 auto; padding: 0 96px; }
-.ft-top { padding-top: 36px; padding-bottom: 24px; display: flex; flex-wrap: wrap; gap: 16px 40px; align-items: flex-end; justify-content: space-between; }
-.ft-note { margin: 0; font-size: 13px; }
-.ft-row { padding-top: 20px; padding-bottom: 28px; border-top: 1px solid #F1F5F9; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; }
-.ft-links { display: flex; flex-wrap: wrap; gap: 8px 22px; } .ft-links a, .ft-note a { color: #475569; } .ft-links a:hover { color: #0F172A; }
-.ft-c { margin-left: auto; color: #94A3B8; }
-@media (max-width: 1023px) { .ft-in { padding-left: 24px; padding-right: 24px; } }
+.ft-cols { padding-top: 56px; padding-bottom: 40px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
+.ft-col { display: flex; flex-direction: column; gap: 10px; }
+.ft-h { font-size: 13px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px; }
+.ft-col a { color: #E5E7EB; } .ft-col a:hover { color: #FACC15; text-decoration: none; }
+.ft-low { padding-top: 24px; padding-bottom: 32px; border-top: 1px solid #374151; display: flex; flex-wrap: wrap; gap: 16px 40px; align-items: flex-end; justify-content: space-between; }
+.ft-c { color: #9CA3AF; font-size: 13px; }
+@media (max-width: 1023px) { .ft-in { padding-left: 24px; padding-right: 24px; } .ft-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

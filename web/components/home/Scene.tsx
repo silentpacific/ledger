@@ -7,7 +7,8 @@ export type SceneFacts = { total: number; onSale: string; bnplPct: number; after
 
 /** The hero: a flat phone showing a store; scrolling zooms into it, tilts it onto the top of four layers
  * (store, promotions, payments, policies), lights each layer in turn, then merges them back into the phone.
- * Scroll-linked CSS only (view-timeline); phones and older browsers get the opening frame. */
+ * It plays only while the pointer is over the picture: a see-through scroller over it drives a CSS scroll-timeline, and once it
+ * reaches either end the page scrolls on. Phones and older browsers get the opening frame. */
 export default function Scene({ f }: { f: SceneFacts }) {
   const layers = sceneLayers();
   const panels = [
@@ -28,7 +29,7 @@ export default function Scene({ f }: { f: SceneFacts }) {
             <HeroLookup />
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 22px", marginTop: 20, fontSize: 14, color: "#475569" }}>
               <span>✓ Free to browse</span><span>✓ Every fact quoted and dated</span><span>✓ Updated weekly</span></div>
-            <p className="s-barw" style={{ margin: "56px 0 0", fontSize: 13, fontWeight: 600, color: "#94A3B8" }}>Scroll to look inside the store ↓</p>
+            <p className="s-barw" style={{ margin: "56px 0 0", fontSize: 13, fontWeight: 600, color: "#94A3B8" }}>Scroll over the phone to look inside the store →</p>
           </div>
 
           {panels.map((p, i) => (
@@ -60,6 +61,7 @@ export default function Scene({ f }: { f: SceneFacts }) {
             ))}
           </svg>
 
+          <div className="s-scroller" tabIndex={0} aria-label="Scroll here to look inside the store, layer by layer"><div style={{ height: 5400 }} /></div>
           <div className="s-fo s-fo0" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
             <div className="s-ph">
               <div className="s-glow"><div className="s-breathe" style={{ width: "100%", height: "100%", borderRadius: 54, boxShadow: "0 0 0 1px rgba(253,224,71,.55),0 0 42px 6px rgba(250,204,21,.38),0 0 110px 24px rgba(253,230,138,.30)" }} /></div>

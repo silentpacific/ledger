@@ -33,35 +33,38 @@
 .h-look li[aria-selected="true"] { background: var(--yellow-soft); }
 .h-look li span:last-child { color: var(--mute2); font-size: 13px; }
 
-/* scroll scene: one tall section; its stage sticks while the section scrolls past (Chrome, Edge, Safari 26+). */
-.s-scn { position: relative; height: 640vh; }
-.s-stage { position: sticky; top: 0; height: 100vh; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+/* scroll scene: plays only while the pointer is over the picture. A see-through scroller covers the picture; the wheel scrolls it
+   (driving the animation through its scroll-timeline) and, once it reaches either end, the page scrolls on as normal. */
+.s-scn { position: relative; }
+.s-stage { position: relative; overflow: hidden; display: flex; justify-content: center; }
+.s-scroller { position: absolute; left: 700px; top: 0; width: 740px; height: 900px; overflow-y: scroll; scrollbar-width: none; z-index: 3; outline: none; }
+.s-scroller::-webkit-scrollbar { display: none; }
+.s-scroller:focus-visible { outline: 2px solid var(--yellow); outline-offset: -4px; border-radius: 24px; }
 .s-box { position: relative; width: 1440px; height: 900px; flex: none; }
 .s-ph { position: absolute; left: 838px; top: 128px; width: 324px; height: 644px; }
 .s-ph .s-frame { position: absolute; inset: 0; border-radius: 54px; background: var(--ink); box-shadow: 0 30px 60px rgba(15,23,42,.18); }
 .s-ph .s-glow { position: absolute; inset: 0; border-radius: 54px; }
 .s-ph .s-screen { position: absolute; left: 12px; top: 12px; width: 300px; height: 620px; border-radius: 42px; background: #FFFFFF; overflow: hidden; }
-@media (max-height: 820px) { .s-box { zoom: .88; } } @media (max-height: 720px) { .s-box { zoom: .78; } }
 @media (max-width: 1439px) { .s-box { zoom: .9; } } @media (max-width: 1299px) { .s-box { zoom: .8; } } @media (max-width: 1159px) and (min-width: 1024px) { .s-box { zoom: .7; } }
 /* phones, tablets and browsers without scroll-linked animation: the opening frame only */
 @media (max-width: 1023px) {
   .s-scn { height: auto; } .s-stage { position: relative; height: auto; display: block; } .s-box { width: auto; height: auto; zoom: 1; padding: 48px 24px 56px; }
-  .s-layers, .s-pn, .s-outro, .s-barw { display: none; }
+  .s-layers, .s-pn, .s-outro, .s-barw, .s-scroller { display: none; }
   .s-intro { position: static !important; width: auto !important; animation: none !important; }
   .s-ph { position: relative; left: auto; top: auto; margin: 40px auto 0; zoom: .8; }
   .s-ph .s-frame, .s-ph .s-screen, .s-ph .s-glow, .s-fo0 { animation: none !important; } .s-ph .s-glow { opacity: 1; } .s-fo0 { position: static !important; }
   .s-intro h1 { font-size: 40px !important; white-space: normal !important; }
 }
-@supports not (animation-timeline: view()) {
-  .s-scn { height: auto; } .s-stage { position: relative; height: auto; } .s-box { height: 900px; }
-  .s-layers, .s-pn, .s-outro, .s-barw { display: none; }
+@supports not (animation-timeline: scroll()) {
+  .s-layers, .s-pn, .s-outro, .s-barw, .s-scroller { display: none; }
   .s-intro, .s-ph .s-frame, .s-ph .s-screen, .s-fo0 { animation: none !important; opacity: 1 !important; transform: none !important; }
   .s-ph .s-glow { opacity: 1; animation: none; }
 }
 
 
-.s-scn{view-timeline:--story block}
-.s-glow,.s-inT,.s-in1,.s-in2,.s-in3,.s-fo,.s-pn,.s-intro,.s-outro,.s-bar,.s-frame,.s-screen{animation-timing-function:linear;animation-fill-mode:both;animation-timeline:--story;animation-duration:auto;animation-range:contain 0% contain 100%}
+.s-box{timeline-scope:--story}
+.s-scroller{scroll-timeline:--story y}
+.s-glow,.s-inT,.s-in1,.s-in2,.s-in3,.s-fo,.s-pn,.s-intro,.s-outro,.s-bar,.s-frame,.s-screen{animation-timing-function:linear;animation-fill-mode:both;animation-timeline:--story;animation-duration:auto}
 .s-inT{animation-name:s-inT}.s-in1{animation-name:s-in1}.s-in2{animation-name:s-in2}.s-in3{animation-name:s-in3}
 @keyframes s-inT{0%,18%{opacity:0}24%,80%{opacity:1}85%,100%{opacity:0}}
 @keyframes s-in1{0%,13%{opacity:0;transform:translateY(70px)}22%,72%{opacity:1;transform:translateY(0)}80%,100%{opacity:0;transform:translateY(-150px)}}

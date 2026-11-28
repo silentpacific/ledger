@@ -27,12 +27,6 @@ type IndustriesView = { ind: Record<string, { sites: Cell; freeShipping: Cell; r
 const fmt = (n: number) => n.toLocaleString("en-AU");
 const SHORT: Record<string, string> = { jewellery: "Jewellery", fashion: "Fashion", beauty: "Beauty", health: "Health", homewares: "Homewares", pet: "Pet",
   "baby-kids": "Baby & kids", "sports-outdoors": "Sports & outdoors", electronics: "Electronics" };
-const ROLES = [
-  ["Ecommerce managers", "Check your offer against your industry in seconds."],
-  ["CRO managers", "Pick shipping and returns thresholds backed by market data."],
-  ["Marketing managers", "See when and how deep competitors run sales."],
-  ["Digital managers", "See which payment options and tools your peers use."],
-];
 const icon = (d: React.ReactNode) => (
   <span aria-hidden="true" style={{ width: 52, height: 52, borderRadius: 14, background: "rgba(250,204,21,.12)", border: "1px solid rgba(250,204,21,.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FACC15" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
@@ -51,7 +45,7 @@ export default async function Home() {
   const rows: NormalRow[] = INDUSTRIES.filter((i) => iv?.ind?.[i.slug]).map((i) => {
     const g = iv!.ind[i.slug];
     return { slug: i.slug, name: SHORT[i.slug] ?? i.name, n: Number(g.sites.text), fs: g.freeShipping.text, ret: g.returns.text, bnpl: g.bnpl.text, sale: g.onSale.text };
-  }).sort((a, b) => b.n - a.n);
+  }).sort((a, b) => a.name.localeCompare(b.name));
   const h = v.retHist;
   const X = (d: number) => 70 + Math.min(d, 100) * 10, H = (n: number) => Math.max(3, (n / Math.max(...(h?.bins ?? [[0, 1]]).map((b) => b[1]))) * 234);
   const ex = h ? [...h.bins].sort((a, b) => b[1] - a[1]).slice(0, 3).map((b) => b[0]).sort((a, b) => a - b) : [];
@@ -66,9 +60,9 @@ export default async function Home() {
         <Scene f={{ total: v.total, onSale: v.onSale.text, bnplPct: pct, afterpay: v.afterpay, retMode: v.retMode ?? null }} />
 
         <section aria-label="SentientLogs in numbers" style={{ borderTop: "1px solid #EEF2F6", borderBottom: "1px solid #EEF2F6" }}>
-          <div className="h-col" style={{ paddingTop: 40, paddingBottom: 40, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 24 }}>
+          <div className="h-col" style={{ paddingTop: 40, paddingBottom: 40, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 20 }}>
             {nums.map(([n, l, c]) => (
-              <div key={l} style={{ borderLeft: `3px solid ${c}`, paddingLeft: 16 }}>
+              <div key={l} style={{ flex: "0 1 220px", textAlign: "center", border: "1px solid #E2E8F0", borderTop: `3px solid ${c}`, borderRadius: 16, padding: "22px 18px" }}>
                 <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-1.2px" }}>{n}</div>
                 <div style={{ fontSize: 14, color: "#64748B", marginTop: 2 }}>{l}</div>
               </div>
@@ -139,29 +133,17 @@ export default async function Home() {
         {rows.length > 0 && (
           <section className="h-band" aria-labelledby="normal-h">
             <div className="h-col h-sec" style={{ paddingTop: 80, paddingBottom: 80 }}>
-              <h2 id="normal-h" className="h-h2">What's normal in your industry?</h2>
+              <h2 id="normal-h" className="h-h2">Snapshot of your industry</h2>
               <NormalTabs rows={rows} />
             </div>
           </section>
         )}
 
-        <section className="h-col h-sec" style={{ paddingBottom: 100 }} aria-labelledby="who-h">
-          <p className="h-eye">Who it's for</p>
-          <h2 id="who-h" className="h-h2" style={{ marginBottom: 30 }}>Built for the people who set the rules.</h2>
-          <div className="h-grid4" style={{ gap: 18 }}>
-            {ROLES.map(([n, l]) => (
-              <div key={n} style={{ border: "1px solid #E2E8F0", borderRadius: 16, padding: 24, borderTop: "4px solid #FACC15" }}>
-                <div style={{ fontWeight: 800, fontSize: 18 }}>{n}</div>
-                <div style={{ fontSize: 15, color: "#475569", marginTop: 10, lineHeight: 1.55 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </section>
 
         <section className="h-dark" aria-labelledby="why-h">
           <div className="h-col h-sec" style={{ paddingTop: 96, paddingBottom: 96 }}>
-            <p className="h-eye" style={{ color: "#FACC15" }}>Why SentientLogs</p>
-            <h2 id="why-h" className="h-h2" style={{ color: "#FFFFFF", maxWidth: 720, marginBottom: 40 }}>Facts you can check, not guesses you have to trust.</h2>
+            <p className="h-eye" style={{ color: "#FACC15", textAlign: "center" }}>Why SentientLogs</p>
+            <h2 id="why-h" className="h-h2" style={{ color: "#FFFFFF", maxWidth: 720, margin: "0 auto 40px", textAlign: "center" }}>Facts you can check, not guesses you have to trust.</h2>
             <div className="h-grid4">
               {[
                 [<><path d="M7 7h4v4c0 3-1.5 5-4 6" /><path d="M14 7h4v4c0 3-1.5 5-4 6" /></>, "Quoted and dated", "Every fact links to the store's own words and the day we read them."],
@@ -169,7 +151,7 @@ export default async function Home() {
                 [<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>, "The whole market", `${v.total} stores across ${v.industries} industries, not just your own.`],
                 [<><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>, "Nothing to install", "It works from a store's name or address. Look one up now."],
               ].map(([d, t, l]) => (
-                <div key={t as string} style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.10)", borderRadius: 18, padding: 28 }}>
+                <div key={t as string} style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.10)", borderRadius: 18, padding: 28, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
                   {icon(d)}
                   <div style={{ fontWeight: 800, fontSize: 19, marginTop: 22 }}>{t}</div>
                   <div style={{ fontSize: 15, color: "#CBD5E1", marginTop: 8, lineHeight: 1.55 }}>{l}</div>
@@ -200,7 +182,7 @@ export default async function Home() {
         </section>
 
         <section className="h-col h-sec" aria-labelledby="faq-h" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))", gap: 64 }}>
-          <h2 id="faq-h" className="h-h2">Questions</h2>
+          <h2 id="faq-h" className="h-h2">FAQs</h2>
           <div>
             {[
               ["Where does the data come from?", "Each store's own public pages: policies, shipping, checkout and homepage. Every fact links to the quote it came from."],
