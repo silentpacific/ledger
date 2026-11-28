@@ -40,7 +40,7 @@ export default async function Home() {
   const pct = v.bnplPct ?? (v.total ? Math.round((100 * v.bnplN) / v.total) : 0);
   const nums = [
     [fmt(v.total), "stores tracked", "#0F172A"], [String(v.industries), "industries", "#0F172A"],
-    ...(v.totals ? [[fmt(v.totals.facts), "dated facts on record", "#FACC15"], [fmt(v.totals.changes), "changes caught", "#FACC15"], [fmt(v.totals.promotions), "promotions logged", "#FACC15"]] : []),
+    ...(v.totals ? [[fmt(v.totals.facts), "dated facts on record", "#FACC15"], [fmt(v.totals.changes), "changes noted", "#FACC15"], [fmt(v.totals.promotions), "promotions logged", "#FACC15"]] : []),
   ];
   const rows: NormalRow[] = INDUSTRIES.filter((i) => iv?.ind?.[i.slug]).map((i) => {
     const g = iv!.ind[i.slug];
@@ -74,12 +74,11 @@ export default async function Home() {
 
         <section aria-labelledby="snap-h" style={{ borderTop: "1px solid #EEF2F6", borderBottom: "1px solid #EEF2F6" }}>
           <h2 id="snap-h" style={{ margin: "40px 0 0", textAlign: "center", fontSize: 15, fontWeight: 600, color: "#B45309" }}>{month} snapshot</h2>
-          <div className="h-col h-nums" style={{ paddingTop: 22, paddingBottom: 44, display: "grid", gridTemplateColumns: `repeat(${nums.length}, minmax(0, ${nums.length < 4 ? "240px" : "1fr"}))`, justifyContent: "center", gap: 0 }}>
-            {nums.map(([n, l], k) => (
-              <div key={l} className="h-num" style={{ minWidth: 0, textAlign: "center", padding: "6px 16px", borderLeft: k ? "1px solid #E2E8F0" : undefined }}>
-                <div style={{ fontSize: "clamp(30px, 3vw, 46px)", fontWeight: 800, letterSpacing: "-1.4px", lineHeight: 1.1 }}>
-                  <span style={{ background: "linear-gradient(transparent 60%, #FDE68A 60%, #FDE68A 92%, transparent 92%)", padding: "0 6px" }}>{n}</span></div>
-                <div style={{ fontSize: 14, color: "#64748B", marginTop: 8 }}>{l}</div>
+          <div className="h-col h-nums" style={{ paddingTop: 22, paddingBottom: 44, display: "grid", gridTemplateColumns: `repeat(${nums.length}, minmax(0, ${nums.length < 4 ? "240px" : "1fr"}))`, justifyContent: "center", gap: 16 }}>
+            {nums.map(([n, l]) => (
+              <div key={l} style={{ minWidth: 0, textAlign: "center", border: "1px solid #4B5563", borderRadius: 14, padding: "20px 14px", background: "#FFFFFF", boxShadow: "0 2px 8px rgba(15,23,42,.08)" }}>
+                <div style={{ fontSize: "clamp(28px, 2.7vw, 42px)", fontWeight: 800, letterSpacing: "-1.2px", lineHeight: 1.1 }}>{n}</div>
+                <div style={{ fontSize: 14, color: "#64748B", marginTop: 6 }}>{l}</div>
               </div>
             ))}
           </div>
@@ -87,32 +86,32 @@ export default async function Home() {
 
         {h && h.bins.length > 2 && (
           <section className="h-break" aria-labelledby="problem-h"><div className="h-col h-sec">
-            <p className="h-eye">How SentientLogs can help</p>
-            <h2 id="problem-h" className="h-h2"><span className="h-line">Three {(SHORT[h.slug] ?? h.name).toLowerCase()} stores. </span><span className="h-line">Three returns windows.</span><br />Which one should you choose?</h2>
-            <p className="h-lede">You'd have to check every store to know. We did: {h.n} {(SHORT[h.slug] ?? h.name).toLowerCase()} stores state a returns window, and the median is {h.median} days.</p>
+            <p className="h-eye" style={{ color: "#FACC15" }}>How SentientLogs can help</p>
+            <h2 id="problem-h" className="h-h2" style={{ color: "#FFFFFF" }}><span className="h-line">Three {(SHORT[h.slug] ?? h.name).toLowerCase()} stores. </span><span className="h-line">Three returns windows.</span><br />Which one should you choose?</h2>
+            <p className="h-lede" style={{ color: "#D1D5DB" }}>You'd have to check every store to know. We did: {h.n} {(SHORT[h.slug] ?? h.name).toLowerCase()} stores state a returns window, and the median is {h.median} days.</p>
             <svg viewBox="0 0 1100 330" width="100%" style={{ display: "block", marginTop: 34, maxWidth: 1100 }} role="img"
               aria-label={`Bar chart of returns windows at ${h.n} ${(SHORT[h.slug] ?? h.name).toLowerCase()} stores. ${h.bins.map(([d, n]) => `${n} give ${d} days`).join("; ")}.`}>
-              <line x1="60" y1="280" x2="1080" y2="280" stroke="#CBD5E1" />
-              {[0, 7, 14, 21, 30, 60, 90].map((d) => <text key={d} x={X(d)} y="302" textAnchor="middle" fontFamily="Inter" fontSize="12" fill="#64748B">{d}</text>)}
-              <text x="1080" y="322" textAnchor="end" fontFamily="Inter" fontSize="12" fill="#64748B">days to return{h.bins.some(([d]) => d > 100) ? " · windows over 100 days shown at 100" : ""}</text>
-              {h.median != null && <><line x1={X(h.median)} y1="20" x2={X(h.median)} y2="280" stroke="#0F172A" strokeDasharray="4 4" />
-                <text x={X(h.median) + 10} y="34" fontFamily="Inter" fontSize="13" fontWeight="700" fill="#0F172A">Median: {h.median} days</text></>}
+              <line x1="60" y1="280" x2="1080" y2="280" stroke="#6B7280" />
+              {[0, 7, 14, 21, 30, 60, 90].map((d) => <text key={d} x={X(d)} y="302" textAnchor="middle" fontFamily="Inter" fontSize="12" fill="#D1D5DB">{d}</text>)}
+              <text x="1080" y="322" textAnchor="end" fontFamily="Inter" fontSize="12" fill="#D1D5DB">days to return{h.bins.some(([d]) => d > 100) ? " · windows over 100 days shown at 100" : ""}</text>
+              {h.median != null && <><line x1={X(h.median)} y1="20" x2={X(h.median)} y2="280" stroke="#FFFFFF" strokeDasharray="4 4" />
+                <text x={X(h.median) + 10} y="34" fontFamily="Inter" fontSize="13" fontWeight="700" fill="#FFFFFF">Median: {h.median} days</text></>}
               {h.bins.map(([d, n]) => (
                 <g key={d}>
-                  <rect x={X(d) - 7} y={280 - H(n)} width="14" height={H(n)} rx="3" fill={ex.includes(d) ? "#0F172A" : "#E7D9A8"} />
-                  {n >= 4 && <text x={X(d)} y={272 - H(n)} textAnchor="middle" fontFamily="Inter" fontSize="12" fontWeight="700" fill="#334155">{n}</text>}
+                  <rect x={X(d) - 7} y={280 - H(n)} width="14" height={H(n)} rx="3" fill={ex.includes(d) ? "#FACC15" : "#6B7280"} />
+                  {n >= 4 && <text x={X(d)} y={272 - H(n)} textAnchor="middle" fontFamily="Inter" fontSize="12" fontWeight="700" fill="#F3F4F6">{n}</text>}
                 </g>
               ))}
             </svg>
             <div className="h-grid4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))", gap: 16, marginTop: 20 }}>
               {ex.map((d, k) => (
-                <div key={d} style={{ background: "#FFFFFF", border: "1px solid #F3E3A3", borderRadius: 14, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontSize: 14, color: "#64748B" }}><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: "#0F172A", marginRight: 8 }} />Store {"ABC"[k]}</span>
+                <div key={d} style={{ background: "rgba(255,255,255,.06)", border: "1px solid #4B5563", borderRadius: 14, color: "#FFFFFF", padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ fontSize: 14, color: "#D1D5DB" }}><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: "#FACC15", marginRight: 8 }} />Store {"ABC"[k]}</span>
                   <b style={{ fontSize: 26, letterSpacing: "-.5px" }}>{d} days</b>
                 </div>
               ))}
             </div>
-            <p style={{ margin: "14px 0 0", fontSize: 13, color: "#64748B" }}>From the latest scans. Stores A, B and C stand for the three most common windows; no store is named. <Link href={`/benchmarks?industry=${h.slug}`} style={{ color: "#0F172A", fontWeight: 600 }}>See the benchmarks</Link></p>
+            <p style={{ margin: "14px 0 0", fontSize: 13, color: "#9CA3AF" }}>From the latest scans. Stores A, B and C stand for the three most common windows; no store is named. <Link href={`/benchmarks?industry=${h.slug}`} style={{ color: "#FFFFFF", fontWeight: 600 }}>See the benchmarks</Link></p>
           </div></section>
         )}
 

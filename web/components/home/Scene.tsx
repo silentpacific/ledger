@@ -18,12 +18,14 @@ export default function Scene({ f }: { f: SceneFacts }) {
     { k: "4 of 4 · Policies", h: f.retMode ? `${f.retMode} days is the most common returns window` : "Returns, warranty and delivery terms", b: "Returns, change of mind, warranty and delivery terms, quoted word for word from each store's own pages.", a: "See policies", href: "/policies", col: "#1D4ED8" },
   ];
   return (
-    <section className="s-scn" aria-label="Australian ecommerce, at your fingertips">
+    <section className="s-scn" aria-label="Australian eCommerce Intelligence. At your fingertips">
       <div className="s-stage">
         <div className="s-box">
           <div className="s-intro" style={{ position: "absolute", left: 96, top: 150, width: 600, zIndex: 2 }}>
-            <p className="h-eye">Your eye in the sky over Australian ecommerce</p>
-            <h1 style={{ margin: 0, fontSize: 52, lineHeight: 1.06, letterSpacing: "-1.8px", fontWeight: 800, whiteSpace: "nowrap" }}>Australian ecommerce,<br />at your fingertips.</h1>
+            <p className="h-eye">Your eye in the sky</p>
+            <h1 className="s-h1" style={{ margin: 0, fontSize: 40, lineHeight: 1.1, letterSpacing: "-1.3px", fontWeight: 800 }}>
+              <span style={{ display: "block", whiteSpace: "nowrap" }}>Australian eCommerce Intelligence.</span>
+              <span style={{ display: "block", whiteSpace: "nowrap" }}>At your fingertips</span></h1>
             <p style={{ margin: "22px 0 30px", fontSize: 19, lineHeight: 1.5, color: "#475569", maxWidth: 520 }}>
               Returns, shipping, payments, promotions and tech for {f.total} online stores, quoted from each store's own pages and checked every week.</p>
             <HeroLookup />

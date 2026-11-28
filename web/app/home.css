@@ -56,7 +56,7 @@
   .s-box { width: 100%; flex: 1 1 auto; min-width: 0; height: auto; zoom: 1; padding: 40px 0 56px; }
   .s-art-wrap { overflow: hidden; }
   .s-intro { position: static !important; width: auto !important; animation: none !important; padding: 0 24px; }
-  .s-intro h1 { font-size: 40px !important; white-space: normal !important; }
+  .s-intro h1 { font-size: min(40px, 5.6vw) !important; }
   .s-hint-d { display: none; } .s-hint-m { display: inline; }
   .s-hint { margin-top: 24px !important; }
   .s-art { position: relative; inset: auto; width: 640px; height: 880px; margin: 8px auto 0; overflow: hidden; }
@@ -157,7 +157,7 @@
 @media (max-width: 449px) { .qf, .mm { zoom: .66; } } @media (max-width: 399px) { .qf, .mm { zoom: .6; } } @media (max-width: 359px) { .qf, .mm { zoom: .55; } }
 @media (max-width: 479px) { .h-look { flex-wrap: wrap; } .h-look input { flex: 1 1 100%; } .h-look .h-btn { flex: 1 1 100%; } .h-look ul { top: 58px; } }
 /* the break (28 Nov): one section on a soft yellow, between the white and grey bands */
-.h-break { background: #FEFAE8; border-top: 1px solid #F8E9B0; border-bottom: 1px solid #F8E9B0; }
+.h-break { background: #374151; color: #FFFFFF; }
 .qf .h-fixed { height: 740px; }
 /* phones: everything centred (FAQ rows stay left so the questions are easy to scan) */
 @media (max-width: 767px) {
@@ -168,4 +168,3 @@
   .qf .h-fixed { height: 1000px; } .qf { padding-bottom: 0; }
   .h-col[style*="flex-wrap: wrap"] { justify-content: center; }
 }
-@media (max-width: 767px) { .h-nums { row-gap: 24px !important; } .h-num:nth-child(odd) { border-left: 0 !important; } }
