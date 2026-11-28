@@ -13,12 +13,27 @@ async function notFeaturedTable(): Promise<string[]> {
   return ((await res.json()) as { domain: string }[]).map((r) => r.domain);
 }
 
+/** Row counts for the homepage's numbers strip (facts on record, changes caught, promotions logged). */
+async function totals(): Promise<Record<string, number> | undefined> {
+  const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) return undefined;
+  const count = async (table: string, filter = "") => {
+    const res = await fetch(`${url}/rest/v1/${table}?select=id${filter}`, { method: "HEAD", headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: "count=exact", Range: "0-0" } });
+    const n = Number((res.headers.get("content-range") || "").split("/")[1]);
+    return Number.isFinite(n) ? n : 0;
+  };
+  try {
+    const [facts, changes, promotions] = await Promise.all([count("observations", "&status=eq.observed"), count("change_events"), count("promotions")]);
+    return { facts, changes, promotions };
+  } catch (e) { console.warn("totals skipped:", e); return undefined; }
+}
+
 async function main() {
   const dry = process.argv.includes("--dry-run");
   const t0 = Date.now();
   const [sites, promos, changes] = await Promise.all([getSites(), getPromotions(), getChanges(365)]);
   const notFeatured = new Set([...(process.env.NOT_FEATURED || "").split(","), ...(await notFeaturedTable())].map((x) => x.trim()).filter(Boolean));
-  const { index, views } = buildAll(sites, promos, changes, notFeatured);
+  const { index, views } = buildAll(sites, promos, changes, notFeatured, await totals());
   const size = (x: unknown) => JSON.stringify(x).length;
   const big = Object.entries(views).map(([k, v]) => [k, size(v)] as const).sort((a, b) => b[1] - a[1]).slice(0, 5);
   console.log(`${sites.length} stores, ${promos.length} promotions, ${changes.length} changes -> ${Object.keys(views).length} views; ` +

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Industries: nine plates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>body{margin:0;background:#FFFFFF}</style>
+</helmet>
+<div style="width:1440px;height:800px;position:relative;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#0F172A;background:#FFFFFF">
+<div style="position:absolute;left:96px;top:250px;width:400px">
+<p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#B45309">Industries</p>
+<h2 style="margin:0;font-size:42px;line-height:1.1;letter-spacing:-1px;font-weight:800">Nine industries, side by side.</h2>
+<p style="margin:16px 0 0;font-size:17px;line-height:1.55;color:#475569">{{total}} Australian online stores. Pick an industry to see how its stores compare on returns, shipping, payments and promotions.</p>
+</div>
+<svg viewBox="0 0 1440 800" width="1440" height="800" role="img" aria-label="Isometric grid of nine plates, one per industry, each holding a typical product and showing its store count" style="position:absolute;left:0;top:0">
+<sc-for list="{{shapes}}" as="s" hint-placeholder-count="300"><path d="{{s.d}}" fill="{{s.f}}" stroke="{{s.st}}" stroke-width="{{s.sw}}" opacity="{{s.o}}" stroke-linejoin="round" stroke-linecap="round"></path></sc-for>
+<sc-for list="{{texts}}" as="t" hint-placeholder-count="18"><text transform="{{t.m}}" font-family="Inter" font-weight="{{t.w}}" font-size="{{t.size}}" fill="{{t.f}}" text-anchor="middle">{{t.s}}</text></sc-for>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = 0.8, c = 0.866, n = 0.5, ox = 930, oy = 215, f1 = (v) => v.toFixed(1);
+    const shapes = [], texts = [];
+    let TX = 0, TY = 0;
+    const P = (x, y, z) => [ox + (x + TX - (y + TY)) * c * s, oy + (x + TX + y + TY) * n * s - z * s];
+    const path = (pts) => "M" + pts.map((p) => f1(p[0]) + "," + f1(p[1])).join(" L") + " Z";
+    const open = (pts) => "M" + pts.map((p) => f1(p[0]) + "," + f1(p[1])).join(" L");
+    const add = (d, f, st, sw, o) => shapes.push({ d, f, st: st || "none", sw: sw || 0, o: o == null ? 1 : o });
+    const flat = (x, y, z, w, d) => path([P(x, y, z), P(x + w, y, z), P(x + w, y + d, z), P(x, y + d, z)]);
+    const Lf = (yc, x1, z1, x2, z2) => path([P(x1, yc, z2), P(x2, yc, z2), P(x2, yc, z1), P(x1, yc, z1)]);
+    const Rf = (xc, y1, z1, y2, z2) => path([P(xc, y1, z2), P(xc, y2, z2), P(xc, y2, z1), P(xc, y1, z1)]);
+    const box = (x, y, z, w, d, h, top, left, rgt, st) => {
+      add(path([P(x, y + d, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x, y + d, z)]), left, st, 0.8);
+      add(path([P(x + w, y, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x + w, y, z)]), rgt, st, 0.8);
+      add(flat(x, y, z + h, w, d), top, st, 0.8);
+      if (w > 8 && d > 8) add(open([P(x, y + d, z + h), P(x + w, y + d, z + h), P(x + w, y, z + h)]), "none", "#FFFFFF", 0.7, 0.7);
+    };
+    const ring = (fn, k) => { const pts = []; for (let a = 0; a < k; a++) pts.push(fn((a / k) * Math.PI * 2)); return pts; };
+    const disc = (x, y, z, r) => ring((t) => P(x + r * Math.cos(t), y + r * Math.sin(t), z), 32);
+    const discL = (x, y, z, r) => ring((t) => P(x + r * Math.cos(t), y, z + r * Math.sin(t)), 32);
+    const cyl = (x, y, z, r, h, top, side, st) => {
+      const fr = []; for (let a = -45; a <= 135; a += 9) fr.push((a * Math.PI) / 180);
+      add(path(fr.map((t) => P(x + r * Math.cos(t), y + r * Math.sin(t), z)).concat(fr.slice().reverse().map((t) => P(x + r * Math.cos(t), y + r * Math.sin(t), z + h)))), side, st, 0.8);
+      add(path(disc(x, y, z + h, r)), top, st, 0.8);
+      add(open(fr.slice(0, 12).map((t) => P(x + r * 0.96 * Math.cos(t), y + r * 0.96 * Math.sin(t), z + h))), "none", "#FFFFFF", 0.7, 0.6);
+    };
+    const shadow = (x, y, w, d) => add(flat(x + 4, y + 4, 10.05, w, d), "#0F172A", null, 0, 0.07);
+    const mTop = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(n * s).toFixed(3)},${(-c * s).toFixed(3)},${(n * s).toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
+    const mRight = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(-n * s).toFixed(3)},0,${s.toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
+    const txt = (m, str, size, fill, w) => texts.push({ m, s: str, size, f: fill, w: w || 800 });
+
+    const draw = {
+      Fashion: () => {
+        shadow(20, 30, 50, 40);
+        box(20, 30, 10, 50, 40, 6, "#FEF3C7", "#FDE68A", "#FCD34D", "#F59E0B");
+        box(22, 31, 16, 48, 38, 6, "#FDBA74", "#FB923C", "#F97316", "#EA580C");
+        box(20, 30, 22, 50, 40, 6, "#B45309", "#92400E", "#78350F");
+        add(open([P(20, 70, 25), P(70, 70, 25)]), "none", "#FDE68A", 0.6);
+        shadow(84, 28, 32, 22);
+        box(84, 28, 10, 32, 22, 42, "#FFFFFF", "#F8FAFC", "#E2E8F0", "#CBD5E1");
+        add(Lf(50.2, 84, 34, 116, 40), "#B45309");
+        add(open(ring((t) => P(100 + 8 * Math.cos(t), 50.3, 52 + 8 * Math.sin(t)), 24).slice(0, 13)), "none", "#334155", 1.8);
+      },
+      Homewares: () => {
+        shadow(24, 28, 28, 28);
+        cyl(38, 42, 10, 11, 4, "#334155", "#1E293B");
+        add(open([P(38, 42, 14), P(38, 42, 44)]), "none", "#334155", 2.2);
+        cyl(38, 42, 44, 19, 16, "#FEF3C7", "#FCD34D", "#F59E0B");
+        shadow(90, 26, 20, 20);
+        cyl(100, 36, 10, 10, 28, "#1D4ED8", "#1E40AF");
+        cyl(100, 36, 38, 5, 6, "#3B82F6", "#1D4ED8");
+        add(open([P(100, 36, 44), P(96, 32, 60), P(92, 30, 66)]), "none", "#15803D", 1.6);
+        add(open([P(100, 36, 44), P(106, 34, 62)]), "none", "#15803D", 1.6);
+        shadow(58, 62, 38, 26);
+        box(58, 62, 10, 38, 26, 9, "#DBEAFE", "#BFDBFE", "#93C5FD", "#93C5FD");
+        add(open([P(62, 75, 19.2), P(92, 75, 19.2)]), "none", "#93C5FD", 0.6);
+      },
+      Beauty: () => {
+        shadow(26, 36, 18, 18);
+        cyl(35, 45, 10, 8, 18, "#1E293B", "#0F172A");
+        cyl(35, 45, 28, 6, 8, "#E5E7EB", "#9CA3AF");
+        cyl(35, 45, 36, 5, 10, "#DB2777", "#BE185D");
+        shadow(58, 28, 26, 26);
+        cyl(70, 40, 10, 14, 13, "#FCE7F3", "#F9A8D4", "#F472B6");
+        cyl(70, 40, 23, 14.5, 5, "#DB2777", "#BE185D");
+        shadow(96, 30, 22, 16);
+        box(96, 30, 10, 22, 16, 36, "#FFFFFF", "#FDF2F8", "#FBCFE8", "#F9A8D4");
+        add(Lf(46.2, 100, 20, 114, 36), "#FCE7F3", "#F9A8D4", 0.6);
+        cyl(107, 38, 46, 4, 9, "#1E293B", "#0F172A");
+      },
+      "Baby & kids": () => {
+        shadow(24, 36, 54, 28);
+        box(24, 36, 10, 26, 26, 26, "#DDD6FE", "#A78BFA", "#8B5CF6", "#7C3AED");
+        txt(mRight(50.3, 49, 31), "A", 17, "#FFFFFF");
+        box(54, 38, 10, 26, 26, 26, "#FEF3C7", "#FBBF24", "#F59E0B", "#D97706");
+        txt(mRight(80.3, 51, 31), "B", 17, "#FFFFFF");
+        box(38, 36, 36, 26, 26, 26, "#CCFBF1", "#2DD4BF", "#14B8A6", "#0D9488");
+        txt(mRight(64.3, 49, 57), "C", 17, "#FFFFFF");
+        shadow(96, 40, 22, 22);
+        const b = P(106, 50, 19), r = 10 * s;
+        add(path(ring((t) => [b[0] + r * Math.cos(t), b[1] + r * Math.sin(t)], 32)), "#EF4444");
+        add(path(ring((t) => [b[0] + r * 0.98 * Math.cos(t), b[1] + r * 0.35 * Math.sin(t)], 32)), "#FFFFFF", null, 0, 0.9);
+        add(path(ring((t) => [b[0] - 3 + 2.2 * Math.cos(t), b[1] - 4 + 2.2 * Math.sin(t)], 16)), "#FFFFFF", null, 0, 0.7);
+      },
+      "Sports & outdoors": () => {
+        add(flat(20, 26, 10.05, 66, 56), "#0F172A", null, 0, 0.07);
+        add(path([P(20, 78, 10), P(80, 78, 10), P(80, 52, 46), P(20, 52, 46)]), "#22C55E", "#15803D", 0.8);
+        add(path([P(80, 26, 10), P(80, 78, 10), P(80, 52, 46)]), "#15803D", "#166534", 0.8);
+        add(path([P(80.2, 44, 10), P(80.2, 60, 10), P(80.2, 52, 30)]), "#14532D");
+        add(open([P(20, 52, 46), P(80, 52, 46)]), "none", "#BBF7D0", 1);
+        add(open([P(80, 52, 46), P(86, 52, 54)]), "none", "#334155", 1.4);
+        add(open([P(30, 78, 10), P(30, 78, 30)]), "none", "#BBF7D0", 0.6, 0.7);
+        add(open([P(50, 78, 10), P(50, 78, 33)]), "none", "#BBF7D0", 0.6, 0.7);
+        shadow(102, 34, 20, 20);
+        const b = P(112, 44, 19), r = 10 * s;
+        add(path(ring((t) => [b[0] + r * Math.cos(t), b[1] + r * Math.sin(t)], 32)), "#F59E0B", "#D97706", 0.8);
+        add(open([[b[0] - r, b[1]], [b[0] + r, b[1]]]), "none", "#92400E", 0.8);
+        add(open(ring((t) => [b[0] + r * 0.45 * Math.cos(t), b[1] + r * Math.sin(t)], 24).slice(6, 19)), "none", "#92400E", 0.8);
+      },
+      Jewellery: () => {
+        shadow(24, 36, 40, 40);
+        box(24, 36, 10, 40, 40, 20, "#0E7C6B", "#0B6457", "#095247");
+        add(Lf(36, 24, 30, 64, 60), "#0B6457", "#095247", 0.8);
+        add(Lf(36.1, 28, 34, 60, 56), "#F8FAFC");
+        add(flat(30, 50, 30.1, 28, 16), "#F1F5F9", "#CBD5E1", 0.6);
+        add(open(ring((t) => P(44 + 7 * Math.cos(t), 58, 38 + 7 * Math.sin(t)), 28).concat([P(51, 58, 38)])), "none", "#EAB308", 2.4);
+        const g = P(44, 58, 47.5);
+        add(path([[g[0], g[1] - 6], [g[0] + 4, g[1] - 2], [g[0], g[1] + 3], [g[0] - 4, g[1] - 2]]), "#E0F2FE", "#7DD3FC", 0.8);
+        shadow(92, 44, 22, 22);
+        const q = P(102, 54, 22);
+        add(path([[q[0] - 11, q[1] - 4], [q[0] - 6, q[1] - 10], [q[0] + 6, q[1] - 10], [q[0] + 11, q[1] - 4], [q[0], q[1] + 10]]), "#5EEAD4", "#0E7C6B", 0.9);
+        add(open([[q[0] - 11, q[1] - 4], [q[0] + 11, q[1] - 4]]), "none", "#0E7C6B", 0.7);
+        add(open([[q[0] - 6, q[1] - 10], [q[0] - 3, q[1] - 4], [q[0], q[1] + 10], [q[0] + 3, q[1] - 4], [q[0] + 6, q[1] - 10]]), "none", "#0E7C6B", 0.6);
+      },
+      Health: () => {
+        shadow(22, 32, 48, 38);
+        box(22, 32, 10, 48, 38, 26, "#FFFFFF", "#F8FAFC", "#E2E8F0", "#CBD5E1");
+        add(flat(41, 39, 36.1, 10, 24), "#DC2626");
+        add(flat(34, 46, 36.1, 24, 10), "#DC2626");
+        add(Lf(70.2, 22, 26, 70, 30), "#DC2626", null, 0, 0.85);
+        add(open([P(40, 51, 36.2), P(40, 51, 42), P(52, 51, 42), P(52, 51, 36.2)]), "none", "#94A3B8", 1.6);
+        shadow(88, 38, 24, 24);
+        cyl(100, 50, 10, 12, 28, "#F59E0B", "#D97706", "#B45309");
+        add(path((() => { const fr = []; for (let a = -45; a <= 135; a += 9) fr.push((a * Math.PI) / 180); return fr.map((t) => P(100 + 12.05 * Math.cos(t), 50 + 12.05 * Math.sin(t), 16)).concat(fr.slice().reverse().map((t) => P(100 + 12.05 * Math.cos(t), 50 + 12.05 * Math.sin(t), 30))); })()), "#FFFFFF", null, 0, 0.95);
+        cyl(100, 50, 38, 12.5, 7, "#FFFFFF", "#E2E8F0", "#CBD5E1");
+        add(path(disc(84, 84, 10.2, 4)), "#0891B2");
+        add(path(disc(94, 90, 10.2, 4)), "#22D3EE");
+      },
+      Electronics: () => {
+        shadow(18, 30, 62, 44);
+        box(18, 30, 10, 62, 44, 3, "#E2E8F0", "#CBD5E1", "#94A3B8", "#94A3B8");
+        add(flat(24, 36, 13.1, 50, 22), "#CBD5E1", "#94A3B8", 0.5);
+        for (let k = 1; k < 5; k++) add(open([P(24, 36 + k * 4.4, 13.2), P(74, 36 + k * 4.4, 13.2)]), "none", "#94A3B8", 0.4);
+        add(flat(40, 62, 13.1, 18, 8), "#CBD5E1", "#94A3B8", 0.5);
+        add(Lf(30, 18, 13, 80, 52), "#334155", "#1E293B", 0.8);
+        add(Lf(30.1, 22, 16, 76, 49), "#0EA5E9");
+        add(Lf(30.2, 26, 40, 60, 44), "#FFFFFF", null, 0, 0.8);
+        add(Lf(30.2, 26, 32, 70, 35), "#BAE6FD");
+        add(Lf(30.2, 26, 24, 50, 27), "#BAE6FD");
+        shadow(96, 40, 18, 34);
+        box(96, 40, 10, 18, 34, 3, "#1E293B", "#0F172A", "#334155");
+        add(flat(98, 43, 13.1, 14, 28), "#38BDF8");
+        add(flat(101, 46, 13.2, 8, 6), "#FFFFFF", null, 0, 0.7);
+      },
+      Pet: () => {
+        shadow(20, 36, 40, 40);
+        cyl(40, 56, 10, 20, 10, "#C2410C", "#9A3412");
+        add(path(disc(40, 56, 20.1, 15)), "#7C2D12");
+        [[34, 52], [42, 50], [46, 58], [36, 60], [41, 55], [48, 52], [31, 57]].forEach(([x, y]) => add(path(disc(x, y, 20.4, 2.2)), "#B45309"));
+        shadow(94, 22, 26, 18);
+        box(94, 22, 10, 26, 18, 38, "#FDBA74", "#FB923C", "#EA580C");
+        add(Lf(40.2, 98, 22, 116, 38), "#FFFFFF");
+        const p = P(107, 40.3, 30);
+        [[0, 0, 2.4], [-3, -4, 1.3], [0, -5, 1.3], [3, -4, 1.3]].forEach(([dx, dy, r]) => add(path(ring((t) => [p[0] + dx + r * Math.cos(t), p[1] + dy + r * Math.sin(t)], 14)), "#C2410C"));
+        add(flat(76, 76, 10.15, 30, 7), "#FFFFFF", "#CBD5E1", 0.7);
+        [[76, 76], [76, 83], [106, 76], [106, 83]].forEach(([x, y]) => add(path(disc(x, y, 10.2, 4)), "#FFFFFF", "#CBD5E1", 0.7));
+      },
+    };
+    const inds = [["Fashion", 206, "#B45309", "#FEF3C7", "#FDE68A"], ["Homewares", 165, "#1D4ED8", "#DBEAFE", "#BFDBFE"], ["Beauty", 124, "#BE185D", "#FCE7F3", "#FBCFE8"],
+      ["Baby & kids", 116, "#7C3AED", "#EDE9FE", "#DDD6FE"], ["Sports & outdoors", 95, "#15803D", "#DCFCE7", "#BBF7D0"], ["Jewellery", 86, "#0E7C6B", "#CCFBF1", "#99F6E4"],
+      ["Health", 82, "#0E7490", "#CFFAFE", "#A5F3FC"], ["Electronics", 65, "#475569", "#E2E8F0", "#CBD5E1"], ["Pet", 56, "#C2410C", "#FFEDD5", "#FED7AA"]];
+    const cells = inds.map((d, i) => ({ d, gx: i % 3, gy: Math.floor(i / 3) })).sort((a, b) => a.gx + a.gy - (b.gx + b.gy) || a.gx - b.gx);
+    cells.forEach(({ d, gx, gy }) => {
+      TX = gx * 172; TY = gy * 172;
+      const [name, cnt, col, side1, side2] = d;
+      add(flat(6, 6, 0, 140, 140), "#0F172A", null, 0, 0.05);
+      box(0, 0, 0, 140, 140, 10, "#FFFFFF", side1, side2, "#E2E8F0");
+      for (let g = 20; g < 140; g += 20) { add(open([P(g, 0, 10), P(g, 100, 10)]), "none", "#F1F5F9", 0.6); add(open([P(0, g, 10), P(140, g, 10)]), "none", g < 100 ? "#F1F5F9" : "none", 0.6); }
+      add(open([P(8, 100, 10.05), P(132, 100, 10.05)]), "none", "#E2E8F0", 0.8);
+      draw[name]();
+      txt(mTop(70, 116, 10.2), name, 12.5, "#0F172A", 800);
+      txt(mTop(70, 130, 10.2), cnt + " stores", 10.5, col, 600);
+    });
+    return { shapes, texts, total: inds.reduce((a, d) => a + d[1], 0) };
+  }
+}
+</script>
+</body>
+</html>

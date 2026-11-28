@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SentientLogs homepage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#2563EB;text-decoration:none}a:hover{color:#1D4ED8;text-decoration:underline}
+.sweep{transform-origin:210px 190px;animation:spin 6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.sweep{animation:none}}
+summary{cursor:pointer;font-weight:600}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;color:#0F172A;background:#FFFFFF">
+
+<header style="border-bottom:1px solid #E2E8F0">
+<div style="max-width:1200px;margin:0 auto;padding:14px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:20px">
+<a href="#" style="display:flex;align-items:center;gap:10px;color:#0F172A;text-decoration:none">
+<span style="width:32px;height:32px;border-radius:8px;background:#0E7C6B;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">SL</span>
+<span style="font-weight:700;font-size:18px">SentientLogs</span>
+<span style="font-size:11px;color:#64748B;border:1px dashed #CBD5E1;border-radius:4px;padding:1px 6px">logo placeholder</span>
+</a>
+<nav aria-label="Main" style="display:flex;gap:22px;font-size:15px;font-weight:500">
+<a href="Menu.dc.html" style="color:#0F172A">Explore ▾</a>
+<a href="Menu.dc.html" style="color:#0F172A">Insights ▾</a>
+<a href="Menu.dc.html" style="color:#0F172A">About ▾</a>
+<a href="Pricing.dc.html" style="color:#0F172A">Pricing</a>
+</nav>
+<label style="flex:1 1 220px;display:flex;align-items:center;gap:8px;border:1px solid #CBD5E1;border-radius:8px;padding:8px 12px;color:#64748B;font-size:14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+<input aria-label="Search stores" placeholder="Search a store, tool or payment option" style="border:0;outline:0;font:inherit;flex:1;min-width:0">
+</label>
+<a href="#" style="font-size:14px;color:#64748B">Sign in</a>
+</div>
+</header>
+
+<section style="max-width:1200px;margin:0 auto;padding:64px 24px 48px;display:flex;flex-wrap:wrap;gap:48px;align-items:center">
+<div style="flex:1 1 480px;min-width:0">
+<p style="margin:0 0 14px;font-size:15px;font-weight:600;color:#0E7C6B">Your eye in the sky over Australian ecommerce</p>
+<h1 style="margin:0;font-size:56px;line-height:1.05;letter-spacing:-1.5px;font-weight:800">Australian ecommerce, at your fingertips.</h1>
+<p style="margin:20px 0 28px;font-size:19px;line-height:1.5;color:#334155;max-width:560px">Shipping, returns, payments, promotions and tech for 964 online stores, checked every week and quoted from each store's own pages.</p>
+<form style="display:flex;flex-wrap:wrap;gap:10px;max-width:560px">
+<label for="hero-q" style="position:absolute;left:-9999px">Store name or address</label>
+<input id="hero-q" placeholder="Type a store name or address" style="flex:1 1 260px;font:inherit;font-size:16px;padding:14px 16px;border:1px solid #CBD5E1;border-radius:10px">
+<button type="button" style="font:inherit;font-size:16px;font-weight:600;padding:14px 22px;border:0;border-radius:10px;background:#0E7C6B;color:#FFFFFF;cursor:pointer">Look up a store</button>
+</form>
+<div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:18px;font-size:14px;color:#475569">
+<a href="#">Compare stores</a><span>Free to browse</span><span>Every fact quoted and dated</span><span>Updated weekly</span>
+</div>
+</div>
+<figure style="flex:1 1 420px;margin:0;position:relative;min-width:0">
+<svg viewBox="0 0 420 380" width="100%" role="img" aria-label="Illustration: a radar sweep over a map of Australia">
+<defs><linearGradient id="sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0E7C6B" stop-opacity="0"></stop><stop offset="1" stop-color="#0E7C6B" stop-opacity="0.35"></stop></linearGradient></defs>
+<path d="M60 150 L70 120 L95 100 L130 85 L150 70 L175 60 L195 72 L215 48 L240 55 L255 70 L262 90 L280 95 L290 70 L298 40 L310 80 L330 110 L350 140 L365 175 L372 210 L365 245 L350 275 L330 300 L300 310 L275 300 L255 285 L235 290 L215 270 L180 265 L150 270 L120 285 L85 295 L60 280 L50 245 L45 200 Z M300 325 L320 322 L318 345 L303 345 Z" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5"></path>
+<circle cx="210" cy="190" r="60" fill="none" stroke="#0E7C6B" stroke-opacity="0.25"></circle>
+<circle cx="210" cy="190" r="120" fill="none" stroke="#0E7C6B" stroke-opacity="0.2"></circle>
+<circle cx="210" cy="190" r="180" fill="none" stroke="#0E7C6B" stroke-opacity="0.15"></circle>
+<g class="sweep"><path d="M210 190 L210 10 A180 180 0 0 1 337 63 Z" fill="url(#sw)"></path></g>
+<g fill="#0E7C6B"><circle cx="352" cy="272" r="4"></circle><circle cx="304" cy="306" r="4"></circle><circle cx="370" cy="212" r="3.5"></circle><circle cx="258" cy="284" r="3"></circle><circle cx="58" cy="250" r="3"></circle><circle cx="218" cy="52" r="2.5"></circle><circle cx="340" cy="290" r="3"></circle><circle cx="312" cy="300" r="3"></circle></g>
+<circle cx="304" cy="306" r="9" fill="none" stroke="#F59E0B" stroke-width="2"></circle>
+</svg>
+<figcaption style="position:absolute;left:8px;bottom:8px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;padding:10px 14px;box-shadow:0 2px 8px rgba(15,23,42,.08)">
+<div style="font-size:26px;font-weight:800">964 stores</div><div style="font-size:13px;color:#64748B">in 9 industries · last scan this week · illustration</div>
+</figcaption>
+</figure>
+</section>
+
+<section aria-label="SentientLogs in numbers" style="background:#F5F7FA;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0">
+<div style="max-width:1200px;margin:0 auto;padding:36px 24px;display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:24px">
+<div><div style="font-size:44px;font-weight:800;letter-spacing:-1px">964</div><div style="font-size:14px;color:#64748B">stores tracked</div></div>
+<div><div style="font-size:44px;font-weight:800;letter-spacing:-1px">9</div><div style="font-size:14px;color:#64748B">industries</div></div>
+<div><div style="font-size:44px;font-weight:800;letter-spacing:-1px">43,269</div><div style="font-size:14px;color:#64748B">dated facts on record</div></div>
+<div><div style="font-size:44px;font-weight:800;letter-spacing:-1px">1,141</div><div style="font-size:14px;color:#64748B">changes caught</div></div>
+<div><div style="font-size:44px;font-weight:800;letter-spacing:-1px">4,370</div><div style="font-size:14px;color:#64748B">promotions logged</div></div>
+</div>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:80px 24px 40px">
+<h2 style="margin:0;font-size:36px;letter-spacing:-0.8px">Three fashion stores. Three returns policies. Which one is normal?</h2>
+<div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:20px;margin-top:28px">
+<div style="border:1px solid #E2E8F0;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(15,23,42,.06)"><div style="font-size:14px;color:#64748B">Store A</div><div style="font-size:40px;font-weight:800">14 days</div></div>
+<div style="border:1px solid #E2E8F0;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(15,23,42,.06)"><div style="font-size:14px;color:#64748B">Store B</div><div style="font-size:40px;font-weight:800">30 days</div></div>
+<div style="border:1px solid #E2E8F0;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(15,23,42,.06)"><div style="font-size:14px;color:#64748B">Store C</div><div style="font-size:40px;font-weight:800">60 days</div></div>
+</div>
+<p style="margin:22px 0 0;font-size:18px;color:#334155">The fashion median is <strong style="color:#0E7C6B">30 days</strong>, based on 181 stores that state one. You'd only know by checking them all. We did.</p>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:40px 24px;display:flex;flex-wrap:wrap;gap:48px;align-items:center">
+<div style="flex:1 1 380px;min-width:0">
+<h2 style="margin:0 0 12px;font-size:36px;letter-spacing:-0.8px">How it works</h2>
+<p style="margin:0 0 20px;font-size:17px;color:#334155;line-height:1.5">Every week we read each store's own pages. A fact only counts when two separate AI reads agree and the quote is on the page.</p>
+<ol style="margin:0;padding-left:20px;font-size:16px;line-height:2;color:#334155">
+<li><strong>Your decisions</strong>: what to charge, allow and offer</li>
+<li><strong>Benchmarks and alerts</strong>: what's normal, what's changing</li>
+<li><strong>Change history</strong>: every change, dated</li>
+<li><strong>Checked facts</strong>: quoted from the store's own pages</li>
+<li><strong>964 stores' public pages</strong>, read weekly</li>
+</ol>
+</div>
+<figure style="flex:1 1 420px;margin:0;min-width:0">
+<svg viewBox="0 0 420 330" width="100%" role="img" aria-label="Five stacked layers, from stores' pages at the bottom to your decisions at the top">
+<g stroke="#FFFFFF" stroke-width="2">
+<path d="M210 250 L370 290 L210 330 L50 290 Z" fill="#CBD5E1"></path>
+<path d="M210 195 L370 235 L210 275 L50 235 Z" fill="#94A3B8"></path>
+<path d="M210 140 L370 180 L210 220 L50 180 Z" fill="#5EAA9D"></path>
+<path d="M210 85 L370 125 L210 165 L50 125 Z" fill="#2E8F80"></path>
+<path d="M210 30 L370 70 L210 110 L50 70 Z" fill="#0E7C6B"></path>
+</g>
+<g font-family="Inter" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">
+<text x="210" y="75">Your decisions</text><text x="210" y="130">Benchmarks and alerts</text><text x="210" y="185">Change history</text>
+<text x="210" y="240" fill="#0F172A">Checked facts</text><text x="210" y="295" fill="#0F172A">Stores' public pages</text>
+</g>
+</svg>
+</figure>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:60px 24px">
+<h2 style="margin:0 0 8px;font-size:36px;letter-spacing:-0.8px">What you can see</h2>
+<p style="margin:0 0 24px;font-size:17px;color:#334155">Six views, each one a live page you can open.</p>
+<div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:20px">
+<sc-for list="{{views}}" as="v" hint-placeholder-count="6">
+<a href="#" style="display:block;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;color:#0F172A;text-decoration:none;box-shadow:0 1px 3px rgba(15,23,42,.06)">
+<div style="height:150px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;color:#64748B;font-size:13px;border-bottom:1px solid #E2E8F0">Screenshot placeholder</div>
+<div style="padding:16px 18px"><div style="font-weight:700;font-size:17px">{{v.name}}</div><div style="font-size:14px;color:#475569;margin-top:4px">{{v.line}}</div></div>
+</a>
+</sc-for>
+</div>
+</section>
+
+<section style="background:#F5F7FA;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0">
+<div style="max-width:1200px;margin:0 auto;padding:64px 24px">
+<h2 style="margin:0 0 20px;font-size:36px;letter-spacing:-0.8px">What's normal in your industry?</h2>
+<div role="tablist" aria-label="Industries" style="display:flex;flex-wrap:wrap;gap:8px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="9">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.name}}</button>
+</sc-for>
+</div>
+<div style="margin-top:22px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;padding:28px;box-shadow:0 2px 8px rgba(15,23,42,.06)">
+<p style="margin:0 0 18px;font-size:20px;font-weight:700">What does a typical {{cur.lower}} store offer? <span style="font-weight:500;color:#64748B;font-size:15px">{{cur.n}} stores</span></p>
+<div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:18px">
+<div><div style="font-size:34px;font-weight:800;color:#0E7C6B">{{cur.fs}}</div><div style="font-size:14px;color:#64748B">median free-shipping minimum</div></div>
+<div><div style="font-size:34px;font-weight:800;color:#0E7C6B">{{cur.ret}}</div><div style="font-size:14px;color:#64748B">median returns window</div></div>
+<div><div style="font-size:34px;font-weight:800;color:#0E7C6B">{{cur.bnpl}}</div><div style="font-size:14px;color:#64748B">offer buy now, pay later</div></div>
+<div><div style="font-size:34px;font-weight:800;color:#0E7C6B">{{cur.sale}}</div><div style="font-size:14px;color:#64748B">running an offer now</div></div>
+</div>
+<div style="display:flex;gap:20px;margin-top:22px;font-size:15px;font-weight:600"><a href="Industry.dc.html">See all {{cur.lower}} stores</a><a href="#">Compare {{cur.lower}} stores</a></div>
+</div>
+</div>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:64px 24px">
+<h2 style="margin:0 0 6px;font-size:36px;letter-spacing:-0.8px">Caught this week</h2>
+<p style="margin:0 0 22px;font-size:15px;color:#64748B">Examples of the changes we record. Store names are hidden in this mockup.</p>
+<div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:16px">
+<sc-for list="{{changes}}" as="c" hint-placeholder-count="4">
+<div style="border:1px solid #E2E8F0;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,.06)">
+<span style="font-size:12px;font-weight:700;color:#92400E;background:#FEF3C7;border-radius:999px;padding:3px 10px">Changed</span>
+<div style="font-size:14px;color:#64748B;margin-top:12px">{{c.store}}</div>
+<div style="font-size:17px;font-weight:700;margin-top:4px">{{c.what}}</div>
+<div style="font-size:15px;margin-top:6px">{{c.change}}</div>
+<div style="font-size:13px;color:#64748B;margin-top:10px">{{c.when}}</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:20px 24px 64px">
+<h2 style="margin:0 0 22px;font-size:36px;letter-spacing:-0.8px">Built for the people who set the rules</h2>
+<div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:16px">
+<sc-for list="{{roles}}" as="r" hint-placeholder-count="4">
+<div style="background:#0F172A;color:#FFFFFF;border-radius:14px;padding:22px"><div style="font-weight:700;font-size:18px">{{r.name}}</div><div style="font-size:15px;color:#CBD5E1;margin-top:8px;line-height:1.5">{{r.line}}</div></div>
+</sc-for>
+</div>
+</section>
+
+<section style="background:#F5F7FA;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0">
+<div style="max-width:1200px;margin:0 auto;padding:64px 24px">
+<h2 style="margin:0 0 26px;font-size:36px;letter-spacing:-0.8px">Why SentientLogs</h2>
+<div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:24px">
+<sc-for list="{{why}}" as="w" hint-placeholder-count="4">
+<div><div style="width:40px;height:40px;border-radius:10px;background:#E6F4F1;color:#0E7C6B;display:flex;align-items:center;justify-content:center;font-weight:800">{{w.n}}</div><div style="font-weight:700;font-size:18px;margin-top:14px">{{w.name}}</div><div style="font-size:15px;color:#475569;margin-top:6px;line-height:1.5">{{w.line}}</div></div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:64px 24px;display:flex;flex-wrap:wrap;gap:48px">
+<div style="flex:1 1 320px;min-width:0">
+<h2 style="margin:0 0 10px;font-size:36px;letter-spacing:-0.8px">Free to browse. More with Premium and Pro.</h2>
+<p style="margin:0 0 18px;font-size:17px;color:#334155;line-height:1.5">See every store's current facts for free. Premium and Pro add change history, alerts, exports and more.</p>
+<a href="Pricing.dc.html" style="font-weight:600">See plans</a>
+</div>
+<div style="flex:1 1 480px;min-width:0">
+<h2 style="margin:0 0 14px;font-size:24px">Questions</h2>
+<details style="border-top:1px solid #E2E8F0;padding:14px 0"><summary>Where does the data come from?</summary><p style="margin:8px 0 0;color:#475569">Each store's own public pages: policies, shipping, checkout and homepage. Every fact links to the quote it came from.</p></details>
+<details style="border-top:1px solid #E2E8F0;padding:14px 0"><summary>How fresh is it?</summary><p style="margin:8px 0 0;color:#475569">Promotions are checked weekly; everything else monthly. Each fact shows the date it was last seen.</p></details>
+<details style="border-top:1px solid #E2E8F0;padding:14px 0"><summary>Is it allowed?</summary><p style="margin:8px 0 0;color:#475569">We read only public pages, obey robots.txt and skip stores whose terms forbid it.</p></details>
+<details style="border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;padding:14px 0"><summary>Is my store listed? Can I correct it?</summary><p style="margin:8px 0 0;color:#475569">Search for it above. Each store page has an "Is this your store?" link.</p></details>
+</div>
+</section>
+
+<section style="background:#0E7C6B;color:#FFFFFF">
+<div style="max-width:1200px;margin:0 auto;padding:56px 24px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between">
+<h2 style="margin:0;font-size:34px;letter-spacing:-0.8px">See where your store stands.</h2>
+<form style="display:flex;flex-wrap:wrap;gap:10px;flex:0 1 520px">
+<label for="cta-q" style="position:absolute;left:-9999px">Store name or address</label>
+<input id="cta-q" placeholder="Type your store's name" style="flex:1 1 240px;font:inherit;padding:14px 16px;border:0;border-radius:10px">
+<button type="button" style="font:inherit;font-weight:700;padding:14px 22px;border:0;border-radius:10px;background:#FFFFFF;color:#0E7C6B;cursor:pointer">Look up a store</button>
+</form>
+</div>
+</section>
+
+<footer style="max-width:1200px;margin:0 auto;padding:44px 24px;display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:24px;font-size:14px;color:#475569">
+<div><div style="font-weight:700;color:#0F172A;margin-bottom:10px">Explore</div><div style="line-height:2">Industries<br>Stores<br>Compare</div></div>
+<div><div style="font-weight:700;color:#0F172A;margin-bottom:10px">Insights</div><div style="line-height:2">Shipping · Returns<br>Payments · Promotions<br>Tech · Benchmarks</div></div>
+<div><div style="font-weight:700;color:#0F172A;margin-bottom:10px">About</div><div style="line-height:2">Methodology<br>About · Contact<br>hello@sentientlogs.com</div></div>
+<div><div style="font-weight:700;color:#0F172A;margin-bottom:10px">Legal</div><div style="line-height:2"><a href="#">Privacy policy (placeholder)</a><br><a href="#">Terms (placeholder)</a><br>© 2026 SentientLogs</div></div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4300}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 0 }; }
+  renderVals() {
+    const ind = [
+      ["Fashion", 203, "$150", "30 days", "60%", "73%"], ["Homewares", 157, "Not enough data", "14 days", "54%", "67%"],
+      ["Beauty", 121, "$95", "30 days", "60%", "81%"], ["Baby & kids", 110, "$120", "30 days", "50%", "63%"],
+      ["Sports & outdoors", 92, "Not enough data", "30 days", "47%", "55%"], ["Jewellery", 82, "$129", "14 days", "51%", "57%"],
+      ["Health", 79, "Not enough data", "28 days", "42%", "57%"], ["Electronics", 64, "Not enough data", "17.5 days", "55%", "63%"],
+      ["Pet", 56, "Not enough data", "30 days", "39%", "75%"]];
+    const on = "font:inherit;font-size:15px;font-weight:600;padding:10px 16px;border-radius:999px;cursor:pointer;border:1px solid #0E7C6B;background:#0E7C6B;color:#FFFFFF";
+    const off = "font:inherit;font-size:15px;font-weight:600;padding:10px 16px;border-radius:999px;cursor:pointer;border:1px solid #CBD5E1;background:#FFFFFF;color:#0F172A";
+    const c = ind[this.state.tab];
+    return {
+      tabs: ind.map((x, i) => ({ name: x[0], on: i === this.state.tab ? "true" : "false", style: i === this.state.tab ? on : off, pick: () => this.setState({ tab: i }) })),
+      cur: { lower: c[0].toLowerCase(), n: c[1], fs: c[2], ret: c[3], bnpl: c[4], sale: c[5] },
+      views: [
+        { name: "Store record", line: "Every fact for one store, against its industry" },
+        { name: "Compare", line: "Up to 3 stores side by side, free" },
+        { name: "Promotions calendar", line: "Who's on sale, how deep, how long" },
+        { name: "Payments", line: "Which providers stores offer, by industry" },
+        { name: "Benchmarks", line: "What's normal, with the full spread" },
+        { name: "Change feed", line: "What changed this week, dated" }],
+      changes: [
+        { store: "A fashion store", what: "Free-shipping minimum", change: "$100 → $80", when: "Seen 2 days ago" },
+        { store: "A beauty store", what: "Buy now, pay later", change: "Added Klarna", when: "Seen 3 days ago" },
+        { store: "A homewares store", what: "Returns window", change: "30 → 14 days", when: "Seen 5 days ago" },
+        { store: "A pet store", what: "Promotion", change: "Up to 40% off started", when: "Seen 6 days ago" }],
+      roles: [
+        { name: "Ecommerce managers", line: "Check your offer against your industry in seconds." },
+        { name: "CRO managers", line: "Pick shipping and returns thresholds backed by market data." },
+        { name: "Marketing managers", line: "See when and how deep competitors run sales." },
+        { name: "Digital managers", line: "See which payment options and tools your peers use." }],
+      why: [
+        { n: "1", name: "Quoted and dated", line: "Every fact links to the store's own words and the day we saw them." },
+        { n: "2", name: "Changes over time", line: "Not a snapshot: we record what changed, and when." },
+        { n: "3", name: "The whole market", line: "964 stores across 9 industries, not just your own." },
+        { n: "4", name: "Nothing to install", line: "It works from a store's address. Look one up now." }],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Isometric layer test: payment options</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+.float{animation:bob 4s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-8px)}}
+.step{opacity:0;animation:pay 4.8s ease-in-out infinite}
+@keyframes pay{0%{opacity:0}8%{opacity:1}78%{opacity:1}88%{opacity:0}100%{opacity:0}}
+.ghost{animation:bob 4s ease-in-out infinite alternate;animation-delay:-1.3s}
+@media (prefers-reduced-motion: reduce){.float,.ghost{animation:none}.step{animation:none;opacity:1}}
+</style>
+</helmet>
+<div style="width:1200px;height:800px;box-sizing:border-box;position:relative;font-family:Inter,system-ui,sans-serif;color:#0F172A;background:#FFFFFF;overflow:hidden">
+<p style="position:absolute;left:40px;top:28px;margin:0;font-size:13px;color:#64748B">Layer test · option A, drawn in code · layer 3 of 5</p>
+
+<svg viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="Isometric illustration: a payments layer with a card terminal, a bank card, a pay-in-four instalment strip and a phone wallet, between a promotions layer below and a policies layer above" style="position:absolute;left:0;top:0">
+<defs>
+<linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3B82F6"></stop><stop offset="1" stop-color="#1D4ED8"></stop></linearGradient>
+<linearGradient id="screen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F8FAFC"></stop><stop offset="1" stop-color="#E2E8F0"></stop></linearGradient>
+<linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E7C6B" stop-opacity="0.18"></stop><stop offset="1" stop-color="#0E7C6B" stop-opacity="0"></stop></linearGradient>
+</defs>
+<g class="ghost">
+<sc-for list="{{below}}" as="s" hint-placeholder-count="3"><path d="{{s.d}}" fill="{{s.f}}" stroke="{{s.st}}" stroke-width="1" stroke-dasharray="{{s.dash}}"></path></sc-for>
+</g>
+<g class="float">
+<sc-for list="{{shapes}}" as="s" hint-placeholder-count="40"><path d="{{s.d}}" fill="{{s.f}}" stroke="{{s.st}}" stroke-width="{{s.sw}}" opacity="{{s.o}}" stroke-linejoin="round" stroke-linecap="round"></path></sc-for>
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4"><path d="{{s.d}}" fill="#0E7C6B" class="step" style="{{s.delay}}"></path></sc-for>
+<sc-for list="{{labels}}" as="t" hint-placeholder-count="4"><text transform="{{t.m}}" font-family="Inter" font-weight="800" font-size="13" fill="{{t.f}}" text-anchor="middle">{{t.s}}</text></sc-for>
+</g>
+<g class="ghost">
+<sc-for list="{{above}}" as="s" hint-placeholder-count="3"><path d="{{s.d}}" fill="{{s.f}}" stroke="{{s.st}}" stroke-width="1" stroke-dasharray="{{s.dash}}"></path></sc-for>
+</g>
+<sc-for list="{{leaders}}" as="l" hint-placeholder-count="3"><path d="{{l.d}}" fill="none" stroke="#94A3B8" stroke-width="1"></path></sc-for>
+<sc-for list="{{leaders}}" as="l" hint-placeholder-count="3"><circle cx="{{l.cx}}" cy="{{l.cy}}" r="4" fill="#FFFFFF" stroke="#0E7C6B" stroke-width="2"></circle></sc-for>
+</svg>
+
+<div style="position:absolute;left:868px;top:96px;width:250px;font-size:13px;color:#64748B;text-align:left">Layer 4 · Policies</div>
+<div style="position:absolute;left:868px;top:690px;width:250px;font-size:13px;color:#64748B">Layer 2 · Promotions</div>
+
+<div style="position:absolute;left:40px;top:250px;width:230px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;box-shadow:0 4px 14px rgba(15,23,42,.08)">
+<div style="font-size:12px;font-weight:700;color:#0E7C6B">Buy now, pay later</div>
+<div style="font-size:26px;font-weight:800;margin-top:2px">53% of stores</div>
+<div style="font-size:13px;color:#64748B">Afterpay leads, at 463 stores</div>
+</div>
+<div style="position:absolute;left:900px;top:300px;width:230px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;box-shadow:0 4px 14px rgba(15,23,42,.08)">
+<div style="font-size:12px;font-weight:700;color:#2563EB">Wallets at checkout</div>
+<div style="font-size:26px;font-weight:800;margin-top:2px">42%</div>
+<div style="font-size:13px;color:#64748B">of fashion stores show Apple Pay</div>
+</div>
+<div style="position:absolute;left:40px;top:560px;width:230px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:14px 16px;box-shadow:0 4px 14px rgba(15,23,42,.08)">
+<div style="font-size:12px;font-weight:700;color:#334155">Payment options</div>
+<div style="font-size:26px;font-weight:800;margin-top:2px">Layer 3 of 5</div>
+<div style="font-size:13px;color:#64748B">Which ways each store lets you pay</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = 1.3, ox = 600, oy = 250, c = 0.866, n = 0.5;
+    const P = (x, y, z) => [ox + (x - y) * c * s, oy + (x + y) * n * s - z * s];
+    const path = (pts) => "M" + pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" L") + " Z";
+    const line = (a, b) => "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " L" + b[0].toFixed(1) + "," + b[1].toFixed(1);
+    const flat = (x, y, z, w, d) => path([P(x, y, z), P(x + w, y, z), P(x + w, y + d, z), P(x, y + d, z)]);
+    const right = (xc, y1, z1, y2, z2) => path([P(xc, y1, z2), P(xc, y2, z2), P(xc, y2, z1), P(xc, y1, z1)]);
+    const out = [];
+    const add = (d, f, st, sw, o) => out.push({ d, f, st: st || "none", sw: sw || 0, o: o == null ? 1 : o });
+    const box = (x, y, z, w, d, h, top, left, rgt, st) => {
+      add(path([P(x, y + d, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x, y + d, z)]), left, st, 1);
+      add(path([P(x + w, y, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x + w, y, z)]), rgt, st, 1);
+      add(flat(x, y, z + h, w, d), top, st, 1);
+    };
+    const ghost = (z, label) => [
+      { d: path([P(0, 320, z + 16), P(320, 320, z + 16), P(320, 320, z), P(0, 320, z)]), f: "#F1F5F9", st: "#CBD5E1", dash: "4 4" },
+      { d: path([P(320, 0, z + 16), P(320, 320, z + 16), P(320, 320, z), P(320, 0, z)]), f: "#E2E8F0", st: "#CBD5E1", dash: "4 4" },
+      { d: flat(0, 0, z + 16, 320, 320), f: "rgba(248,250,252,0.85)", st: "#CBD5E1", dash: "4 4" }];
+
+    // the plate
+    box(0, 0, 0, 320, 320, 16, "#FFFFFF", "#D5EFEA", "#B5E0D7", "#A7D8CE");
+    for (let i = 40; i < 320; i += 40) { add(line(P(i, 0, 16), P(i, 320, 16)), "none", "#E3F3EF", 1); add(line(P(0, i, 16), P(320, i, 16)), "none", "#E3F3EF", 1); }
+    // soft shadows
+    add(flat(36, 46, 16.1, 70, 90), "#0F172A", null, 0, 0.06);
+    add(flat(136, 48, 16.1, 100, 63), "#0F172A", null, 0, 0.07);
+    add(flat(256, 176, 16.1, 18, 80), "#0F172A", null, 0, 0.08);
+    // card terminal
+    box(30, 40, 16, 70, 90, 22, "#475569", "#334155", "#1E293B");
+    add(flat(40, 50, 38.2, 50, 28), "#5EEAD4");
+    add(flat(46, 56, 38.4, 22, 4), "#0F766E");
+    for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) add(flat(42 + k * 16, 88 + r * 12, 38.2, 11, 8), r === 2 && k === 2 ? "#0E7C6B" : "#94A3B8");
+    // receipt curling out of the terminal
+    add(path([P(56, 40, 38), P(78, 40, 38), P(78, 40, 66), P(56, 40, 66)]), "#FFFFFF", "#CBD5E1", 1);
+    for (let z = 46; z < 64; z += 6) add(line(P(60, 40, z), P(74, 40, z)), "none", "#CBD5E1", 1.2);
+    // bank card
+    box(130, 40, 16, 100, 63, 3, "url(#card)", "#1E40AF", "#1E3A8A");
+    add(flat(144, 50, 19.2, 16, 12), "#FBBF24", "#D97706", 0.6);
+    for (let g = 0; g < 4; g++) add(flat(144 + g * 20, 84, 19.2, 15, 3), "#FFFFFF", null, 0, 0.75);
+    add(flat(144, 92, 19.2, 30, 3), "#FFFFFF", null, 0, 0.45);
+    // pay in 4: instalment tiles
+    const steps = [];
+    const labels = [];
+    const xs = [30, 76, 122, 168];
+    xs.forEach((x, i) => {
+      box(x, 222, 16, 34, 34, 8, "#FFFFFF", "#E2E8F0", "#CBD5E1", "#CBD5E1");
+      steps.push({ d: flat(x, 222, 24.1, 34, 34), delay: "animation-delay:" + (i * 0.7).toFixed(1) + "s" });
+      const p = P(x + 17, 239, 24.3);
+      labels.push({ m: `matrix(${(c * s).toFixed(3)},${(n * s).toFixed(3)},${(-c * s).toFixed(3)},${(n * s).toFixed(3)},${p[0].toFixed(1)},${(p[1] + 4).toFixed(1)})`, s: String(i + 1), f: "#0F172A" });
+    });
+    // phone wallet
+    box(250, 170, 16, 12, 72, 128, "#1E293B", "#0F172A", "#1E293B");
+    add(right(262.2, 176, 26, 236, 138), "url(#screen)");
+    add(right(262.4, 184, 98, 228, 124), "url(#card)");
+    add(right(262.5, 188, 116, 204, 120), "#FFFFFF", null, 0, 0.8);
+    const ring = []; for (let a = 0; a < 24; a++) { const t = (a / 24) * Math.PI * 2; ring.push(P(262.5, 206 + 11 * Math.cos(t), 66 + 11 * Math.sin(t))); }
+    add(path(ring), "#0E7C6B");
+    add("M" + [P(262.6, 200, 66), P(262.6, 204, 61), P(262.6, 213, 71)].map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" L"), "none", "#FFFFFF", 2.4);
+    add(right(262.4, 190, 40, 222, 46), "#0E7C6B", null, 0, 0.85);
+    add(right(262.4, 196, 32, 216, 35), "#94A3B8", null, 0, 0.7);
+
+    // leader lines from the cards to the objects
+    const L = (from, to) => { const m = [from[0] + (to[0] - from[0]) * 0.55, from[1]]; return { d: "M" + from.join(",") + " L" + m.join(",") + " L" + to.join(","), cx: to[0], cy: to[1] }; };
+    const tile = P(64, 239, 24), phone = P(262, 206, 100), term = P(64, 85, 38);
+    return {
+      shapes: out, steps, labels,
+      below: ghost(-110), above: ghost(214),
+      leaders: [L([270, 300], [tile[0], tile[1]]), L([900, 340], [phone[0], phone[1]]), L([270, 610], [term[0], term[1]])],
+    };
+  }
+}
+</script>
+</body>
+</html>
