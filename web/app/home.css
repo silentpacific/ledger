@@ -53,15 +53,15 @@
 /* phones and tablets: intro on top, then the picture (cropped to the phone and layers, scaled to fit), then the layer text.
    Swiping up on the picture plays it; swiping elsewhere scrolls the page. */
 @media (max-width: 1023px) {
-  .s-box { width: 100%; flex: 1 1 auto; min-width: 0; height: auto; zoom: 1; padding: 40px 0 56px; }
+  .s-box { width: 100%; flex: 1 1 auto; min-width: 0; height: auto; zoom: 1; padding: 40px 0 8px; }
   .s-art-wrap { overflow: hidden; }
   .s-intro { position: static !important; width: auto !important; animation: none !important; padding: 0 24px; }
   .s-intro h1 { font-size: min(40px, 5.6vw) !important; }
   .s-hint-d { display: none; } .s-hint-m { display: inline; }
   .s-hint { margin-top: 24px !important; }
-  .s-art { position: relative; inset: auto; width: 640px; height: 880px; margin: 8px auto 0; overflow: hidden; }
+  .s-art { position: relative; inset: auto; width: 640px; height: 840px; margin: 8px auto 0; overflow: hidden; }
   .s-art-in { left: -690px; }
-  .s-box { display: flex; flex-direction: column; } .s-texts { position: relative; inset: auto; height: 300px; order: 3; }
+  .s-box { display: flex; flex-direction: column; } .s-texts { position: relative; inset: auto; height: 280px; order: 3; animation: s-th linear both; animation-timeline: --story; }
   .s-pn, .s-outro { left: 24px !important; right: 24px; width: auto !important; top: 8px !important; }
   .s-pn h2, .s-outro h2 { font-size: 28px !important; }
   .s-barw { display: none; }
@@ -149,7 +149,8 @@
   .qf .q-fly, .qf .q-fly2 { display: none; }
   .mm .h-fixed { margin-left: -76px; height: 1100px; }
   .mm .m-card { left: 96px !important; top: 660px !important; }
-  .h-nums { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .h-nums { display: flex !important; flex-wrap: wrap; justify-content: center; } .h-nums > div { flex: 0 0 calc(50% - 8px); }
+  .h-bm { display: block; margin-top: 6px; }
   .h-sec { padding-top: 56px; padding-bottom: 56px; }
   .h-line { display: block; }
 }
@@ -159,6 +160,8 @@
 /* the break (28 Nov): one section on a soft yellow, between the white and grey bands */
 .h-break { background: #374151; color: #FFFFFF; }
 .qf .h-fixed { height: 740px; }
+.h-faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 56px; border-bottom: 1px solid #E2E8F0; align-items: start; }
+@media (max-width: 767px) { .h-faq { grid-template-columns: 1fr; } }
 /* phones: everything centred (FAQ rows stay left so the questions are easy to scan) */
 @media (max-width: 767px) {
   .h .h-col, .h .m-only, .s-intro, .s-pn, .s-outro, .h-break, .h-dark { text-align: center; }
@@ -168,3 +171,6 @@
   .qf .h-fixed { height: 1000px; } .qf { padding-bottom: 0; }
   .h-col[style*="flex-wrap: wrap"] { justify-content: center; }
 }
+/* phones: the space for the layer text opens only once the picture starts to play, so there's no empty gap before it */
+@keyframes s-th { 0%, 2% { height: 0; } 9%, 100% { height: 280px; } }
+@supports not (animation-timeline: scroll()) { .s-texts { animation: none; } }

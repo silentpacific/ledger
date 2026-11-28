@@ -111,7 +111,7 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-            <p style={{ margin: "14px 0 0", fontSize: 13, color: "#9CA3AF" }}>From the latest scans. Stores A, B and C stand for the three most common windows; no store is named. <Link href={`/benchmarks?industry=${h.slug}`} style={{ color: "#FFFFFF", fontWeight: 600 }}>See the benchmarks</Link></p>
+            <p style={{ margin: "14px 0 0", fontSize: 13, color: "#9CA3AF" }}>From the latest scans. Stores A, B and C stand for the three most common windows; no store is named. <Link href={`/benchmarks?industry=${h.slug}`} className="h-bm" style={{ color: "#FFFFFF", fontWeight: 600 }}>See the benchmarks</Link></p>
           </div></section>
         )}
 
@@ -120,22 +120,25 @@ export default async function Home() {
         <section className="h-band" style={{ overflow: "hidden" }} aria-labelledby="moves-h">
           <h2 id="moves-h" className="sr">Market moves</h2>
           <ChangeExample />
-          {shownMoves.length > 0 && (
-            <div className="h-col" style={{ paddingBottom: 112 }}>
-              <h3 style={{ margin: "0 0 14px", fontSize: 18, fontWeight: 800 }}>Spotted in the latest scans</h3>
+        </section>
+
+        {shownMoves.length > 0 && (
+          <section className="h-break" aria-labelledby="spot-h">
+            <div className="h-col" style={{ paddingTop: 72, paddingBottom: 80 }}>
+              <h2 id="spot-h" style={{ margin: "0 0 18px", fontSize: 24, fontWeight: 800, color: "#FFFFFF" }}>Spotted in the latest scans</h2>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))", gap: 12 }}>
                 {shownMoves.map((i, n) => (
-                  <div key={n} style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 16px" }}>
+                  <div key={n} style={{ background: "#FFFFFF", color: "#0F172A", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 16px" }}>
                     <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#B45309" }}>{i.tag} · a {(SHORT[i.i] ?? i.ind).toLowerCase()} store</p>
                     <p style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>{i.text}</p>
                     <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748B" }}>{i.when}</p>
                   </div>
                 ))}
               </div>
-              <Link href="/changes" className="h-link" style={{ display: "inline-block", marginTop: 18 }}>See every change, with store names</Link>
+              <Link href="/changes" className="h-link" style={{ display: "inline-block", marginTop: 22, color: "#FFFFFF" }}>See every change, with store names</Link>
             </div>
-          )}
-        </section>
+            </section>
+        )}
 
         <section className="h-col h-sec" aria-labelledby="ind-h" style={{ textAlign: "center" }}>
           <p className="h-eye">Industries</p>
@@ -195,11 +198,11 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="h-col h-sec" aria-labelledby="faq-h" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))", gap: 64 }}>
-          <h2 id="faq-h" className="h-h2">FAQs</h2>
-          <div>
+        <section className="h-col h-sec" aria-labelledby="faq-h">
+          <h2 id="faq-h" className="h-h2" style={{ marginBottom: 28 }}>FAQs</h2>
+          <div className="h-faq">
             {faqs.map(([q, a], n, all) => (
-              <details key={q} style={{ borderTop: "1px solid #E2E8F0", borderBottom: n === all.length - 1 ? "1px solid #E2E8F0" : undefined, padding: "18px 0" }}>
+              <details key={q} style={{ borderTop: "1px solid #E2E8F0", padding: "18px 0" }}>
                 <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 17 }}>{q}</summary>
                 <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.55 }}>{a}</p>
               </details>
