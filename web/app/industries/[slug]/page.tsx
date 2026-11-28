@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { JsonLd } from "@/components/ui";
-import { getView, listSites, PAGE_SIZE } from "@/lib/data";
+import { getView, listSitesSorted, PAGE_SIZE } from "@/lib/data";
 import StoreTable, { Pager } from "@/components/StoreTable";
 import { INDUSTRIES } from "@/lib/industries";
 import { dateAU } from "@/lib/format";
@@ -39,12 +39,13 @@ type V = {
 const pc = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
 const AMBER = ["#CBD5E1", "#FDE68A", "#FCD34D", "#FBBF24", "#F59E0B", "#D97706", "#B45309"];
 
-export default async function IndustryPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> }) {
+export default async function IndustryPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string; sort?: string; dir?: string }> }) {
   const { slug } = await params;
-  const page = Math.max(1, Number((await searchParams).page) || 1);
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page) || 1);
   const ind = INDUSTRIES.find((x) => x.slug === slug);
   if (!ind) notFound();
-  const [v, list] = await Promise.all([getView<V>(`industry:${slug}`), listSites({ industry: slug, page })]);
+  const [v, list] = await Promise.all([getView<V>(`industry:${slug}`), listSitesSorted({ industry: slug, page, sort: sp.sort, dir: sp.dir })]);
   const n = v?.n ?? 0, latest = v?.latest ?? "", short = SHORT[slug] ?? ind.name.toLowerCase();
   const com = v?.com ?? [], payer = v?.payer ?? [], retBins = v?.retBins ?? [];
   const comCond = com.find((c) => c[0] === "With conditions")?.[1] ?? 0, comN = com.reduce((a, c) => a + c[1], 0);
@@ -127,16 +128,16 @@ export default async function IndustryPage({ params, searchParams }: { params: P
           </section>
 
           {v.depth && offerN > 0 && (
-            <section className="h-band" aria-labelledby="promo-h"><div className="h-col h-sec" style={{ paddingTop: 64, paddingBottom: 64 }}>
-              <p className="h-eye">Promotions this week</p>
-              <h2 id="promo-h" className="h-h2" style={{ fontSize: 30 }}>{pc(offerN, n)}% of {short} stores ran an offer.{v.bf ? ` ${v.bf} mentioned Black Friday or Cyber Monday.` : ""}</h2>
+            <section className="h-break" aria-labelledby="promo-h"><div className="h-col h-sec" style={{ paddingTop: 64, paddingBottom: 64 }}>
+              <p className="h-eye" style={{ color: "#FACC15" }}>Promotions this week</p>
+              <h2 id="promo-h" className="h-h2" style={{ fontSize: 30, color: "#FFFFFF" }}>{pc(offerN, n)}% of {short} stores ran an offer.{v.bf ? ` ${v.bf} mentioned Black Friday or Cyber Monday.` : ""}</h2>
               <div className="i-two" style={{ gridTemplateColumns: "1.2fr 1fr" }}>
                 <div className="i-panel"><p className="i-pt">Deepest discount advertised</p><p className="i-ps">{offerN} stores with an offer, by their biggest percentage off</p>
                   <Columns data={v.depth} colors={AMBER} label="Deepest advertised discount" /></div>
                 <div className="i-panel"><p className="i-pt">Kinds of offer</p><p className="i-ps">Stores running each kind this week</p>
                   <HBars rows={v.kinds ?? []} of={Math.max(1, ...(v.kinds ?? []).map((k) => k[1]))} colors="#F59E0B" track="#FEF3C7" pct={false} /></div>
               </div>
-              <Link href={`/promotions?industry=${slug}`} className="h-link" style={{ display: "inline-block", marginTop: 20 }}>See every {short} promotion</Link>
+              <Link href={`/promotions?industry=${slug}`} className="h-link" style={{ display: "inline-block", marginTop: 20, color: "#FFFFFF" }}>See every {short} promotion</Link>
             </div></section>
           )}
 
@@ -154,8 +155,8 @@ export default async function IndustryPage({ params, searchParams }: { params: P
           <section className="h-col" style={{ paddingTop: 40, paddingBottom: 80 }} aria-labelledby="stores-h">
             <p className="h-eye">Stores</p>
             <h2 id="stores-h" className="h-h2" style={{ fontSize: 30 }}>All {n} {short} stores</h2>
-            <div className="i-panel i-table" style={{ padding: "4px 12px", marginTop: 20, textAlign: "left" }}><StoreTable rows={list.rows} industry={false} /></div>
-            <Pager page={page} total={list.total} size={PAGE_SIZE} href={(p) => `/industries/${slug}${p > 1 ? `?page=${p}` : ""}`} />
+            <div className="i-panel i-table" style={{ padding: "4px 12px", marginTop: 20, textAlign: "left" }}><StoreTable rows={list.rows} industry={false} sort={{ key: sp.sort, dir: sp.dir, href: (k, d) => `/industries/${slug}?sort=${k}&dir=${d}#stores-h` }} /></div>
+            <Pager page={page} total={list.total} size={PAGE_SIZE} href={(p) => `/industries/${slug}?${new URLSearchParams(Object.entries({ page: p > 1 ? String(p) : "", sort: sp.sort ?? "", dir: sp.dir ?? "" }).filter(([, x]) => x))}#stores-h`} />
             <p style={{ margin: "12px 0 0", fontSize: 13, color: "#64748B" }}>"Not stated" means the store doesn't publish it, not that it isn't offered.</p>
           </section>
         </>}

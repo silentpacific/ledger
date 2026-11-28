@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import IndustryFilter from "@/components/IndustryFilter";
 import FilterSelect from "@/components/FilterSelect";
-import { getCounts, getView, listSites, PAGE_SIZE } from "@/lib/data";
+import { getCounts, getView, listSitesSorted, PAGE_SIZE } from "@/lib/data";
 import StoreTable, { Pager } from "@/components/StoreTable";
 import { KIND_SINGULAR, facetHref } from "@/lib/format";
 import { industryName } from "@/lib/industries";
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 const KINDS = ["payments", "tech", "platform", "policy"] as const;
-type Q = { industry?: string; segment?: string; payments?: string; tech?: string; platform?: string; policy?: string; page?: string };
+type Q = { industry?: string; segment?: string; payments?: string; tech?: string; platform?: string; policy?: string; page?: string; sort?: string; dir?: string };
 type Opt = { value: string; name: string; n: number };
 
 export default async function Sites({ searchParams }: { searchParams: Promise<Q> }) {
@@ -28,7 +28,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
   const [fv, counts] = await Promise.all([getView<Record<string, any>>(`filters:${q.industry || "all"}`), getCounts()]);
   const fc: Record<string, Opt[]> = Object.fromEntries(KINDS.map((k) => [k, (fv?.[k] as Opt[]) || []]));
   const chosen = KINDS.map((k) => { const x = q[k] ? fc[k].find((o) => o.value === q[k]) : undefined; return x && { kind: k, ...x }; }).filter(Boolean) as (Opt & { kind: string })[];
-  const list = await listSites({ industry: q.industry, tags: chosen.map((f) => `${f.kind}:${f.value}`), page });
+  const list = await listSitesSorted({ industry: q.industry, tags: chosen.map((f) => `${f.kind}:${f.value}`), page, sort: q.sort, dir: q.dir });
   const link = (o: Record<string, string | undefined>) =>
     "/sites?" + new URLSearchParams(Object.entries({ ...q, page: undefined, ...o }).filter(([, v]) => v) as [string, string][]).toString();
   // ready-made lists, worked out for whichever industry is selected
@@ -76,7 +76,7 @@ export default async function Sites({ searchParams }: { searchParams: Promise<Q>
           <h2 style={{ margin: 0, fontSize: 22 }}>{sites.length} {sites.length === 1 ? "store" : "stores"}{chosen.length ? ` · ${chosen.map((f) => f.name).join(" · ")}` : ""}</h2>
           {chosen.length === 1 && <Link className="small" href={facetHref(chosen[0].kind, chosen[0].value)} style={{ fontWeight: 600 }}>Who added or dropped it →</Link>}
         </div>
-        <StoreTable rows={list.rows} />
+        <StoreTable rows={list.rows} sort={{ key: q.sort, dir: q.dir, href: (k, d) => link({ sort: k, dir: d }) }} />
         <Pager page={page} total={list.total} size={PAGE_SIZE} href={(p) => link({ page: p > 1 ? String(p) : undefined })} />
         <p className="small muted" style={{ marginTop: 12 }}>"Not stated" means the store doesn't publish it, not that it isn't offered. Every filtered list has its own address, so it can be shared and bookmarked. Know a store we should add? Use "Suggest a site" below.</p>
       </main>

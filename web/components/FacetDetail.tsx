@@ -2,7 +2,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import StoreTable, { Pager } from "@/components/StoreTable";
 import { Bars, Crumbs, JsonLd } from "@/components/ui";
-import { getView, listSites, PAGE_SIZE } from "@/lib/data";
+import { getView, listSitesSorted, PAGE_SIZE } from "@/lib/data";
 import { KIND_HOME, KIND_NAMES, facetHref, dateAU, label, slug } from "@/lib/format";
 import { INDUSTRIES, industryName } from "@/lib/industries";
 import type { ChangeLine } from "@/lib/views";
@@ -20,8 +20,8 @@ export function facetTitle(kind: string, name: string) {
 }
 
 /** One payment option, technology, platform or policy across all industries (or one); the stores table is paged. */
-export default async function FacetDetail({ kind, value, industry, page = 1 }: { kind: string; value: string; industry?: string; page?: number }) {
-  const [f, list] = await Promise.all([loadFacet(kind, value), listSites({ industry, tags: [`${kind}:${value}`], page })]);
+export default async function FacetDetail({ kind, value, industry, page = 1, sort, dir }: { kind: string; value: string; industry?: string; page?: number; sort?: string; dir?: string }) {
+  const [f, list] = await Promise.all([loadFacet(kind, value), listSitesSorted({ industry, tags: [`${kind}:${value}`], page, sort, dir })]);
   if (!f) return null;
   const base = facetHref(kind, value);
   const scope = f.counts[industry || "all"] ?? { m: 0, n: 0 };
@@ -32,7 +32,8 @@ export default async function FacetDetail({ kind, value, industry, page = 1 }: {
   const scopeName = industry ? `${industryName(industry).toLowerCase()} stores` : "stores";
   const section: [string, string] = [kind === "tech" ? "Tech" : KIND_NAMES[kind] === "Payment options" ? "Payments" : KIND_NAMES[kind], KIND_HOME[kind]];
   const crumbs: [string, string?][] = kind === "tech" ? [section, [f.cat || "Other", "/tech"], [f.name]] : [section, [f.name]];
-  const href = (p: number) => `${base}?${new URLSearchParams(Object.entries({ industry, page: p > 1 ? String(p) : undefined }).filter(([, x]) => x) as [string, string][])}`;
+  const href = (p: number) => `${base}?${new URLSearchParams(Object.entries({ industry, page: p > 1 ? String(p) : undefined, sort, dir }).filter(([, x]) => x) as [string, string][])}`;
+  const sortHref = (k: string, d: string) => `${base}?${new URLSearchParams(Object.entries({ industry, sort: k, dir: d }).filter(([, x]) => x) as [string, string][])}`;
   return (
     <>
       <Header active={KIND_HOME[kind]} />
@@ -68,7 +69,7 @@ export default async function FacetDetail({ kind, value, industry, page = 1 }: {
           </section>
         )}
         <h2 style={{ margin: "28px 0 0", fontSize: 22 }}>{list.total} {list.total === 1 ? "store" : "stores"}</h2>
-        <StoreTable rows={list.rows} loyalty={false} minWidth={860} bnplLabel={kind === "payments" ? "Other BNPL" : "Buy now, pay later"}
+        <StoreTable rows={list.rows} sort={{ key: sort, dir, href: sortHref }} loyalty={false} minWidth={860} bnplLabel={kind === "payments" ? "Other BNPL" : "Buy now, pay later"}
           bnpl={kind === "payments" ? (r) => r.bn.filter((p) => slug(p) !== value).map(label).join(", ") || "—" : undefined} />
         <Pager page={page} total={list.total} size={PAGE_SIZE} href={href} />
         <p className="tiny muted" style={{ marginTop: 10 }}>"Not stated" means the site doesn't publish it, not that it isn't offered.</p>
