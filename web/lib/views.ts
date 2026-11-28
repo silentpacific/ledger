@@ -213,7 +213,7 @@ function industryPage(all: Site[], promosAll: Promo[], slug_: string) {
       ["$10–11.99", (x) => x >= 10 && x < 12], ["$12–14.99", (x) => x >= 12 && x < 15], ["$15+", (x) => x >= 15]]),
     retBins: band(ret, [["7 or less", (x) => x <= 7], ["8–14", (x) => x > 7 && x <= 14], ["15–28", (x) => x > 14 && x <= 28], ["29–30", (x) => x > 28 && x <= 30],
       ["31–59", (x) => x > 30 && x < 60], ["60–89", (x) => x >= 60 && x < 90], ["90+", (x) => x >= 90]]),
-    fee: fee.length ? money(median(fee)) : null, feeN: fee.length,
+    fee: fee.length ? money(median(fee)) : null, feeN: fee.length, feeNum: fee.length ? median(fee) : null, fsNum: fs.length ? median(fs) : null,
     com: split("policies.returns.change_of_mind", [["conditional", "With conditions"], ["yes", "Yes"], ["no", "No"], ["online_only", "Online orders only"]]),
     payer: split("policies.returns.return_shipping_payer", [["customer", "Shopper"], ["conditional", "Depends"], ["merchant", "Store"]]),
     platforms: [...plat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6), platformN: [...plat.values()].reduce((a, b) => a + b, 0),
@@ -229,6 +229,43 @@ function industryPage(all: Site[], promosAll: Promo[], slug_: string) {
     fs: fs.length ? money(median(fs))! : null, fsN: fs.length, ret: ret.length ? median(ret)! : null, retN: ret.length,
     bnplN: bnplSites.length, prov: [...prov.entries()].sort((a, b) => b[1] - a[1]).map(([p, n]) => ({ label: label(p), n })),
   };
+}
+
+/** "What stands out" for each industry page: where it is highest or lowest of the industries (5+ stores; medians only where
+ * at least COVERAGE of its stores state the value; ties don't count). Up to two, joined with "but" when one is good for
+ * shoppers and the other isn't. Falls back to a sentence about the typical store. */
+function standOut(views: Record<string, any>) {
+  const ids = INDUSTRIES.map((i) => i.slug).filter((sl) => (views[`industry:${sl}`]?.n ?? 0) >= 5);
+  const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
+  type M = { key: string; get: (v: any) => number | null; high: string; low: string; goodHigh: boolean; fmt: (x: number) => string };
+  const ok = (v: any, n: number) => n / Math.max(1, v.n) >= COVERAGE;
+  const ms: M[] = [
+    { key: "fs", get: (v) => (ok(v, v.fsN) ? v.fsNum : null), high: "The highest free-shipping minimum of any industry, at %", low: "The lowest free-shipping minimum of any industry, at %", goodHigh: false, fmt: (x) => money(x)! },
+    { key: "fee", get: (v) => (ok(v, v.feeN ?? 0) ? v.feeNum : null), high: "The most expensive standard delivery of any industry, at %", low: "The cheapest standard delivery of any industry, at %", goodHigh: false, fmt: (x) => money(x)! },
+    { key: "ret", get: (v) => (ok(v, v.retN) ? v.ret : null), high: "The longest returns windows of any industry: % is typical", low: "The shortest returns windows of any industry: % is typical", goodHigh: true, fmt: (x) => `${x} days` },
+    { key: "bnpl", get: (v) => pct(v.bnplN, v.n), high: "The most stores offering buy now, pay later: %", low: "The fewest stores offering buy now, pay later: %", goodHigh: true, fmt: (x) => `${x}%` },
+    { key: "sale", get: (v) => pct(v.offerN ?? 0, v.n), high: "The most stores running an offer this week: %", low: "The fewest stores running an offer this week: %", goodHigh: true, fmt: (x) => `${x}%` },
+    { key: "bf", get: (v) => pct(v.bf ?? 0, v.n), high: "The most Black Friday sales, at % of stores", low: "The fewest Black Friday sales, at % of stores", goodHigh: true, fmt: (x) => `${x}%` },
+  ];
+  for (const sl of ids) {
+    const v = views[`industry:${sl}`];
+    const found: { text: string; good: boolean }[] = [];
+    for (const m of ms) {
+      const mine = m.get(v);
+      if (mine === null || mine === undefined) continue;
+      const others = ids.filter((x) => x !== sl).map((x) => m.get(views[`industry:${x}`])).filter((x): x is number => x !== null && x !== undefined);
+      if (others.length < 3) continue;
+      if (mine > Math.max(...others)) found.push({ text: m.high.replace("%", m.fmt(mine)), good: m.goodHigh });
+      else if (mine < Math.min(...others)) found.push({ text: m.low.replace("%", m.fmt(mine)), good: !m.goodHigh });
+    }
+    let line: string | null = null;
+    if (found.length >= 2) {
+      const [a, b] = found;
+      line = `${a.text}, ${a.good === b.good ? "and" : "but"} ${b.text.charAt(0).toLowerCase()}${b.text.slice(1)}.`;
+    } else if (found.length === 1) line = `${found[0].text}.`;
+    else if (v.ret != null && v.prov?.[0]) line = `The typical store here takes returns within ${v.ret} days${v.fs ? ` and offers free shipping over ${v.fs}` : ""}; ${v.prov[0].label} is the most common way to pay later.`;
+    v.standOut = line;
+  }
 }
 
 // ---------- payments, platforms, policies, tech ----------
@@ -427,6 +464,7 @@ export function buildAll(all: Site[], promos: Promo[], changes365: Change[], not
   views.home = { ...home(all, promos, changes60, cs, notFeatured), totals: totals ?? null };
   views.industries = { all: groupStats(all, promos), ind: Object.fromEntries(INDUSTRIES.map((i) => [i.slug, groupStats(filterSites(all, i.slug), promos)])) };
   for (const i of INDUSTRIES) views[`industry:${i.slug}`] = industryPage(all, promos, i.slug);
+  standOut(views);
   for (const sc of SCOPES) {
     views[`feed:${sc}`] = feed(all, promos, changes60, sc);
     views[`payments:${sc}`] = payments(all, changes365, sc);

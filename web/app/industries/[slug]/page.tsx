@@ -11,6 +11,7 @@ import { pageSchema } from "@/lib/schema";
 import { Columns, Donut, HBars, medianBand, Split, type Pair } from "@/components/charts";
 import ComingSoon from "@/components/ComingSoon";
 import Locked from "@/components/home/Locked";
+import { industryPlates } from "@/lib/iso";
 import "../../home.css";
 
 export const revalidate = 3600;
@@ -34,9 +35,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 type V = {
   n: number; latest: string; fs: string | null; fsN: number; ret: number | null; retN: number; bnplN: number; prov: { label: string; n: number }[];
   fsBins?: Pair[]; feeBins?: Pair[]; retBins?: Pair[]; fee?: string | null; feeN?: number; com?: Pair[]; payer?: Pair[]; platforms?: Pair[]; platformN?: number;
-  offerN?: number; bf?: number; depth?: Pair[]; kinds?: Pair[];
+  offerN?: number; bf?: number; depth?: Pair[]; kinds?: Pair[]; standOut?: string | null;
 };
 const pc = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
+/** Each industry's colour, from its homepage plate: label and rule (ink, line) and a very light header wash. */
+const ACCENT: Record<string, { ink: string; line: string; wash: string }> = {
+  fashion: { ink: "#B45309", line: "#F59E0B", wash: "#FFFBEB" }, homewares: { ink: "#1D4ED8", line: "#60A5FA", wash: "#EFF6FF" },
+  beauty: { ink: "#BE185D", line: "#F472B6", wash: "#FDF2F8" }, "baby-kids": { ink: "#7C3AED", line: "#A78BFA", wash: "#F5F3FF" },
+  "sports-outdoors": { ink: "#15803D", line: "#4ADE80", wash: "#F0FDF4" }, jewellery: { ink: "#0E7C6B", line: "#2DD4BF", wash: "#F0FDFA" },
+  health: { ink: "#0E7490", line: "#22D3EE", wash: "#ECFEFF" }, electronics: { ink: "#475569", line: "#94A3B8", wash: "#F8FAFC" },
+  pet: { ink: "#C2410C", line: "#FB923C", wash: "#FFF7ED" },
+};
 const AMBER = ["#CBD5E1", "#FDE68A", "#FCD34D", "#FBBF24", "#F59E0B", "#D97706", "#B45309"];
 
 export default async function IndustryPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string; sort?: string; dir?: string }> }) {
@@ -53,27 +62,40 @@ export default async function IndustryPage({ params, searchParams }: { params: P
   const upTo14 = (retBins[0]?.[1] ?? 0) + (retBins[1]?.[1] ?? 0);
   const topProv = v?.prov?.[0], plats = v?.platforms ?? [], platN = v?.platformN ?? 0, topPlat = plats[0];
   const offerN = v?.offerN ?? 0;
+  const acc = ACCENT[slug] ?? ACCENT.electronics, plate = industryPlates({}, slug)[0];
   return (
     <div className="h i-page">
       <Header active="/industries" />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: ind.name, path: `/industries/${slug}`, crumbs: [["Industries", "/industries"], [ind.name]], items: list.rows.map((s) => ({ name: s.name, path: `/sites/${s.domain}` })) })} />
       <main>
-        <section className="h-col" style={{ paddingTop: 40, paddingBottom: 36 }}>
-          <p style={{ margin: 0, fontSize: 13, color: "#64748B" }}><Link href="/industries" style={{ color: "#64748B" }}>Industries</Link> / {ind.name}</p>
-          <div className="i-head" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginTop: 14, flexWrap: "wrap" }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: "clamp(36px, 4vw, 48px)", lineHeight: 1.05, letterSpacing: "-1.6px", fontWeight: 800 }}>{ind.name}</h1>
-              <p className="h-lede" style={{ marginTop: 12 }}>{n ? `${n} Australian ${short} stores, read every week.${latest ? ` Figures from the latest scans, ${dateAU(latest)}.` : ""}` : "The first stores are being scanned now; they'll appear here as soon as their scans finish."}</p>
+        <section style={{ background: acc.wash, borderBottom: "1px solid #F1F5F9", overflow: "hidden" }}>
+          <div className="h-col i-hero">
+            <div className="i-hero-text">
+              <p style={{ margin: "0 0 18px", fontSize: 13, color: "#64748B" }}><Link href="/industries" style={{ color: "#64748B" }}>Industries</Link> / {ind.name}</p>
+              <p style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: acc.ink }}>Industry</p>
+              <h1 style={{ margin: 0, fontSize: "clamp(36px, 4vw, 52px)", lineHeight: 1.04, letterSpacing: "-1.8px", fontWeight: 800 }}>{ind.name}</h1>
+              <div className="i-rule" style={{ background: acc.line }} />
+              {v?.standOut && <>
+                <p style={{ margin: "22px 0 0", fontSize: 13, fontWeight: 700, color: acc.ink }}>What stands out</p>
+                <p className="i-stand">{v.standOut}</p>
+              </>}
+              <p style={{ margin: "14px 0 0", fontSize: 15, color: "#475569", lineHeight: 1.5 }}>{n ? `${n} Australian ${short} stores, read every week.${latest ? ` Figures from the latest scans, ${dateAU(latest)}.` : ""}` : "The first stores are being scanned now; they'll appear here as soon as their scans finish."}</p>
+              <div className="i-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 22 }}>
+                <Link href="/compare" className="h-btn" style={{ height: 46, fontSize: 15 }}>Compare {short} stores</Link>
+                <ComingSoon label="Export" />
+              </div>
             </div>
-            <div className="i-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/compare" className="h-btn" style={{ height: 46, fontSize: 15 }}>Compare {short} stores</Link>
-              <ComingSoon label="Export" />
-            </div>
+            {plate && (
+              <svg className="i-plate" viewBox="0 0 260 240" aria-hidden="true">
+                {plate.shapes.map((x, k) => <path key={k} d={x.d} fill={x.f} stroke={x.st} strokeWidth={x.sw} opacity={x.o} strokeLinejoin="round" strokeLinecap="round" />)}
+                {plate.texts.map((t, k) => <text key={k} transform={t.m} fontFamily="Inter" fontWeight={t.w} fontSize={t.size} fill={t.f} textAnchor="middle">{t.s}</text>)}
+              </svg>
+            )}
           </div>
         </section>
 
         {v && n > 0 && <>
-          <section className="h-col" style={{ paddingBottom: 56 }}>
+          <section className="h-col" style={{ paddingTop: 36, paddingBottom: 56 }}>
             <div className="i-figs">
               {[[v.fs ?? "—", "median free-shipping minimum", `${v.fsN} of ${n} state one`], [v.fee ?? "—", "median delivery fee", `${v.feeN ?? 0} of ${n} state one`],
                 [v.ret != null ? `${v.ret} days` : "—", "median returns window", `${v.retN} of ${n} state one`], [`${pc(v.bnplN, n)}%`, "offer buy now, pay later", `${v.bnplN} of ${n} stores`],

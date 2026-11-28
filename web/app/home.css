@@ -200,3 +200,15 @@
   .i-donut { flex-direction: column; gap: 14px; } .i-donut > div { align-items: center; }
   .i-head { flex-direction: column; align-items: center !important; }
 }
+/* industry page header (28 Nov): the industry's own plate, colour and "what stands out" */
+.i-hero { display: flex; align-items: center; justify-content: space-between; gap: 40px; padding-top: 40px; padding-bottom: 36px; }
+.i-hero-text { flex: 1 1 auto; max-width: 720px; min-width: 0; }
+.i-rule { width: 64px; height: 4px; border-radius: 2px; margin-top: 18px; }
+.i-stand { margin: 6px 0 0; font-size: 22px; line-height: 1.35; font-weight: 700; letter-spacing: -.3px; max-width: 660px; }
+.i-plate { flex: 0 0 440px; width: 440px; height: auto; margin-right: -12px; }
+@media (max-width: 1023px) { .i-plate { flex-basis: 320px; width: 320px; } }
+@media (max-width: 767px) {
+  .i-hero { flex-direction: column-reverse; gap: 8px; padding-top: 24px; text-align: center; }
+  .i-plate { flex: none; width: 240px; margin: 0 auto; } .i-rule { margin-left: auto; margin-right: auto; }
+  .i-stand { font-size: 19px; margin-left: auto; margin-right: auto; }
+}

@@ -168,8 +168,9 @@ export function sceneLayers() {
 }
 
 /** Nine plates in a 3 x 3 grid, one per industry, each a list of paths, painted back to front. */
-export function industryPlates(counts: Record<string, number>) {
-    const s = 0.8, c = 0.866, n = 0.5, ox = 720, oy = 70, f1 = (v) => v.toFixed(1);
+export function industryPlates(counts: Record<string, number>, only?: string) {
+    // only = one industry's plate on its own (the industry page header): drawn at full size in a 260 x 240 box, no labels
+    const s = only ? 1 : 0.8, c = 0.866, n = 0.5, ox = only ? 130 : 720, oy = only ? 88 : 70, f1 = (v) => v.toFixed(1);
     let shapes = [], texts = [];
     let TX = 0, TY = 0;
     // drawn mirrored (Rahul, 28 Nov: turned the other way), so the labels on the plates read upwards
@@ -335,17 +336,16 @@ export function industryPlates(counts: Record<string, number>) {
     const SLUG = { Fashion: "fashion", Homewares: "homewares", Beauty: "beauty", "Baby & kids": "baby-kids", "Sports & outdoors": "sports-outdoors", Jewellery: "jewellery", Health: "health", Electronics: "electronics", Pet: "pet" };
     inds.forEach((d) => (d[1] = counts[SLUG[d[0]]] || 0));
     const plates = [];
-    cells.forEach(({ d, gx, gy }) => {
+    cells.filter(({ d }) => !only || SLUG[d[0]] === only).forEach(({ d, gx, gy }) => {
       shapes = []; texts = [];
-      TX = gx * 172; TY = gy * 172;
+      TX = only ? 0 : gx * 172; TY = only ? 0 : gy * 172;
       const [name, cnt, col, side1, side2] = d;
       add(flat(6, 6, 0, 140, 140), "#0F172A", null, 0, 0.05);
       box(0, 0, 0, 140, 140, 10, "#FFFFFF", side1, side2, "#E2E8F0");
       for (let g = 20; g < 140; g += 20) { add(open([P(g, 0, 10), P(g, 100, 10)]), "none", "#F1F5F9", 0.6); add(open([P(0, g, 10), P(140, g, 10)]), "none", g < 100 ? "#F1F5F9" : "none", 0.6); }
       add(open([P(8, 100, 10.05), P(132, 100, 10.05)]), "none", "#E2E8F0", 0.8);
       draw[name]();
-      txt(mTop(70, 116, 10.2), name, 12.5, "#0F172A", 800);
-      txt(mTop(70, 130, 10.2), cnt + " stores", 10.5, col, 600);
+      if (!only) { txt(mTop(70, 116, 10.2), name, 12.5, "#0F172A", 800); txt(mTop(70, 130, 10.2), cnt + " stores", 10.5, col, 600); }
       plates.push({ slug: SLUG[name], name, n: cnt, shapes, texts });
     });
     return plates;
