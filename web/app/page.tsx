@@ -49,6 +49,18 @@ export default async function Home() {
   const h = v.retHist;
   const X = (d: number) => 70 + Math.min(d, 100) * 10, H = (n: number) => Math.max(3, (n / Math.max(...(h?.bins ?? [[0, 1]]).map((b) => b[1]))) * 234);
   const ex = h ? [...h.bins].sort((a, b) => b[1] - a[1]).slice(0, 3).map((b) => b[0]).sort((a, b) => a - b) : [];
+  const faqs: [string, string][] = [
+              ["What is SentientLogs?", `A record of how Australian online stores sell: returns, shipping, payments, promotions and tech, read from each store's own pages and dated. It covers ${v.total} stores across ${v.industries} industries.`],
+              ["Where does the data come from, and how do you know it's right?", "From each store's public pages. A fact counts only when two separate reads agree and the exact sentence is on the page, and every fact links to that quote."],
+              ["How often is it updated?", "Promotions, products and content every week; policies, shipping, payments and tech on the 1st of each month. Every fact shows the date it was read."],
+              ["Which stores do you track? Can I suggest one?", `${v.total} Australian online stores across ${v.industries} industries. Use the suggest-a-store box at the bottom of any page; we add stores whose terms allow it.`],
+              ["Do you show sales, traffic or revenue?", "No. Only what a shopper can see on the store's own site. We don't estimate private numbers."],
+              ["Is collecting this allowed?", "We read only public pages, obey robots.txt and skip stores whose terms forbid automated reading."],
+              ["Is it free?", "Yes, everything is free right now. From early 2027 we plan to start charging for access to some parts of the data, such as change history and exports."],
+              ["Can I get alerts when a competitor changes something?", "Not yet. When we introduce paid Premium accounts, we hope to include custom alerts, for example when a store you follow changes its returns, shipping, payments or promotions."],
+              ["Do you cover stores outside Australia?", "Not yet. New Zealand and other countries are planned."],
+            ];
+  const month = new Date(counts?.latest || Date.now()).toLocaleDateString("en-AU", { month: "short", year: "numeric", timeZone: "Australia/Sydney" });
   const moves = v.top.filter((i) => i.tag !== "Offer").slice(0, 6);
   const shownMoves = moves.length ? moves : v.top.slice(0, 6);
 
@@ -56,11 +68,13 @@ export default async function Home() {
     <div className="h">
       <Header />
       <JsonLd data={pageSchema({ type: "CollectionPage", name: "How Australian online stores sell", path: "/" })} />
+      <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqs.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }} />
       <main>
         <Scene f={{ total: v.total, onSale: v.onSale.text, bnplPct: pct, afterpay: v.afterpay, retMode: v.retMode ?? null }} />
 
-        <section aria-label="SentientLogs in numbers" style={{ borderTop: "1px solid #EEF2F6", borderBottom: "1px solid #EEF2F6" }}>
-          <div className="h-col h-nums" style={{ paddingTop: 40, paddingBottom: 40, display: "grid", gridTemplateColumns: `repeat(${nums.length}, minmax(0, ${nums.length < 4 ? "240px" : "1fr"}))`, justifyContent: "center", gap: 16 }}>
+        <section aria-labelledby="snap-h" style={{ borderTop: "1px solid #EEF2F6", borderBottom: "1px solid #EEF2F6" }}>
+          <h2 id="snap-h" style={{ margin: "40px 0 0", textAlign: "center", fontSize: 15, fontWeight: 600, color: "#B45309" }}>{month} snapshot</h2>
+          <div className="h-col h-nums" style={{ paddingTop: 18, paddingBottom: 40, display: "grid", gridTemplateColumns: `repeat(${nums.length}, minmax(0, ${nums.length < 4 ? "240px" : "1fr"}))`, justifyContent: "center", gap: 16 }}>
             {nums.map(([n, l, c]) => (
               <div key={l} style={{ minWidth: 0, textAlign: "center", border: "1px solid #E2E8F0", borderTop: `3px solid ${c}`, borderRadius: 16, padding: "22px 18px" }}>
                 <div style={{ fontSize: "clamp(28px, 2.7vw, 42px)", fontWeight: 800, letterSpacing: "-1.2px" }}>{n}</div>
@@ -71,7 +85,7 @@ export default async function Home() {
         </section>
 
         {h && h.bins.length > 2 && (
-          <section className="h-col h-sec" aria-labelledby="problem-h">
+          <section className="h-break" aria-labelledby="problem-h"><div className="h-col h-sec">
             <p className="h-eye">How SentientLogs can help</p>
             <h2 id="problem-h" className="h-h2"><span className="h-line">Three {(SHORT[h.slug] ?? h.name).toLowerCase()} stores. </span><span className="h-line">Three returns windows.</span><br />Which one should you choose?</h2>
             <p className="h-lede">You'd have to check every store to know. We did: {h.n} {(SHORT[h.slug] ?? h.name).toLowerCase()} stores state a returns window, and the median is {h.median} days.</p>
@@ -84,21 +98,21 @@ export default async function Home() {
                 <text x={X(h.median) + 10} y="34" fontFamily="Inter" fontSize="13" fontWeight="700" fill="#0F172A">Median: {h.median} days</text></>}
               {h.bins.map(([d, n]) => (
                 <g key={d}>
-                  <rect x={X(d) - 7} y={280 - H(n)} width="14" height={H(n)} rx="3" fill={ex.includes(d) ? "#FACC15" : "#CBD5E1"} />
+                  <rect x={X(d) - 7} y={280 - H(n)} width="14" height={H(n)} rx="3" fill={ex.includes(d) ? "#0F172A" : "#E7D9A8"} />
                   {n >= 4 && <text x={X(d)} y={272 - H(n)} textAnchor="middle" fontFamily="Inter" fontSize="12" fontWeight="700" fill="#334155">{n}</text>}
                 </g>
               ))}
             </svg>
             <div className="h-grid4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))", gap: 16, marginTop: 20 }}>
               {ex.map((d, k) => (
-                <div key={d} style={{ border: "1px solid #E2E8F0", borderRadius: 14, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontSize: 14, color: "#64748B" }}><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: "#FACC15", marginRight: 8 }} />Store {"ABC"[k]}</span>
+                <div key={d} style={{ background: "#FFFFFF", border: "1px solid #F3E3A3", borderRadius: 14, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ fontSize: 14, color: "#64748B" }}><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: "#0F172A", marginRight: 8 }} />Store {"ABC"[k]}</span>
                   <b style={{ fontSize: 26, letterSpacing: "-.5px" }}>{d} days</b>
                 </div>
               ))}
             </div>
             <p style={{ margin: "14px 0 0", fontSize: 13, color: "#64748B" }}>From the latest scans. Stores A, B and C stand for the three most common windows; no store is named. <Link href={`/benchmarks?industry=${h.slug}`} style={{ color: "#0F172A", fontWeight: 600 }}>See the benchmarks</Link></p>
-          </section>
+          </div></section>
         )}
 
         <section style={{ borderTop: "1px solid #EEF2F6", overflow: "hidden" }} aria-label="How it works"><QuoteFact /></section>
@@ -107,7 +121,7 @@ export default async function Home() {
           <h2 id="moves-h" className="sr">Market moves</h2>
           <ChangeExample />
           {shownMoves.length > 0 && (
-            <div className="h-col" style={{ paddingBottom: 72 }}>
+            <div className="h-col" style={{ paddingBottom: 112 }}>
               <h3 style={{ margin: "0 0 14px", fontSize: 18, fontWeight: 800 }}>Spotted in the latest scans</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(300px, 100%), 1fr))", gap: 12 }}>
                 {shownMoves.map((i, n) => (
@@ -184,17 +198,7 @@ export default async function Home() {
         <section className="h-col h-sec" aria-labelledby="faq-h" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(380px, 100%), 1fr))", gap: 64 }}>
           <h2 id="faq-h" className="h-h2">FAQs</h2>
           <div>
-            {[
-              ["What is SentientLogs?", `A record of how Australian online stores sell: returns, shipping, payments, promotions and tech, read from each store's own pages and dated. It covers ${v.total} stores across ${v.industries} industries.`],
-              ["Where does the data come from, and how do you know it's right?", "From each store's public pages. A fact counts only when two separate reads agree and the exact sentence is on the page, and every fact links to that quote."],
-              ["How often is it updated?", "Promotions, products and content every week; policies, shipping, payments and tech on the 1st of each month. Every fact shows the date it was read."],
-              ["Which stores do you track? Can I suggest one?", `${v.total} Australian online stores across ${v.industries} industries. Use the suggest-a-store box at the bottom of any page; we add stores whose terms allow it.`],
-              ["Do you show sales, traffic or revenue?", "No. Only what a shopper can see on the store's own site. We don't estimate private numbers."],
-              ["Is collecting this allowed?", "We read only public pages, obey robots.txt and skip stores whose terms forbid automated reading."],
-              ["Is it free?", "Yes, everything is free right now. From early 2027 we plan to start charging for access to some parts of the data, such as change history and exports."],
-              ["Can I get alerts when a competitor changes something?", "Not yet. When we introduce paid Premium accounts, we hope to include custom alerts, for example when a store you follow changes its returns, shipping, payments or promotions."],
-              ["Do you cover stores outside Australia?", "Not yet. New Zealand and other countries are planned."],
-            ].map(([q, a], n, all) => (
+            {faqs.map(([q, a], n, all) => (
               <details key={q} style={{ borderTop: "1px solid #E2E8F0", borderBottom: n === all.length - 1 ? "1px solid #E2E8F0" : undefined, padding: "18px 0" }}>
                 <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 17 }}>{q}</summary>
                 <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.55 }}>{a}</p>

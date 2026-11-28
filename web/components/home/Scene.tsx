@@ -27,7 +27,7 @@ export default function Scene({ f }: { f: SceneFacts }) {
             <p style={{ margin: "22px 0 30px", fontSize: 19, lineHeight: 1.5, color: "#475569", maxWidth: 520 }}>
               Returns, shipping, payments, promotions and tech for {f.total} online stores, quoted from each store's own pages and checked every week.</p>
             <HeroLookup />
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 22px", marginTop: 20, fontSize: 14, color: "#475569" }}>
+            <div className="s-trust" style={{ display: "flex", flexWrap: "wrap", gap: "8px 22px", marginTop: 20, fontSize: 14, color: "#475569" }}>
               <span>✓ Free to browse</span><span>✓ Every fact quoted and dated</span><span>✓ Updated weekly</span></div>
             <p className="s-hint" style={{ margin: "56px 0 0", fontSize: 13, fontWeight: 600, color: "#94A3B8" }}><span className="s-hint-d">Scroll over the phone to look inside the store →</span><span className="s-hint-m">Swipe up on the phone to look inside the store ↓</span></p>
           </div>

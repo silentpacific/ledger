@@ -18,7 +18,7 @@ export default function NormalTabs({ rows }: { rows: NormalRow[] }) {
   );
   return (
     <>
-      <div role="tablist" aria-label="Industries" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 22 }}>
+      <div role="tablist" aria-label="Industries" className="h-tabs" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 22 }}>
         {rows.map((r, n) => (
           <button key={r.slug} type="button" role="tab" aria-selected={n === i} onClick={() => setI(n)}
             style={{ font: "inherit", fontSize: 15, fontWeight: 600, padding: "10px 16px", borderRadius: 999, cursor: "pointer",
