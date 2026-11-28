@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import MenuCloser from "./MenuCloser";
+import MobileNav from "./MobileNav";
 import { COMPANY, INDUSTRY_LINKS, INSIGHTS } from "./nav";
 
 /** Site header (redesign, 28 Nov 2026): white, logo placeholder, three drop-down menus that close on a click outside. */
@@ -36,6 +37,7 @@ export default function Header({ active }: { active?: string }) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
           <input id="site-search" name="q" type="search" placeholder="Search stores, tools, payments" />
         </form>
+        <MobileNav />
       </div>
     </header>
   );

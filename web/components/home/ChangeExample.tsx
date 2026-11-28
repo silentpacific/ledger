@@ -1,7 +1,7 @@
 // "Market moves": an example change rolling over on a fact card, with its history (10 s CSS loop). Example data, no store named.
 export default function ChangeExample() {
   return (
-    <div className="h-zoom" role="img" aria-label="Animation: a list of changes this month; one pet store's free-shipping minimum rolls over from $49 to $79 on its fact card, and a new dot is added to its history line.">
+    <div className="h-zoom mm" role="img" aria-label="Animation: a list of changes this month; one pet store's free-shipping minimum rolls over from $49 to $79 on its fact card, and a new dot is added to its history line.">
 <div className="h-fixed">
 <div style={{ position: "absolute", left: "96px", top: "110px", width: "540px" }}>
 <p style={{ margin: "0 0 10px", fontSize: "15px", fontWeight: "600", color: "#B45309" }}>Market moves</p>
@@ -25,7 +25,7 @@ export default function ChangeExample() {
 <span style={{ flex: "none", fontSize: "12px", color: "#94A3B8", marginTop: "2px" }}>24 Nov</span></div>
 </div>
 
-<div style={{ position: "absolute", left: "824px", top: "150px", width: "520px", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "18px", boxShadow: "0 28px 60px rgba(15,23,42,.12)", padding: "26px 30px", boxSizing: "border-box" }}>
+<div className="m-card" style={{ position: "absolute", left: "824px", top: "150px", width: "520px", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "18px", boxShadow: "0 28px 60px rgba(15,23,42,.12)", padding: "26px 30px", boxSizing: "border-box" }}>
 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: "13px", fontWeight: "600", color: "#64748B" }}>Free-shipping minimum · a pet store</span>
 <span className="m-a m-badge" style={{ fontSize: "11px", fontWeight: "700", color: "#92400E", background: "#FEF3C7", border: "1px solid #FACC15", borderRadius: "999px", padding: "4px 10px" }}>Changed 1 Nov</span></div>
 <div style={{ height: "54px", overflow: "hidden", marginTop: "8px" }}><div className="m-a m-roll"><p style={{ margin: "0", height: "54px", fontSize: "50px", lineHeight: "54px", fontWeight: "800", letterSpacing: "-1.5px" }}>$49</p><p style={{ margin: "0", height: "54px", fontSize: "50px", lineHeight: "54px", fontWeight: "800", letterSpacing: "-1.5px" }}>$79</p></div></div>

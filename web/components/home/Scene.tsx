@@ -29,9 +29,10 @@ export default function Scene({ f }: { f: SceneFacts }) {
             <HeroLookup />
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 22px", marginTop: 20, fontSize: 14, color: "#475569" }}>
               <span>✓ Free to browse</span><span>✓ Every fact quoted and dated</span><span>✓ Updated weekly</span></div>
-            <p className="s-barw" style={{ margin: "56px 0 0", fontSize: 13, fontWeight: 600, color: "#94A3B8" }}>Scroll over the phone to look inside the store →</p>
+            <p className="s-hint" style={{ margin: "56px 0 0", fontSize: 13, fontWeight: 600, color: "#94A3B8" }}><span className="s-hint-d">Scroll over the phone to look inside the store →</span><span className="s-hint-m">Swipe up on the phone to look inside the store ↓</span></p>
           </div>
 
+          <div className="s-texts">
           {panels.map((p, i) => (
             <div key={p.k} className={`s-pn s-p${i}`}>
               <p style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: p.col }}>{p.k}</p>
@@ -48,6 +49,9 @@ export default function Scene({ f }: { f: SceneFacts }) {
           <div className="s-barw" aria-hidden="true" style={{ position: "absolute", left: 56, top: 300, width: 3, height: 300, background: "#E2E8F0", borderRadius: 2 }}>
             <div className="s-bar" style={{ width: 3, height: 300, background: "#0F172A", borderRadius: 2 }} /></div>
 
+          </div>
+
+          <div className="s-art"><div className="s-art-in">
           <svg className="s-layers" viewBox="0 0 1440 900" width="1440" height="900" aria-hidden="true" style={{ position: "absolute", left: 0, top: 0 }}>
             <defs>
               <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3B82F6" /><stop offset="1" stopColor="#1D4ED8" /></linearGradient>
@@ -68,6 +72,7 @@ export default function Scene({ f }: { f: SceneFacts }) {
               <div className="s-frame"><div style={{ position: "absolute", left: 117, top: 14, width: 90, height: 26, borderRadius: 13, background: "#000" }} /></div>
               <div className="s-screen" aria-label="A phone showing an example online store" role="img"><PhoneScreen /></div>
             </div>
+          </div></div>
           </div>
         </div>
       </div>

@@ -60,10 +60,10 @@ export default async function Home() {
         <Scene f={{ total: v.total, onSale: v.onSale.text, bnplPct: pct, afterpay: v.afterpay, retMode: v.retMode ?? null }} />
 
         <section aria-label="SentientLogs in numbers" style={{ borderTop: "1px solid #EEF2F6", borderBottom: "1px solid #EEF2F6" }}>
-          <div className="h-col" style={{ paddingTop: 40, paddingBottom: 40, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 20 }}>
+          <div className="h-col h-nums" style={{ paddingTop: 40, paddingBottom: 40, display: "grid", gridTemplateColumns: `repeat(${nums.length}, minmax(0, ${nums.length < 4 ? "240px" : "1fr"}))`, justifyContent: "center", gap: 16 }}>
             {nums.map(([n, l, c]) => (
-              <div key={l} style={{ flex: "0 1 220px", textAlign: "center", border: "1px solid #E2E8F0", borderTop: `3px solid ${c}`, borderRadius: 16, padding: "22px 18px" }}>
-                <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: "-1.2px" }}>{n}</div>
+              <div key={l} style={{ minWidth: 0, textAlign: "center", border: "1px solid #E2E8F0", borderTop: `3px solid ${c}`, borderRadius: 16, padding: "22px 18px" }}>
+                <div style={{ fontSize: "clamp(28px, 2.7vw, 42px)", fontWeight: 800, letterSpacing: "-1.2px" }}>{n}</div>
                 <div style={{ fontSize: 14, color: "#64748B", marginTop: 2 }}>{l}</div>
               </div>
             ))}
@@ -72,8 +72,8 @@ export default async function Home() {
 
         {h && h.bins.length > 2 && (
           <section className="h-col h-sec" aria-labelledby="problem-h">
-            <p className="h-eye">The problem</p>
-            <h2 id="problem-h" className="h-h2" style={{ maxWidth: 820 }}>Three {(SHORT[h.slug] ?? h.name).toLowerCase()} stores. Three returns windows. Which one is normal?</h2>
+            <p className="h-eye">How SentientLogs can help</p>
+            <h2 id="problem-h" className="h-h2"><span className="h-line">Three {(SHORT[h.slug] ?? h.name).toLowerCase()} stores. </span><span className="h-line">Three returns windows.</span><br />Which one should you choose?</h2>
             <p className="h-lede">You'd have to check every store to know. We did: {h.n} {(SHORT[h.slug] ?? h.name).toLowerCase()} stores state a returns window, and the median is {h.median} days.</p>
             <svg viewBox="0 0 1100 330" width="100%" style={{ display: "block", marginTop: 34, maxWidth: 1100 }} role="img"
               aria-label={`Bar chart of returns windows at ${h.n} ${(SHORT[h.slug] ?? h.name).toLowerCase()} stores. ${h.bins.map(([d, n]) => `${n} give ${d} days`).join("; ")}.`}>
