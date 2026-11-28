@@ -155,7 +155,16 @@ function home(all: Site[], promosAll: Promo[], changes: Change[], cs: Map<string
   const start = (complete[new Date().getUTCDate() % Math.max(1, complete.length)] ?? all[0])?.domain; // a different full record each day
   const FAMOUS = ["lovisa.com.au", "koala.com", "adorebeauty.com.au", "princesspolly.com.au", "petcircle.com.au", "jbhifi.com.au"];
   const tryThese = FAMOUS.map((d) => byDomainAll.get(d)).filter((s): s is Site => !!s && s.domain !== start && coreCount(s) >= 2).slice(0, 3).map(ref);
+  // the homepage's "which one is normal?" chart: returns windows in the biggest industry, and the most common window overall
+  const biggest = [...groups].sort((a, b) => b.xs.length - a.xs.length)[0];
+  const tally = (xs: Site[]) => { const m = new Map<number, number>(); xs.forEach((x) => { const d = num(x, "policies.returns.period_days"); if (d !== undefined) m.set(d, (m.get(d) || 0) + 1); }); return m; };
+  const bh = biggest ? tally(biggest.xs) : new Map<number, number>();
+  const bvals = [...bh.entries()].flatMap(([d, n]) => Array(n).fill(d));
+  const retHist = biggest ? { slug: biggest.i.slug, name: biggest.i.name, n: bvals.length, median: median(bvals) ?? null,
+    bins: [...bh.entries()].sort((a, b) => a[0] - b[0]) } : null;
+  const retMode = [...tally(all).entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   return {
+    retHist, retMode, bnplPct: pct(bnplSites.length, all.length),
     total: all.length, industries: new Set(all.map(industryOf)).size,
     onSale: { text: allStats.onSale.text, sub: allStats.onSale.sub }, afterpay, bnplN: bnplSites.length,
     fsMedian: thresholds.length ? money(median(thresholds))! : "—", fsN: thresholds.length,
@@ -369,7 +378,7 @@ function filterOptions(all: Site[], promosAll: Promo[], scope: string) {
 }
 
 /** Everything the builder publishes: the per-store index and one view per page (and filter). */
-export function buildAll(all: Site[], promos: Promo[], changes365: Change[], notFeatured: Set<string>) {
+export function buildAll(all: Site[], promos: Promo[], changes365: Change[], notFeatured: Set<string>, totals?: Record<string, number>) {
   const index = buildIndex(all, promos, notFeatured);
   const cs = new Map(index.map((x) => [x.domain, x.card]));
   const cut60 = Date.now() - 60 * DAY;
@@ -384,7 +393,7 @@ export function buildAll(all: Site[], promos: Promo[], changes365: Change[], not
     return [i.slug, { "shipping.free_shipping_threshold": m("shipping.free_shipping_threshold"), "shipping.standard_shipping_cost": m("shipping.standard_shipping_cost"),
       "policies.returns.period_days": m("policies.returns.period_days") }];
   }));
-  views.home = home(all, promos, changes60, cs, notFeatured);
+  views.home = { ...home(all, promos, changes60, cs, notFeatured), totals: totals ?? null };
   views.industries = { all: groupStats(all, promos), ind: Object.fromEntries(INDUSTRIES.map((i) => [i.slug, groupStats(filterSites(all, i.slug), promos)])) };
   for (const i of INDUSTRIES) views[`industry:${i.slug}`] = industryPage(all, promos, i.slug);
   for (const sc of SCOPES) {

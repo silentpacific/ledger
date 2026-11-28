@@ -229,6 +229,14 @@ Design canvas: https://claude.ai/artifact/NoBzCz8tVCS3vySd9jpf77
   Mon 30 Nov 02:13 UTC weekly scan.
 - Rahul's Claude usage was ~82% of his weekly limit on 27 Nov evening: prefer SQL and code over web searches,
   and keep checks compact. He'll upgrade Anthropic API / Firecrawl if needed: warn before limits are hit.
+- Redesign 28 Nov (design canvas https://claude.ai/artifact/5ajzXhwy5ftzYLyLsTNGPC, board MainV2): white site, near-black buttons,
+  yellow (#FACC15) = quoted/changed/paid. New Header (Insights menu) and one-row Footer for every page. Homepage rebuilt (app/page.tsx,
+  app/home.css, components/home/*): scroll scene hero (phone -> 4 isometric layers, CSS view-timeline; phones/old browsers get the
+  first frame), live numbers strip (home.totals from build-views), returns chart for the biggest industry (home.retHist), quote-to-fact
+  and market-moves animations (example store "Linden Goods", no real store named), industry plates (lib/iso.ts), industry tabs,
+  Locked placeholder (GA4 event locked_feature_click). The old activity feed moved to /changes; /pricing is a placeholder.
+  Release flow (Rahul, 28 Nov): push work to a branch, send him the Vercel preview link; merge to main (= live) only when he says so.
+- Homepage v2 "Questions" (FAQ) section: keep for now; Rahul will most likely ask to remove it before launch (28 Nov).
 - Waiting on Rahul: privacy policy, terms, opt-out response time, a crawler contact email on sentientlogs.com
   (CRAWLER_CONTACT; not his personal one), a logo, lawyer review. (No founder story.)
 - Scheduled: Mon 30 Nov Cyber Monday weekly scan (batch); 1 Dec monthly skipped; weekly 7/14/21/28 Dec;

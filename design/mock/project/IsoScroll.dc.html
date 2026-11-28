@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Isometric scene: scroll prototype</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+.scroller{scroll-timeline:--story y}
+.glow,.inT,.in1,.in2,.in3,.fo,.pn,.intro,.outro,.bar,.frame,.screen{animation-timing-function:linear;animation-fill-mode:both;animation-timeline:--story;animation-duration:auto}
+.inT{animation-name:inT}.in1{animation-name:in1}.in2{animation-name:in2}.in3{animation-name:in3}
+@keyframes inT{0%,18%{opacity:0}24%,80%{opacity:1}85%,100%{opacity:0}}
+@keyframes in1{0%,13%{opacity:0;transform:translateY(70px)}22%,72%{opacity:1;transform:translateY(0)}80%,100%{opacity:0;transform:translateY(-150px)}}
+@keyframes in2{0%,15%{opacity:0;transform:translateY(70px)}24%,72%{opacity:1;transform:translateY(0)}80%,100%{opacity:0;transform:translateY(-300px)}}
+@keyframes in3{0%,17%{opacity:0;transform:translateY(70px)}26%,72%{opacity:1;transform:translateY(0)}80%,100%{opacity:0;transform:translateY(-450px)}}
+.frame{transform-origin:162px 322px;animation-name:fz}
+@keyframes fz{0%,4%{transform:scale(1);opacity:1}12%{transform:scale(1.6);opacity:0}84%{transform:scale(1);opacity:0}90%,100%{transform:scale(1);opacity:1}}
+.screen{transform-origin:150px 310px;animation-name:morph}
+@keyframes morph{0%,4%{transform:translate(0px,0px) rotateX(0deg) rotateZ(0deg) scale(1);border-radius:42px}12%{transform:translate(0px,0px) rotateX(0deg) rotateZ(0deg) scale(1.6);border-radius:30px}22%,80%{transform:translate(0px,-224.6px) rotateX(54.7356deg) rotateZ(45deg) scale(0.4857);border-radius:30px}90%,100%{transform:translate(0px,0px) rotateX(0deg) rotateZ(0deg) scale(1);border-radius:42px}}
+.fo0{animation-name:fo0}.fo1{animation-name:fo1}.fo2{animation-name:fo2}.fo3{animation-name:fo3}
+@keyframes fo0{0%,34%{opacity:1}37%,70%{opacity:.22}73%,100%{opacity:1}}
+@keyframes fo1{0%,22%{opacity:1}25%,34%{opacity:.22}37%,46%{opacity:1}49%,70%{opacity:.22}73%,100%{opacity:1}}
+@keyframes fo2{0%,22%{opacity:1}25%,46%{opacity:.22}49%,58%{opacity:1}61%,70%{opacity:.22}73%,100%{opacity:1}}
+@keyframes fo3{0%,22%{opacity:1}25%,58%{opacity:.22}61%,100%{opacity:1}}
+.pn{position:absolute;left:112px;top:300px;width:430px}
+.p0{animation-name:p0}.p1{animation-name:p1}.p2{animation-name:p2}.p3{animation-name:p3}
+@keyframes p0{0%,23%{opacity:0;transform:translateY(18px)}26%,33%{opacity:1;transform:none}36%,100%{opacity:0;transform:translateY(-18px)}}
+@keyframes p1{0%,36%{opacity:0;transform:translateY(18px)}39%,45%{opacity:1;transform:none}48%,100%{opacity:0;transform:translateY(-18px)}}
+@keyframes p2{0%,48%{opacity:0;transform:translateY(18px)}51%,57%{opacity:1;transform:none}60%,100%{opacity:0;transform:translateY(-18px)}}
+@keyframes p3{0%,60%{opacity:0;transform:translateY(18px)}63%,69%{opacity:1;transform:none}72%,100%{opacity:0;transform:translateY(-18px)}}
+.intro{animation-name:intro}@keyframes intro{0%,3%{opacity:1;transform:none}8%,100%{opacity:0;transform:translateY(-24px)}}
+.outro{animation-name:outro}@keyframes outro{0%,86%{opacity:0;transform:translateY(18px)}92%,100%{opacity:1;transform:none}}
+.bar{transform-origin:top;animation-name:bar}@keyframes bar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.step{opacity:0;animation:pay 4.8s ease-in-out infinite}@keyframes pay{0%{opacity:0}8%{opacity:1}78%{opacity:1}88%{opacity:0}100%{opacity:0}}
+.glow{animation-name:glow}@keyframes glow{0%,90%{opacity:0}97%,100%{opacity:1}}
+.breathe{animation:breathe 3.2s ease-in-out infinite alternate}@keyframes breathe{from{opacity:.65}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.breathe{animation:none}}
+.nosupport{display:none}
+@supports not (animation-timeline: scroll()){.nosupport{display:block}}
+.lnk{display:inline-block;margin-top:22px;font-size:15px;font-weight:700;text-decoration:none;border-bottom:2px solid currentColor;padding-bottom:2px}
+</style>
+</helmet>
+<div style="width:1440px;height:900px;position:relative;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#0F172A;background:#FFFFFF">
+<div class="scroller" style="position:absolute;inset:0;overflow-y:auto">
+<div style="height:6400px;position:relative">
+<div style="position:sticky;top:0;height:900px;overflow:hidden">
+
+<div class="intro" style="position:absolute;left:112px;top:250px;width:470px">
+<p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#0E7C6B">Your eye in the sky</p>
+<h1 style="margin:0;font-size:48px;line-height:1.08;letter-spacing:-1.2px;font-weight:800">Every layer of how a store sells. Watched every week.</h1>
+<p style="margin:18px 0 0;font-size:17px;line-height:1.5;color:#475569">The facts behind 964 Australian online stores, quoted from their own pages and checked every week.</p>
+<p style="margin:44px 0 0;font-size:14px;font-weight:600;color:#64748B">Scroll to look inside ↓</p>
+</div>
+
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="4">
+<div class="{{p.cls}}">
+<p style="margin:0 0 12px;font-size:14px;font-weight:700;color:{{p.col}}">{{p.k}}</p>
+<h2 style="margin:0;font-size:40px;line-height:1.1;letter-spacing:-1px;font-weight:800">{{p.h}}</h2>
+<p style="margin:16px 0 0;font-size:17px;line-height:1.55;color:#475569">{{p.b}}</p>
+<a class="lnk" href="#" style="color:{{p.col}}">{{p.a}}</a>
+</div>
+</sc-for>
+
+<div class="outro" style="position:absolute;left:112px;top:290px;width:450px">
+<h2 style="margin:0;font-size:44px;line-height:1.1;letter-spacing:-1px;font-weight:800">Every layer behind the store, in one place.</h2>
+<p style="margin:16px 0 0;font-size:17px;line-height:1.55;color:#475569">Type a store to see what sits behind its pages, or pick an industry to see how its stores compare.</p>
+<a href="#" style="display:inline-block;margin-top:26px;background:#0E7C6B;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;padding:14px 22px;border-radius:10px">Look up a store</a>
+</div>
+
+<div style="position:absolute;left:64px;top:300px;width:3px;height:300px;background:#E2E8F0;border-radius:2px"><div class="bar" style="width:3px;height:300px;background:#0E7C6B;border-radius:2px"></div></div>
+
+<svg viewBox="0 0 1440 900" width="1440" height="900" role="img" aria-label="A phone showing an online store tilts down and becomes the top of four stacked layers: the store, promotions, payment options and policies" style="position:absolute;left:0;top:0">
+<defs>
+<linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3B82F6"></stop><stop offset="1" stop-color="#1D4ED8"></stop></linearGradient>
+<linearGradient id="screen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F8FAFC"></stop><stop offset="1" stop-color="#E2E8F0"></stop></linearGradient>
+</defs>
+<sc-for list="{{layers}}" as="L" hint-placeholder-count="4">
+<g class="{{L.inc}}"><g class="{{L.fo}}">
+<sc-for list="{{L.shapes}}" as="s" hint-placeholder-count="30"><path d="{{s.d}}" fill="{{s.f}}" stroke="{{s.st}}" stroke-width="{{s.sw}}" opacity="{{s.o}}" stroke-dasharray="{{s.dash}}" stroke-linejoin="round" stroke-linecap="round" class="{{s.c}}" style="{{s.style}}"></path></sc-for>
+<sc-for list="{{L.texts}}" as="t" hint-placeholder-count="2"><text transform="{{t.m}}" font-family="Inter" font-weight="800" font-size="{{t.size}}" fill="{{t.f}}" text-anchor="middle">{{t.s}}</text></sc-for>
+</g></g>
+</sc-for>
+</svg>
+<div class="fo fo0" style="position:absolute;left:0;top:0;width:1440px;height:900px;pointer-events:none">
+<div class="glow" style="position:absolute;left:838px;top:128px;width:324px;height:644px;border-radius:54px"><div class="breathe" style="width:100%;height:100%;border-radius:54px;box-shadow:0 0 0 1px rgba(253,224,71,.55),0 0 42px 6px rgba(250,204,21,.38),0 0 110px 24px rgba(253,230,138,.30)"></div></div>
+<div class="frame" style="position:absolute;left:838px;top:128px;width:324px;height:644px;border-radius:54px;background:#0F172A;box-shadow:0 30px 60px rgba(15,23,42,.18)"><div style="position:absolute;left:117px;top:14px;width:90px;height:26px;border-radius:13px;background:#000"></div></div>
+<div class="screen" style="position:absolute;left:850px;top:140px;width:300px;height:620px;border-radius:42px;background:#FFFFFF;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#0F172A">
+<div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:13px;font-weight:700"><span>9:41</span><span style="display:flex;gap:3px;align-items:flex-end"><i style="width:3px;height:5px;background:#0F172A"></i><i style="width:3px;height:7px;background:#0F172A"></i><i style="width:3px;height:9px;background:#0F172A"></i><i style="width:18px;height:9px;border:1.5px solid #0F172A;border-radius:3px;margin-left:5px"></i></span></div>
+<div style="height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid #F1F5F9">
+<span style="display:flex;flex-direction:column;gap:4px"><i style="width:18px;height:2px;background:#0F172A"></i><i style="width:18px;height:2px;background:#0F172A"></i><i style="width:12px;height:2px;background:#0F172A"></i></span>
+<span style="font-size:16px;font-weight:800;letter-spacing:-.3px">Linden Goods</span>
+<span style="position:relative;width:22px;height:20px"><svg width="22" height="20" viewBox="0 0 22 20"><path d="M1 2h3l2.4 11h11L20 5H6" fill="none" stroke="#0F172A" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="17" r="1.6" fill="#0F172A"/><circle cx="16" cy="17" r="1.6" fill="#0F172A"/></svg><b style="position:absolute;right:-6px;top:-6px;width:15px;height:15px;border-radius:8px;background:#0E7C6B;color:#fff;font-size:9px;line-height:15px;text-align:center">2</b></span></div>
+<div style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:600;text-align:center;padding:7px 0">Free shipping over $80 · 30-day returns</div>
+<div style="margin:12px 14px 0;height:178px;border-radius:16px;background:linear-gradient(135deg,#0E7C6B,#5EAA9D);position:relative;overflow:hidden;color:#fff;padding:18px;box-sizing:border-box">
+<div style="position:absolute;right:-30px;top:-20px;width:150px;height:150px;border-radius:75px;background:rgba(255,255,255,.14)"></div>
+<div style="position:absolute;right:30px;bottom:-40px;width:110px;height:110px;border-radius:55px;background:rgba(251,191,36,.55)"></div>
+<p style="margin:0;font-size:11px;font-weight:600;opacity:.9">Summer edit</p>
+<p style="margin:6px 0 0;font-size:24px;line-height:1.1;font-weight:800;letter-spacing:-.5px;position:relative">Up to 40% off<br>new season</p>
+<span style="display:inline-block;margin-top:16px;background:#fff;color:#0E7C6B;font-size:12px;font-weight:700;padding:8px 14px;border-radius:999px;position:relative">Shop now</span></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;padding:16px 16px 8px"><span style="font-size:14px;font-weight:800">New in</span><span style="font-size:11px;color:#0E7C6B;font-weight:600">See all</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 14px">
+<div><div style="height:96px;border-radius:12px;background:#E3F3EF;position:relative;overflow:hidden"><div style="position:absolute;left:34px;top:22px;width:62px;height:62px;border-radius:31px;background:#0E7C6B"></div></div><p style="margin:7px 0 0;font-size:11px;color:#475569">Linen throw</p><p style="margin:2px 0 0;font-size:13px;font-weight:700">$49 · or 4 × $12.25</p></div>
+<div><div style="height:96px;border-radius:12px;background:#FEF3C7;position:relative;overflow:hidden"><div style="position:absolute;left:38px;top:18px;width:54px;height:66px;border-radius:10px;background:#F59E0B"></div><b style="position:absolute;left:8px;top:8px;background:#B45309;color:#fff;font-size:9px;padding:3px 6px;border-radius:5px">Sale</b></div><p style="margin:7px 0 0;font-size:11px;color:#475569">Stoneware mug</p><p style="margin:2px 0 0;font-size:13px;font-weight:700">$24 <s style="color:#94A3B8;font-weight:500">$32</s></p></div>
+<div><div style="height:96px;border-radius:12px;background:#DBEAFE;position:relative;overflow:hidden"><div style="position:absolute;left:28px;top:30px;width:74px;height:46px;border-radius:8px;background:#3B82F6"></div></div><p style="margin:7px 0 0;font-size:11px;color:#475569">Canvas tote</p><p style="margin:2px 0 0;font-size:13px;font-weight:700">$65</p></div>
+<div><div style="height:96px;border-radius:12px;background:#F1F5F9;position:relative;overflow:hidden"><div style="position:absolute;left:42px;top:16px;width:46px;height:70px;border-radius:23px;background:#334155"></div></div><p style="margin:7px 0 0;font-size:11px;color:#475569">Glass bottle</p><p style="margin:2px 0 0;font-size:13px;font-weight:700">$38</p></div>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:0;height:62px;background:#fff;border-top:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px"><span style="font-size:12px;color:#475569">2 items · <b style="color:#0F172A">$98</b></span><span style="background:#0E7C6B;color:#fff;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px">Checkout</span></div>
+</div>
+</div>
+
+<p class="nosupport" style="position:absolute;left:112px;bottom:28px;margin:0;font-size:13px;color:#B45309">This browser can't link animation to scrolling yet. Open it in Chrome or Edge to try it.</p>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = 0.85, ox = 1000, c = 0.866, n = 0.5, f1 = (v) => v.toFixed(1);
+    const mkLayer = (i, oy, plate, meta, draw) => {
+      const P = (x, y, z) => [ox + (x - y) * c * s, oy + (x + y) * n * s - z * s];
+      const path = (pts) => "M" + pts.map((p) => f1(p[0]) + "," + f1(p[1])).join(" L") + " Z";
+      const open = (pts) => "M" + pts.map((p) => f1(p[0]) + "," + f1(p[1])).join(" L");
+      const shapes = [], texts = [];
+      const add = (d, f, st, sw, o, extra) => shapes.push(Object.assign({ d, f, st: st || "none", sw: sw || 0, o: o == null ? 1 : o, dash: "none", c: "", style: "" }, extra || {}));
+      const flat = (x, y, z, w, d) => path([P(x, y, z), P(x + w, y, z), P(x + w, y + d, z), P(x, y + d, z)]);
+      const R = (xc, y1, z1, y2, z2) => path([P(xc, y1, z2), P(xc, y2, z2), P(xc, y2, z1), P(xc, y1, z1)]);
+      const Lf = (yc, x1, z1, x2, z2) => path([P(x1, yc, z2), P(x2, yc, z2), P(x2, yc, z1), P(x1, yc, z1)]);
+      const box = (x, y, z, w, d, h, top, left, rgt, st) => {
+        add(path([P(x, y + d, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x, y + d, z)]), left, st, 1);
+        add(path([P(x + w, y, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x + w, y, z)]), rgt, st, 1);
+        add(flat(x, y, z + h, w, d), top, st, 1);
+        if (w > 10 && d > 10) add(open([P(x, y + d, z + h), P(x + w, y + d, z + h), P(x + w, y, z + h)]), "none", "#FFFFFF", 0.8, 0.75);
+      };
+      const ring = (fn, k) => { const pts = []; for (let a = 0; a < (k || 28); a++) pts.push(fn((a / (k || 28)) * Math.PI * 2)); return pts; };
+      const disc = (xc, yc, z, r) => ring((t) => P(xc + r * Math.cos(t), yc + r * Math.sin(t), z));
+      const discL = (xc, yc, zc, r) => ring((t) => P(xc + r * Math.cos(t), yc, zc + r * Math.sin(t)));
+      const cyl = (xc, yc, z, r, h, top, side, st) => {
+        const front = []; for (let a = -45; a <= 135; a += 10) front.push((a * Math.PI) / 180);
+        const bot = front.map((t) => P(xc + r * Math.cos(t), yc + r * Math.sin(t), z));
+        const tp = front.slice().reverse().map((t) => P(xc + r * Math.cos(t), yc + r * Math.sin(t), z + h));
+        add(path(bot.concat(tp)), side, st, 1);
+        add(path(disc(xc, yc, z + h, r)), top, st, 1);
+      };
+      const mTop = (x, y, z) => { const p = P(x, y, z); return `matrix(${f1(c * s * 10) / 10},${f1(n * s * 10) / 10},${f1(-c * s * 10) / 10},${f1(n * s * 10) / 10},${f1(p[0])},${f1(p[1])})`; };
+      const mRight = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(-n * s).toFixed(3)},0,${s.toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
+      const mLeft = (x, y, z) => { const p = P(x, y, z); return `matrix(${(c * s).toFixed(3)},${(n * s).toFixed(3)},0,${s.toFixed(3)},${f1(p[0])},${f1(p[1])})`; };
+      const txt = (m, str, size, fill) => texts.push({ m, s: str, size, f: fill });
+      // the plate
+      box(0, 0, 0, 320, 320, 14, plate[0], plate[1], plate[2], plate[3]);
+      for (let g = 40; g < 320; g += 40) { add(open([P(g, 0, 14), P(g, 320, 14)]), "none", plate[4], 1); add(open([P(0, g, 14), P(320, g, 14)]), "none", plate[4], 1); }
+      for (let g = 20; g < 320; g += 40) { add(open([P(g, 0, 14), P(g, 320, 14)]), "none", plate[4], 0.5, 0.55); add(open([P(0, g, 14), P(320, g, 14)]), "none", plate[4], 0.5, 0.55); }
+      add(flat(8, 8, 14.05, 304, 304), "none", plate[3], 0.6, 0.45);
+      for (let g = 40; g < 320; g += 40) { add(open([P(g, 320, 14), P(g, 320, 10)]), "none", plate[3], 0.6, 0.8); add(open([P(320, g, 14), P(320, g, 10)]), "none", plate[3], 0.6, 0.8); }
+      draw({ P, path, open, add, flat, R, Lf, box, ring, disc, discL, cyl, txt, mTop, mRight, mLeft });
+      const anchor = P(0, 320, 7), cardX = 150, cardY = anchor[1] - 42;
+      return Object.assign({ cls: "lay l" + i, shapes, texts,
+        cx: cardX, cy: cardY, tx: cardX + 18, ty1: cardY + 24, ty2: cardY + 52, ty3: cardY + 72,
+        leader: `M${cardX + 280},${f1(cardY + 42)} L${f1(anchor[0])},${f1(anchor[1])}`, dotx: f1(anchor[0]), doty: f1(anchor[1]) }, meta);
+    };
+    const gap = 150, base = 1000, layers = [];
+
+    // 4. Policies
+    layers.push(mkLayer(3, 560, ["#F8FAFF", "#DBEAFE", "#BFDBFE", "#93C5FD", "#E0ECFF"],
+      { name: "4 · Policies", stat: "30-day returns", sub: "the most common window", color: "#1D4ED8" }, (g) => {
+      for (let k = 0; k < 12; k++) { const t = (k / 12) * Math.PI * 2; g.add(g.open([g.P(90 + 28 * Math.cos(t), 236 + 28 * Math.sin(t), 14.2), g.P(90 + 33 * Math.cos(t), 236 + 33 * Math.sin(t), 14.2)]), "none", "#93C5FD", 1); }
+      g.add(g.flat(46, 46, 14.1, 70, 60), "#0F172A", null, 0, 0.07);
+      g.box(40, 40, 14, 70, 60, 46, "#F0D9B5", "#D9B27C", "#C99A5B");
+      g.add(g.flat(71, 40, 60.1, 8, 60), "#E7C9A0", "#C99A5B", 0.5);
+      const arc = []; for (let a = 200; a <= 470; a += 10) { const t = (a * Math.PI) / 180; arc.push(g.P(75 + 20 * Math.cos(t), 70 + 20 * Math.sin(t), 60.4)); }
+      g.add(g.open(arc), "none", "#0E7C6B", 3.2);
+      const e = arc[arc.length - 1], b = arc[arc.length - 3];
+      g.add(g.path([[e[0] + 6, e[1] + 2], [e[0] - 3, e[1] - 6], [e[0] - 3, e[1] + 6]]), "#0E7C6B");
+      g.add(g.flat(196, 66, 14.1, 6, 50), "#0F172A", null, 0, 0.08);
+      g.box(190, 60, 14, 6, 50, 66, "#2563EB", "#1D4ED8", "#2563EB");
+      g.add(g.path([g.P(196.2, 70, 72), g.P(196.2, 100, 72), g.P(196.2, 100, 50), g.P(196.2, 85, 32), g.P(196.2, 70, 50)]), "#FFFFFF");
+      g.add(g.open([g.P(196.4, 76, 54), g.P(196.4, 82, 48), g.P(196.4, 94, 62)]), "none", "#0E7C6B", 3);
+      for (let k = 0; k < 3; k++) g.add(g.flat(160 + k * 4, 184 - k * 4, 14.5 + k * 2, 72, 92), "#FFFFFF", "#CBD5E1", 1);
+      for (let k = 0; k < 6; k++) g.add(g.flat(176, 192 + k * 12, 19.2, k === 0 ? 40 : 50, 3), k === 0 ? "#1D4ED8" : "#CBD5E1");
+      g.cyl(90, 236, 14, 22, 8, "#0E7C6B", "#0B6457", "#0B6457");
+      g.add(g.open([g.P(80, 236, 22.3), g.P(88, 244, 22.3), g.P(101, 228, 22.3)]), "none", "#FFFFFF", 3);
+      g.add(g.Lf(100.2, 71, 14, 79, 60), "#E7C9A0");
+      g.add(g.open([g.P(180, 264, 19.3), g.P(186, 259, 19.3), g.P(192, 265, 19.3), g.P(198, 259, 19.3), g.P(208, 263, 19.3)]), "none", "#1D4ED8", 1);
+      g.add(g.open([g.P(176, 252, 19.3), g.P(222, 252, 19.3)]), "none", "#94A3B8", 0.6);
+      g.add(g.flat(212, 184, 19.25, 14, 14), "none", "#1D4ED8", 0.8);
+      g.add(g.open([g.P(196.4, 62, 120), g.P(196.4, 108, 120)]), "none", "#93C5FD", 0.6);
+    }));
+
+    // 3. Payment options
+    layers.push(mkLayer(2, 410, ["#FFFFFF", "#D5EFEA", "#B5E0D7", "#A7D8CE", "#E3F3EF"],
+      { name: "3 · Payment options", stat: "53% offer BNPL", sub: "Afterpay leads, at 463 stores", color: "#0E7C6B" }, (g) => {
+      g.add(g.open([g.P(30, 266, 14.2), g.P(202, 266, 14.2)]), "none", "#0E7C6B", 0.8, 1, { dash: "3 4" });
+      g.add(g.flat(36, 46, 14.1, 70, 90), "#0F172A", null, 0, 0.06);
+      g.box(30, 40, 14, 70, 90, 22, "#475569", "#334155", "#1E293B");
+      g.add(g.flat(40, 50, 36.2, 50, 28), "#5EEAD4");
+      for (let r = 0; r < 3; r++) for (let k = 0; k < 3; k++) g.add(g.flat(42 + k * 16, 88 + r * 12, 36.2, 11, 8), r === 2 && k === 2 ? "#0E7C6B" : "#94A3B8");
+      g.add(g.path([g.P(56, 40, 36), g.P(78, 40, 36), g.P(78, 40, 62), g.P(56, 40, 62)]), "#FFFFFF", "#CBD5E1", 1);
+      g.add(g.flat(136, 48, 14.1, 100, 63), "#0F172A", null, 0, 0.07);
+      g.box(130, 40, 14, 100, 63, 3, "url(#card)", "#1E40AF", "#1E3A8A");
+      g.add(g.flat(144, 50, 17.2, 16, 12), "#FBBF24", "#D97706", 0.6);
+      for (let k = 0; k < 4; k++) g.add(g.flat(144 + k * 20, 84, 17.2, 15, 3), "#FFFFFF", null, 0, 0.75);
+      [30, 76, 122, 168].forEach((x, k) => {
+        g.box(x, 222, 14, 34, 34, 8, "#FFFFFF", "#E2E8F0", "#CBD5E1", "#CBD5E1");
+        g.add(g.flat(x, 222, 22.1, 34, 34), "#0E7C6B", null, 0, 1, { c: "step", style: "animation-delay:" + (k * 0.7).toFixed(1) + "s" });
+        g.txt(g.mTop(x + 17, 243, 22.3), String(k + 1), 15, "#0F172A");
+      });
+      g.add(g.flat(256, 176, 14.1, 18, 80), "#0F172A", null, 0, 0.08);
+      g.box(250, 170, 14, 12, 72, 128, "#1E293B", "#0F172A", "#1E293B");
+      g.add(g.R(262.2, 176, 24, 236, 136), "url(#screen)");
+      g.add(g.R(262.4, 184, 96, 228, 122), "url(#card)");
+      g.add(g.path(g.ring((t) => g.P(262.5, 206 + 11 * Math.cos(t), 64 + 11 * Math.sin(t)), 24)), "#0E7C6B");
+      g.add(g.open([g.P(262.6, 200, 64), g.P(262.6, 204, 59), g.P(262.6, 213, 69)]), "none", "#FFFFFF", 2.4);
+      g.add(g.R(262.4, 190, 38, 222, 44), "#0E7C6B", null, 0, 0.85);
+      [56, 51, 46].forEach((z, k) => g.add(g.open([g.P(60, 40.2, z), g.P(k === 2 ? 70 : 74, 40.2, z)]), "none", "#CBD5E1", 0.8));
+      g.add(g.open([g.P(144, 56, 17.3), g.P(160, 56, 17.3)]), "none", "#B45309", 0.5);
+      g.add(g.open([g.P(152, 50, 17.3), g.P(152, 62, 17.3)]), "none", "#B45309", 0.5);
+      [5, 9, 13].forEach((r) => { const pts = []; for (let a = -40; a <= 40; a += 10) { const t = (a * Math.PI) / 180; pts.push(g.P(212 + r * Math.cos(t), 56 + r * Math.sin(t), 17.3)); } g.add(g.open(pts), "none", "#FFFFFF", 0.9, 0.85); });
+      g.add(g.open([g.P(144, 96, 17.3), g.P(176, 96, 17.3)]), "none", "#FFFFFF", 0.6, 0.6);
+      g.add(g.R(262.3, 200, 129, 212, 131), "#475569");
+      g.add(g.open([g.P(30, 130.3, 30), g.P(100, 130.3, 30)]), "none", "#475569", 0.6);
+    }));
+
+    // 2. Promotions
+    layers.push(mkLayer(1, 260, ["#FFFBEB", "#FDE68A", "#FCD34D", "#F59E0B", "#FEF3C7"],
+      { name: "2 · Promotions", stat: "67% on sale", sub: "running an offer right now", color: "#B45309" }, (g) => {
+      g.add(g.flat(196, 256, 14.15, 96, 40), "#FFFFFF", "#F59E0B", 1, 1, { dash: "4 3" });
+      g.txt(g.mTop(244, 280, 14.3), "CODE: SAVE15", 10, "#B45309");
+      [[150, 118, "#F59E0B"], [272, 132, "#3B82F6"], [292, 214, "#0E7C6B"], [28, 140, "#F59E0B"], [130, 262, "#3B82F6"], [146, 160, "#0E7C6B"]].forEach(([x, y, col]) => g.add(g.flat(x, y, 14.2, 6, 6), col, null, 0, 0.8));
+      g.add(g.flat(46, 46, 14.1, 90, 54), "#0F172A", null, 0, 0.07);
+      g.box(40, 40, 14, 90, 54, 6, "#F59E0B", "#D97706", "#B45309");
+      g.add(g.path(g.disc(54, 67, 20.2, 5)), "#FFFBEB");
+      g.txt(g.mTop(92, 60, 20.3), "SALE", 18, "#FFFFFF");
+      g.txt(g.mTop(92, 80, 20.3), "up to 40% off", 11, "#FFFBEB");
+      g.cyl(215, 72, 14, 30, 14, "#FBBF24", "#D97706", "#D97706");
+      g.txt(g.mTop(215, 79, 28.3), "%", 26, "#FFFFFF");
+      g.box(170, 160, 14, 96, 84, 10, "#FFFFFF", "#F1F5F9", "#E2E8F0", "#CBD5E1");
+      g.add(g.flat(170, 160, 24.1, 96, 18), "#D97706");
+      for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) g.add(g.flat(178 + k * 22, 184 + r * 19, 24.2, 16, 13), r === 1 && k === 2 ? "#F59E0B" : "#F1F5F9", "#E2E8F0", 0.6);
+      g.add(g.flat(64, 196, 14.1, 50, 50), "#0F172A", null, 0, 0.07);
+      g.box(58, 190, 14, 50, 50, 40, "#3B82F6", "#2563EB", "#1D4ED8");
+      g.add(g.flat(79, 190, 54.1, 8, 50), "#FBBF24");
+      g.add(g.flat(58, 211, 54.1, 50, 8), "#FBBF24");
+      g.add(g.Lf(240.2, 79, 14, 87, 54), "#FBBF24");
+      g.add(g.R(108.2, 211, 14, 219, 54), "#F59E0B");
+      g.add(g.path(g.disc(76, 207, 55, 7)), "#F59E0B", "#D97706", 1);
+      g.add(g.path(g.disc(90, 222, 55, 7)), "#F59E0B", "#D97706", 1);
+      g.add(g.open([g.P(54, 67, 20.3), g.P(40, 58, 18), g.P(30, 60, 14.3)]), "none", "#92400E", 0.8);
+      [196, 240].forEach((x) => g.add(g.open([g.P(x, 166, 24.3), g.P(x, 166, 31)]), "none", "#334155", 1.6));
+      g.add(g.open([g.P(48, 94.2, 20), g.P(126, 94.2, 20)]), "none", "#FFFFFF", 0.6, 0.6);
+      g.add(g.path(g.disc(215, 72, 14.2, 34)), "none", "#D97706", 0.6, 0.5);
+    }));
+
+    // top: the online store (the phone screen lands on this plate)
+    layers.push(mkLayer(0, 110, ["#FFFFFF", "#E2E8F0", "#CBD5E1", "#CBD5E1", "#EEF2F6"], {}, (g) => {
+      g.add(g.flat(92, 18, 14.1, 152, 300), "#0F172A", null, 0, 0.08);
+      g.box(84, 10, 14, 152, 300, 10, "#1E293B", "#0F172A", "#334155");
+      g.add(g.flat(22, 46, 14.1, 40, 40), "#0F172A", null, 0, 0.07);
+      g.box(16, 40, 14, 40, 40, 30, "#0E7C6B", "#0B6457", "#095247");
+      g.add(g.flat(32, 40, 44.15, 4, 40), "#0B6457");
+      g.box(20, 100, 14, 34, 34, 44, "#3B82F6", "#2563EB", "#1D4ED8");
+      g.add(g.open([g.P(24, 134.3, 50), g.P(48, 134.3, 50)]), "none", "#FFFFFF", 0.8, 0.8);
+      g.box(18, 154, 14, 38, 38, 22, "#FBBF24", "#F59E0B", "#D97706");
+      g.add(g.flat(254, 196, 14.1, 56, 40), "#0F172A", null, 0, 0.07);
+      g.box(250, 190, 28, 56, 40, 24, "#F1F5F9", "#FFFFFF", "#E2E8F0", "#94A3B8");
+      for (let k = 1; k < 5; k++) g.add(g.open([g.P(250 + k * 11, 230, 28), g.P(250 + k * 11, 230, 52)]), "none", "#CBD5E1", 1);
+      g.box(258, 196, 52, 16, 16, 10, "#0E7C6B", "#0B6457", "#095247");
+      g.box(278, 202, 52, 14, 14, 13, "#F59E0B", "#D97706", "#B45309");
+      g.add(g.open([g.P(306, 192, 52), g.P(314, 188, 66), g.P(320, 188, 66)]), "none", "#334155", 2.4);
+      g.add(g.open([g.P(254, 230, 28), g.P(254, 230, 20)]), "none", "#334155", 2);
+      g.add(g.open([g.P(302, 230, 28), g.P(302, 230, 20)]), "none", "#334155", 2);
+      g.add(g.path(g.discL(258, 230.2, 19, 5)), "#1E293B");
+      g.add(g.path(g.discL(298, 230.2, 19, 5)), "#1E293B");
+      g.add(g.open([g.P(278, 238, 14.2), g.P(278, 256, 14.2)]), "none", "#94A3B8", 0.8, 1, { dash: "3 4" });
+      g.box(246, 258, 14, 68, 44, 6, "#0E7C6B", "#0B6457", "#095247");
+      g.txt(g.mTop(280, 281, 20.3), "Checkout", 11, "#FFFFFF");
+    }));
+
+    const panels = [
+      { k: "1 of 4 · The online store", h: "964 stores, read every week", b: "Each store's platform, apps and product pages, and the path from product to cart to checkout.", a: "See tech stacks", col: "#334155" },
+      { k: "2 of 4 · Promotions", h: "67% are running an offer right now", b: "Every sale, code and free gift we can see, with the date we first saw it and the date it ended.", a: "See promotions", col: "#B45309" },
+      { k: "3 of 4 · Payment options", h: "53% offer buy now, pay later", b: "Which cards, wallets and pay-later providers each store takes. Afterpay leads, at 463 stores.", a: "See payments", col: "#0E7C6B" },
+      { k: "4 of 4 · Policies", h: "30 days is the most common returns window", b: "Returns, change of mind, warranty and delivery terms, quoted word for word from each store's own pages.", a: "See policies", col: "#1D4ED8" },
+    ].map((p, i) => Object.assign(p, { cls: "pn p" + i }));
+    const slot = [3, 2, 1, 0];
+    return {
+      panels,
+      layers: layers.map((L, i) => Object.assign(L, { inc: "in" + (slot[i] === 0 ? "T" : slot[i]), fo: "fo fo" + slot[i] })),
+    };
+  }
+}
+</script>
+</body>
+</html>

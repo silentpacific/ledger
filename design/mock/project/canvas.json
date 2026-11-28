@@ -1,0 +1,123 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Industry.dc.html": {
+   "expand": "fill",
+   "h": 2000,
+   "title": "Industry page (Fashion)",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Main.dc.html": {
+   "expand": "fill",
+   "h": 4702,
+   "is_interactive": true,
+   "title": "Homepage",
+   "w": 1462,
+   "x": -22,
+   "y": 0
+  },
+  "Menu.dc.html": {
+   "h": 520,
+   "title": "Mega menu: Insights open",
+   "w": 1440,
+   "x": 4560,
+   "y": 1620
+  },
+  "Pricing.dc.html": {
+   "expand": "fill",
+   "h": 1500,
+   "title": "Pricing (placeholder prices)",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "Store.dc.html": {
+   "expand": "fill",
+   "h": 2150,
+   "title": "Store page (example store)",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "IsoPayments.dc.html": {
+   "h": 800,
+   "title": "Isometric layer test: payment options",
+   "w": 1200,
+   "x": 1520,
+   "y": 2120
+  },
+  "IsoScene.dc.html": {
+   "h": 1360,
+   "title": "Isometric scene: five layers, looping parallax",
+   "w": 1440,
+   "x": 3040,
+   "y": 2270
+  },
+  "IsoScroll.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Isometric scene: scroll prototype (scroll inside)",
+   "w": 1440,
+   "x": 4560,
+   "y": 2270
+  },
+  "QuoteFact.dc.html": {
+   "h": 800,
+   "title": "From quote to fact (loop)",
+   "w": 1440,
+   "x": 1520,
+   "y": 3720
+  },
+  "ChangeCard.dc.html": {
+   "h": 800,
+   "title": "The change: market moves (loop)",
+   "w": 1440,
+   "x": 3040,
+   "y": 3720
+  },
+  "Radar.dc.html": {
+   "h": 800,
+   "title": "Industries: nine plates (static)",
+   "w": 1440,
+   "x": 4560,
+   "y": 3720
+  },
+  "MainV2.dc.html": {
+   "expand": "fill",
+   "h": 7600,
+   "is_interactive": true,
+   "title": "Homepage v2",
+   "w": 1440,
+   "x": -1560,
+   "y": 0
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-11-28T01:40:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {},
+ "order": [
+  "MainV2.dc.html",
+  "Main.dc.html",
+  "Industry.dc.html",
+  "Store.dc.html",
+  "Pricing.dc.html",
+  "Menu.dc.html",
+  "IsoPayments.dc.html",
+  "IsoScene.dc.html",
+  "IsoScroll.dc.html",
+  "QuoteFact.dc.html",
+  "ChangeCard.dc.html",
+  "Radar.dc.html"
+ ],
+ "pages": [],
+ "title": "SentientLogs redesign mockups"
+}

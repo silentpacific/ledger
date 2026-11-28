@@ -1,0 +1,125 @@
+/* Homepage (design: design/mock/project/MainV2 on the canvas). Classes start h- (page), s- (scroll scene), q- (quote to fact), m- (market moves). */
+.h { --ink: #0F172A; --body2: #475569; --mute2: #64748B; --line3: #E2E8F0; --soft: #F8FAFC; --yellow: #FACC15; --yellow-soft: #FEF3C7; --amber2: #B45309;
+  font-family: Inter, system-ui, sans-serif; color: var(--ink); background: #FFFFFF; }
+.h h1, .h h2, .h h3 { font-family: Inter, system-ui, sans-serif; }
+.h-col { max-width: 1440px; margin: 0 auto; padding: 0 96px; }
+.h-eye { margin: 0 0 10px; font-size: 15px; font-weight: 600; color: var(--amber2); }
+.h-h2 { margin: 0; font-size: 40px; line-height: 1.1; letter-spacing: -1px; font-weight: 800; }
+.h-lede { margin: 16px 0 0; font-size: 17px; line-height: 1.55; color: var(--body2); max-width: 680px; }
+.h-sec { padding-top: 100px; padding-bottom: 100px; }
+.h-band { background: var(--soft); border-top: 1px solid #EEF2F6; border-bottom: 1px solid #EEF2F6; }
+.h-dark { background: var(--ink); color: #FFFFFF; }
+.h-btn { display: inline-flex; align-items: center; justify-content: center; font: inherit; font-size: 16px; font-weight: 700; padding: 0 22px; height: 52px; border: 0; border-radius: 12px; background: var(--ink); color: #FFFFFF; cursor: pointer; text-decoration: none; }
+.h-btn:hover { background: #1E293B; color: #FFFFFF; text-decoration: none; }
+.h-btn.y { background: var(--yellow); color: var(--ink); } .h-btn.y:hover { background: #EAB308; }
+.h-link { font-size: 15px; font-weight: 700; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+.h-kv { display: flex; align-items: baseline; gap: 8px; font-size: 13px; margin-top: 9px; }
+.h-kv span:first-child { color: var(--mute2); } .h-kv i { flex: 1; border-bottom: 1.5px dotted #CBD5E1; transform: translateY(-3px); }
+.h-kv span:last-child { color: var(--ink); font-weight: 600; }
+.h-fixed { width: 1440px; height: 800px; margin: 0 auto; position: relative; overflow: hidden; }
+.h-zoom { zoom: 1; }
+@media (max-width: 1439px) { .h-zoom { zoom: .9; } } @media (max-width: 1299px) { .h-zoom { zoom: .8; } } @media (max-width: 1159px) { .h-zoom { zoom: .7; } }
+@media (max-width: 1023px) { .h-zoom { zoom: .62; } } @media (max-width: 899px) { .h-zoom { zoom: .5; } } @media (max-width: 719px) { .h-zoom { zoom: .38; } } @media (max-width: 559px) { .h-zoom { zoom: .26; } }
+.h-grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1023px) { .h-col { padding: 0 24px; } .h-grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .h-sec { padding-top: 64px; padding-bottom: 64px; } .h-h2 { font-size: 32px; } }
+@media (max-width: 599px) { .h-grid4 { grid-template-columns: 1fr; } }
+
+/* hero lookup */
+.h-look { position: relative; display: flex; gap: 10px; max-width: 560px; }
+.h-look input { flex: 1; min-width: 0; font: inherit; font-size: 16px; height: 52px; padding: 0 16px; border: 1px solid #CBD5E1; border-radius: 12px; background: #FFFFFF; color: var(--ink); }
+.h-look input:focus { outline: 2px solid var(--yellow); outline-offset: 1px; border-color: var(--ink); }
+.h-look ul { position: absolute; left: 0; right: 0; top: 58px; z-index: 30; margin: 0; padding: 6px; list-style: none; background: #FFFFFF; border: 1px solid var(--line3); border-radius: 12px; box-shadow: 0 18px 40px rgba(15,23,42,.12); }
+.h-look li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+.h-look li[aria-selected="true"] { background: var(--yellow-soft); }
+.h-look li span:last-child { color: var(--mute2); font-size: 13px; }
+
+/* scroll scene: plays only while the pointer is over the picture. A see-through scroller covers the picture; the wheel scrolls it
+   (driving the animation through its scroll-timeline) and, once it reaches either end, the page scrolls on as normal. */
+.s-scn { position: relative; }
+.s-stage { position: relative; overflow: hidden; display: flex; justify-content: center; }
+.s-scroller { position: absolute; left: 700px; top: 0; width: 740px; height: 900px; overflow-y: scroll; scrollbar-width: none; z-index: 3; outline: none; }
+.s-scroller::-webkit-scrollbar { display: none; }
+.s-scroller:focus-visible { outline: 2px solid var(--yellow); outline-offset: -4px; border-radius: 24px; }
+.s-box { position: relative; width: 1440px; height: 900px; flex: none; }
+.s-ph { position: absolute; left: 838px; top: 128px; width: 324px; height: 644px; }
+.s-ph .s-frame { position: absolute; inset: 0; border-radius: 54px; background: var(--ink); box-shadow: 0 30px 60px rgba(15,23,42,.18); }
+.s-ph .s-glow { position: absolute; inset: 0; border-radius: 54px; }
+.s-ph .s-screen { position: absolute; left: 12px; top: 12px; width: 300px; height: 620px; border-radius: 42px; background: #FFFFFF; overflow: hidden; }
+@media (max-width: 1439px) { .s-box { zoom: .9; } } @media (max-width: 1299px) { .s-box { zoom: .8; } } @media (max-width: 1159px) and (min-width: 1024px) { .s-box { zoom: .7; } }
+/* phones, tablets and browsers without scroll-linked animation: the opening frame only */
+@media (max-width: 1023px) {
+  .s-scn { height: auto; } .s-stage { position: relative; height: auto; display: block; } .s-box { width: auto; height: auto; zoom: 1; padding: 48px 24px 56px; }
+  .s-layers, .s-pn, .s-outro, .s-barw, .s-scroller { display: none; }
+  .s-intro { position: static !important; width: auto !important; animation: none !important; }
+  .s-ph { position: relative; left: auto; top: auto; margin: 40px auto 0; zoom: .8; }
+  .s-ph .s-frame, .s-ph .s-screen, .s-ph .s-glow, .s-fo0 { animation: none !important; } .s-ph .s-glow { opacity: 1; } .s-fo0 { position: static !important; }
+  .s-intro h1 { font-size: 40px !important; white-space: normal !important; }
+}
+@supports not (animation-timeline: scroll()) {
+  .s-layers, .s-pn, .s-outro, .s-barw, .s-scroller { display: none; }
+  .s-intro, .s-ph .s-frame, .s-ph .s-screen, .s-fo0 { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .s-ph .s-glow { opacity: 1; animation: none; }
+}
+
+
+.s-box{timeline-scope:--story}
+.s-scroller{scroll-timeline:--story y}
+.s-glow,.s-inT,.s-in1,.s-in2,.s-in3,.s-fo,.s-pn,.s-intro,.s-outro,.s-bar,.s-frame,.s-screen{animation-timing-function:linear;animation-fill-mode:both;animation-timeline:--story;animation-duration:auto}
+.s-inT{animation-name:s-inT}.s-in1{animation-name:s-in1}.s-in2{animation-name:s-in2}.s-in3{animation-name:s-in3}
+@keyframes s-inT{0%,18%{opacity:0}24%,80%{opacity:1}85%,100%{opacity:0}}
+@keyframes s-in1{0%,13%{opacity:0;transform:translateY(70px)}22%,72%{opacity:1;transform:translateY(0)}80%,100%{opacity:0;transform:translateY(-150px)}}
+@keyframes s-in2{0%,15%{opacity:0;transform:translateY(70px)}24%,72%{opacity:1;transform:translateY(0)}80%,100%{opacity:0;transform:translateY(-300px)}}
+@keyframes s-in3{0%,17%{opacity:0;transform:translateY(70px)}26%,72%{opacity:1;transform:translateY(0)}80%,100%{opacity:0;transform:translateY(-450px)}}
+.s-frame{transform-origin:50% 50%;animation-name:s-fz}
+@keyframes s-fz{0%,4%{transform:scale(1);opacity:1}12%{transform:scale(1.6);opacity:0}84%{transform:scale(1);opacity:0}90%,100%{transform:scale(1);opacity:1}}
+.s-screen{transform-origin:50% 50%;animation-name:s-morph}
+@keyframes s-morph{0%,4%{transform:translate(0px,0px) rotateX(0deg) rotateZ(0deg) scale(1);border-radius:42px}12%{transform:translate(0px,0px) rotateX(0deg) rotateZ(0deg) scale(1.6);border-radius:30px}22%,80%{transform:translate(0px,-224.6px) rotateX(54.7356deg) rotateZ(45deg) scale(0.4857);border-radius:30px}90%,100%{transform:translate(0px,0px) rotateX(0deg) rotateZ(0deg) scale(1);border-radius:42px}}
+.s-fo0{animation-name:s-fo0}.s-fo1{animation-name:s-fo1}.s-fo2{animation-name:s-fo2}.s-fo3{animation-name:s-fo3}
+@keyframes s-fo0{0%,34%{opacity:1}37%,70%{opacity:.22}73%,100%{opacity:1}}
+@keyframes s-fo1{0%,22%{opacity:1}25%,34%{opacity:.22}37%,46%{opacity:1}49%,70%{opacity:.22}73%,100%{opacity:1}}
+@keyframes s-fo2{0%,22%{opacity:1}25%,46%{opacity:.22}49%,58%{opacity:1}61%,70%{opacity:.22}73%,100%{opacity:1}}
+@keyframes s-fo3{0%,22%{opacity:1}25%,58%{opacity:.22}61%,100%{opacity:1}}
+.s-pn{position:absolute;left:96px;top:290px;width:440px}
+.s-p0{animation-name:s-p0}.s-p1{animation-name:s-p1}.s-p2{animation-name:s-p2}.s-p3{animation-name:s-p3}
+@keyframes s-p0{0%,23%{opacity:0;transform:translateY(18px);pointer-events:none}26%,33%{opacity:1;transform:none;pointer-events:auto}36%,100%{opacity:0;transform:translateY(-18px);pointer-events:none}}
+@keyframes s-p1{0%,36%{opacity:0;transform:translateY(18px);pointer-events:none}39%,45%{opacity:1;transform:none;pointer-events:auto}48%,100%{opacity:0;transform:translateY(-18px);pointer-events:none}}
+@keyframes s-p2{0%,48%{opacity:0;transform:translateY(18px);pointer-events:none}51%,57%{opacity:1;transform:none;pointer-events:auto}60%,100%{opacity:0;transform:translateY(-18px);pointer-events:none}}
+@keyframes s-p3{0%,60%{opacity:0;transform:translateY(18px);pointer-events:none}63%,69%{opacity:1;transform:none;pointer-events:auto}72%,100%{opacity:0;transform:translateY(-18px);pointer-events:none}}
+.s-intro{animation-name:s-intro}@keyframes s-intro{0%,3%{opacity:1;transform:none;pointer-events:auto}8%,100%{opacity:0;transform:translateY(-24px);pointer-events:none}}
+.s-outro{animation-name:s-outro}@keyframes s-outro{0%,86%{opacity:0;transform:translateY(18px);pointer-events:none}92%,100%{opacity:1;transform:none;pointer-events:auto}}
+.s-bar{transform-origin:top;animation-name:s-bar}@keyframes s-bar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.s-step{opacity:0;animation:s-pay 4.8s ease-in-out infinite}@keyframes s-pay{0%{opacity:0}8%{opacity:1}78%{opacity:1}88%{opacity:0}100%{opacity:0}}
+.s-glow{animation-name:s-glow}@keyframes s-glow{0%,90%{opacity:0}97%,100%{opacity:1}}
+.s-breathe{animation:s-breathe 3.2s ease-in-out infinite alternate}@keyframes s-breathe{from{opacity:.65}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.s-breathe{animation:none}}
+
+
+/* quote to fact (12 s loop) */
+.q-a{animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:cubic-bezier(.45,0,.2,1);animation-fill-mode:both}
+.q-scan{animation-name:q-scan}@keyframes q-scan{0%{top:0;opacity:0}2%{opacity:1}14%{top:100%;opacity:1}16%,100%{top:100%;opacity:0}}
+.q-hl{animation-name:q-hl}@keyframes q-hl{0%,16%{background-size:0% 100%}24%,92%{background-size:100% 100%}97%,100%{background-size:0% 100%}}
+.q-hl2{animation-name:q-hl2}@keyframes q-hl2{0%,48%{background-size:0% 100%}56%,92%{background-size:100% 100%}97%,100%{background-size:0% 100%}}
+.q-fly{animation-name:q-fly}@keyframes q-fly{0%,25%{opacity:0;transform:none}28%{opacity:1;transform:translate(0,-6px)}38%{opacity:1;transform:translate(404px,24px) scale(.92)}41%,100%{opacity:0;transform:translate(404px,24px) scale(.92)}}
+.q-fly2{animation-name:q-fly2}@keyframes q-fly2{0%,56%{opacity:0;transform:none}58%{opacity:1;transform:translate(0,-6px)}66%{opacity:1;transform:translate(414px,262px) scale(.9)}69%,100%{opacity:0;transform:translate(414px,262px) scale(.9)}}
+.q-card{animation-name:q-card}@keyframes q-card{0%,34%{opacity:0;transform:translateY(14px) scale(.98)}40%,92%{opacity:1;transform:none}97%,100%{opacity:0;transform:translateY(8px)}}
+.q-chip1{animation-name:q-chip1}@keyframes q-chip1{0%,64%{opacity:0;transform:translateY(10px)}69%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+.q-chip2{animation-name:q-chip2}@keyframes q-chip2{0%,67%{opacity:0;transform:translateY(10px)}72%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+.q-tick{animation-name:q-tick}@keyframes q-tick{0%,42%{opacity:0;transform:scale(.6)}46%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+
+/* market moves (10 s loop) */
+.m-a{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:cubic-bezier(.45,0,.2,1);animation-fill-mode:both}
+.m-it1{animation-name:m-it1}.m-it2{animation-name:m-it2}.m-it3{animation-name:m-it3}.m-it4{animation-name:m-it4}
+@keyframes m-it1{0%{opacity:0;transform:translateY(12px)}6%,94%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes m-it2{0%,3%{opacity:0;transform:translateY(12px)}9%,94%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes m-it3{0%,6%{opacity:0;transform:translateY(12px)}12%,94%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes m-it4{0%,9%{opacity:0;transform:translateY(12px)}15%,94%{opacity:1;transform:none}100%{opacity:0}}
+.m-sel{animation-name:m-sel}@keyframes m-sel{0%,36%{background:#FFFFFF;border-color:#EEF2F6}42%,92%{background:#FFFBEB;border-color:#FACC15}97%,100%{background:#FFFFFF;border-color:#EEF2F6}}
+.m-roll{animation-name:m-roll}@keyframes m-roll{0%,28%{transform:translateY(0)}36%,92%{transform:translateY(-54px)}98%,100%{transform:translateY(0)}}
+.m-oldq{animation-name:m-oldq}@keyframes m-oldq{0%,29%{opacity:1}34%,93%{opacity:0}98%,100%{opacity:1}}
+.m-newq{animation-name:m-newq}@keyframes m-newq{0%,31%{opacity:0}36%,92%{opacity:1}97%,100%{opacity:0}}
+.m-badge{animation-name:m-badge}@keyframes m-badge{0%,35%{opacity:0;transform:scale(.7)}40%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+.m-seg{transform-origin:left;animation-name:m-seg}@keyframes m-seg{0%,38%{transform:scaleX(0)}46%,92%{transform:scaleX(1)}97%,100%{transform:scaleX(0)}}
+.m-dot{animation-name:m-dot}@keyframes m-dot{0%,44%{opacity:0;transform:scale(.3)}49%{opacity:1;transform:scale(1.25)}52%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+.m-ring{animation-name:m-ring}@keyframes m-ring{0%,48%{opacity:0;transform:scale(.6)}50%{opacity:.7}62%,100%{opacity:0;transform:scale(2.4)}}
+.m-was{animation-name:m-was}@keyframes m-was{0%,50%{opacity:0}56%,92%{opacity:1}97%,100%{opacity:0}}
+@media (prefers-reduced-motion: reduce) { .q-a, .m-a, .s-breathe, .s-step { animation: none !important; } .s-step { opacity: 1; } }

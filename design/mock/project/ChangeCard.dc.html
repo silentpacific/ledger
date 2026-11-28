@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The change</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+.a{animation-duration:10s;animation-iteration-count:infinite;animation-timing-function:cubic-bezier(.45,0,.2,1);animation-fill-mode:both}
+.it1{animation-name:it1}.it2{animation-name:it2}.it3{animation-name:it3}.it4{animation-name:it4}
+@keyframes it1{0%{opacity:0;transform:translateY(12px)}6%,94%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes it2{0%,3%{opacity:0;transform:translateY(12px)}9%,94%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes it3{0%,6%{opacity:0;transform:translateY(12px)}12%,94%{opacity:1;transform:none}100%{opacity:0}}
+@keyframes it4{0%,9%{opacity:0;transform:translateY(12px)}15%,94%{opacity:1;transform:none}100%{opacity:0}}
+.sel{animation-name:sel}@keyframes sel{0%,36%{background:#FFFFFF;border-color:#EEF2F6}42%,92%{background:#FFFBEB;border-color:#FACC15}97%,100%{background:#FFFFFF;border-color:#EEF2F6}}
+.roll{animation-name:roll}@keyframes roll{0%,28%{transform:translateY(0)}36%,92%{transform:translateY(-54px)}98%,100%{transform:translateY(0)}}
+.oldq{animation-name:oldq}@keyframes oldq{0%,29%{opacity:1}34%,93%{opacity:0}98%,100%{opacity:1}}
+.newq{animation-name:newq}@keyframes newq{0%,31%{opacity:0}36%,92%{opacity:1}97%,100%{opacity:0}}
+.badge{animation-name:badge}@keyframes badge{0%,35%{opacity:0;transform:scale(.7)}40%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+.seg{transform-origin:left;animation-name:seg}@keyframes seg{0%,38%{transform:scaleX(0)}46%,92%{transform:scaleX(1)}97%,100%{transform:scaleX(0)}}
+.dot{animation-name:dot}@keyframes dot{0%,44%{opacity:0;transform:scale(.3)}49%{opacity:1;transform:scale(1.25)}52%,92%{opacity:1;transform:none}97%,100%{opacity:0}}
+.ring{animation-name:ring}@keyframes ring{0%,48%{opacity:0;transform:scale(.6)}50%{opacity:.7}62%,100%{opacity:0;transform:scale(2.4)}}
+.was{animation-name:was}@keyframes was{0%,50%{opacity:0}56%,92%{opacity:1}97%,100%{opacity:0}}
+.kv{display:flex;align-items:baseline;gap:8px;font-size:13px;margin-top:9px}
+.kv span:first-child{color:#64748B}
+.kv i{flex:1;border-bottom:1.5px dotted #CBD5E1;transform:translateY(-3px)}
+.kv span:last-child{color:#0F172A;font-weight:600}
+@media (prefers-reduced-motion: reduce){.a{animation:none !important}}
+</style>
+</helmet>
+<div style="width:1440px;height:800px;position:relative;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#0F172A;background:#FFFFFF">
+<div style="position:absolute;left:96px;top:110px;width:540px">
+<p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#B45309">Market moves</p>
+<h2 style="margin:0;font-size:42px;line-height:1.1;letter-spacing:-1px;font-weight:800">What changed this month.</h2>
+<p style="margin:14px 0 18px;font-size:17px;line-height:1.55;color:#475569">Every change we spot across 964 stores, with the before, the after and the date.</p>
+<div class="a it1 sel" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid #EEF2F6;border-radius:12px;margin-top:10px;background:#FFFFFF">
+<span style="flex:none;margin-top:5px;width:9px;height:9px;border-radius:5px;background:#15803D"></span>
+<div style="flex:1"><p style="margin:0;font-size:12px;font-weight:600;color:#15803D">Pet</p><p style="margin:3px 0 0;font-size:15px;line-height:1.4;font-weight:600">A pet store raised its free-shipping minimum from $49 to $79</p></div>
+<span style="flex:none;font-size:12px;color:#94A3B8;margin-top:2px">1 Nov</span></div>
+<div class="a it2" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid #EEF2F6;border-radius:12px;margin-top:10px;background:#FFFFFF">
+<span style="flex:none;margin-top:5px;width:9px;height:9px;border-radius:5px;background:#0E7C6B"></span>
+<div style="flex:1"><p style="margin:0;font-size:12px;font-weight:600;color:#0E7C6B">Beauty</p><p style="margin:3px 0 0;font-size:15px;line-height:1.4;font-weight:600">A beauty store added Zip alongside Afterpay</p></div>
+<span style="flex:none;font-size:12px;color:#94A3B8;margin-top:2px">1 Nov</span></div>
+<div class="a it3" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid #EEF2F6;border-radius:12px;margin-top:10px;background:#FFFFFF">
+<span style="flex:none;margin-top:5px;width:9px;height:9px;border-radius:5px;background:#B45309"></span>
+<div style="flex:1"><p style="margin:0;font-size:12px;font-weight:600;color:#B45309">Fashion</p><p style="margin:3px 0 0;font-size:15px;line-height:1.4;font-weight:600">A fashion store cut its express delivery fee from $15 to $10</p></div>
+<span style="flex:none;font-size:12px;color:#94A3B8;margin-top:2px">1 Nov</span></div>
+<div class="a it4" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid #EEF2F6;border-radius:12px;margin-top:10px;background:#FFFFFF">
+<span style="flex:none;margin-top:5px;width:9px;height:9px;border-radius:5px;background:#1D4ED8"></span>
+<div style="flex:1"><p style="margin:0;font-size:12px;font-weight:600;color:#1D4ED8">Homewares</p><p style="margin:3px 0 0;font-size:15px;line-height:1.4;font-weight:600">12 homewares stores started a Black Friday sale</p></div>
+<span style="flex:none;font-size:12px;color:#94A3B8;margin-top:2px">24 Nov</span></div>
+</div>
+
+<div style="position:absolute;left:780px;top:150px;width:520px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:18px;box-shadow:0 28px 60px rgba(15,23,42,.12);padding:26px 30px;box-sizing:border-box">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600;color:#64748B">Free-shipping minimum · a pet store</span>
+<span class="a badge" style="font-size:11px;font-weight:700;color:#92400E;background:#FEF3C7;border:1px solid #FACC15;border-radius:999px;padding:4px 10px">Changed 1 Nov</span></div>
+<div style="height:54px;overflow:hidden;margin-top:8px"><div class="a roll"><p style="margin:0;height:54px;font-size:50px;line-height:54px;font-weight:800;letter-spacing:-1.5px">$49</p><p style="margin:0;height:54px;font-size:50px;line-height:54px;font-weight:800;letter-spacing:-1.5px">$79</p></div></div>
+<div style="position:relative;height:44px;margin-top:16px;border-left:3px solid #FACC15">
+<p class="a oldq" style="margin:0;font-size:14px;line-height:1.5;font-style:italic;color:#334155;position:absolute;left:12px;top:0;right:0">“Free shipping on all orders over $49.”</p>
+<p class="a newq" style="margin:0;font-size:14px;line-height:1.5;font-style:italic;color:#334155;position:absolute;left:12px;top:0;right:0">“Free shipping on all orders over <span style="background:#FDE68A;border-radius:3px;padding:0 2px">$79</span>.”</p></div>
+
+<div style="margin-top:26px;padding-top:20px;border-top:1px solid #EEF2F6">
+<p style="margin:0 0 18px;font-size:13px;font-weight:600;color:#64748B">History</p>
+<div style="position:relative;height:74px">
+<div style="position:absolute;left:8px;top:10px;width:300px;height:3px;background:#CBD5E1;border-radius:2px"></div>
+<div class="a seg" style="position:absolute;left:308px;top:10px;width:142px;height:3px;background:#FACC15;border-radius:2px"></div>
+<div style="position:absolute;left:0;top:3px;width:17px;height:17px;border-radius:9px;background:#FFFFFF;border:3px solid #94A3B8;box-sizing:border-box"></div>
+<div style="position:absolute;left:150px;top:3px;width:17px;height:17px;border-radius:9px;background:#FFFFFF;border:3px solid #94A3B8;box-sizing:border-box"></div>
+<div style="position:absolute;left:300px;top:3px;width:17px;height:17px;border-radius:9px;background:#FFFFFF;border:3px solid #94A3B8;box-sizing:border-box"></div>
+<div class="a ring" style="position:absolute;left:441px;top:2px;width:19px;height:19px;border-radius:10px;border:2px solid #FACC15;box-sizing:border-box"></div>
+<div class="a dot" style="position:absolute;left:441px;top:2px;width:19px;height:19px;border-radius:10px;background:#FACC15;border:3px solid #FFFFFF;box-shadow:0 0 0 1.5px #EAB308;box-sizing:border-box"></div>
+<div style="position:absolute;left:0;top:30px;font-size:12px;color:#64748B;line-height:1.4"><b style="color:#0F172A">$49</b><br>1 Aug</div>
+<div style="position:absolute;left:150px;top:30px;font-size:12px;color:#64748B;line-height:1.4"><b style="color:#0F172A">$49</b><br>1 Sep</div>
+<div style="position:absolute;left:300px;top:30px;font-size:12px;color:#64748B;line-height:1.4"><b style="color:#0F172A">$49</b><br>1 Oct</div>
+<div class="a was" style="position:absolute;left:418px;top:30px;font-size:12px;color:#64748B;line-height:1.4;text-align:right;width:60px"><b style="color:#B45309">$79</b><br>1 Nov</div>
+</div>
+<p class="a was" style="margin:10px 0 0;font-size:13px;color:#475569">Was $49 for at least three months. Both reads agree on the new wording.</p>
+</div></div>
+<p style="position:absolute;left:96px;bottom:30px;margin:0;font-size:12px;color:#94A3B8">Example data for the mockup. Stores are not named.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":800}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>
