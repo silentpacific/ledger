@@ -148,6 +148,33 @@ export async function listSites(o: { industry?: string; tags?: string[]; words?:
   return rpc<{ total: number; rows: StoreRow[] }>("web_site_list", {
     p_industry: o.industry || null, p_tags: o.tags || [], p_words: o.words || [], p_limit: size, p_offset: (page - 1) * size });
 }
+export type SortKey = "name" | "industry" | "p" | "fs" | "ret" | "bn" | "lp" | "last";
+export const SORT_KEYS: SortKey[] = ["name", "industry", "p", "fs", "ret", "bn", "lp", "last"];
+/** listSites with a column sort: gets every matching row (at most a few hundred, 200 per call), sorts, then pages.
+ * Empty values always go last, whichever way the column is sorted. */
+export async function listSitesSorted(o: { industry?: string; tags?: string[]; words?: string[]; page?: number; size?: number; sort?: string; dir?: string }) {
+  const key = SORT_KEYS.includes(o.sort as SortKey) ? (o.sort as SortKey) : null;
+  if (!key) return listSites(o);
+  const size = o.size ?? PAGE_SIZE, page = Math.max(1, o.page || 1), desc = o.dir === "desc";
+  const all: StoreRow[] = [];
+  let total = Infinity;
+  for (let off = 0; off < total && off < 5000; off += 200) {
+    const r = await rpc<{ total: number; rows: StoreRow[] }>("web_site_list", { p_industry: o.industry || null, p_tags: o.tags || [], p_words: o.words || [], p_limit: 200, p_offset: off });
+    total = r.total; all.push(...r.rows);
+    if (!r.rows.length) break;
+  }
+  const v = (r: StoreRow): string | number | null => {
+    const x: any = key === "bn" ? (r.bn?.length ? r.bn.join(", ") : null) : (r as any)[key];
+    return x === null || x === undefined || x === "" ? null : typeof x === "number" ? x : String(x).toLowerCase();
+  };
+  all.sort((a, b) => {
+    const x = v(a), y = v(b);
+    if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1;
+    const c = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y));
+    return (desc ? -c : c) || a.name.localeCompare(b.name);
+  });
+  return { total: all.length, rows: all.slice((page - 1) * size, page * size) };
+}
 export const getSitemap = () => rpc<{ domain: string; last_scanned_at: string }[]>("web_sitemap");
 export type CalendarRow = { domain: string; store: string; industry: string; name: string; discount: string | null; starts: string | null;
   ends: string | null; live: boolean; pct: number; a: string; b: string };

@@ -32,8 +32,8 @@ export function facetRoutes(kind: string) {
     },
     async Page({ params, searchParams }: FacetProps) {
       const { value } = await params;
-      const { industry, page } = await searchParams;
-      const out = await FacetDetail({ kind, value, industry, page: Math.max(1, Number(page) || 1) });
+      const { industry, page, sort, dir } = await searchParams as any;
+      const out = await FacetDetail({ kind, value, industry, page: Math.max(1, Number(page) || 1), sort, dir });
       if (!out) notFound();
       return out;
     },

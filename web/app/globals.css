@@ -249,3 +249,10 @@ html, body { background: #FFFFFF; }
   .hd-nav, .hd-in > .hd-search { display: none; }
   .mn-btn { display: inline-flex; }
 }
+
+/* stores tables (28 Nov 2026): every cell centred; headers sort the whole list */
+table.t td, table.t th { text-align: center !important; }
+.st-sort { display: inline-flex; align-items: center; gap: 5px; color: inherit; text-decoration: none; white-space: nowrap; }
+.st-sort:hover { color: #0F172A; text-decoration: underline; text-underline-offset: 3px; }
+.st-arrow { font-size: 11px; color: #CBD5E1; } .st-arrow.on { color: #0F172A; }
+table.t td:first-child, table.t th:first-child { text-align: left !important; }

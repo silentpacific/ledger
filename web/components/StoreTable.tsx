@@ -4,25 +4,36 @@ import { dateAU, label, money } from "@/lib/format";
 import { industryName } from "@/lib/industries";
 
 /** The stores table used by the sites list, industry pages and list pages: one page of rows from web_site_list. */
-export default function StoreTable({ rows, industry = true, bnplLabel = "Buy now, pay later", bnpl, loyalty = true, minWidth = 900 }: {
-  rows: StoreRow[]; industry?: boolean; bnplLabel?: string; bnpl?: (r: StoreRow) => string; loyalty?: boolean; minWidth?: number;
+export type Sort = { key?: string; dir?: string; href: (key: string, dir: "asc" | "desc") => string };
+
+export default function StoreTable({ rows, industry = true, bnplLabel = "Buy now, pay later", bnpl, loyalty = true, minWidth = 900, sort }: {
+  rows: StoreRow[]; industry?: boolean; bnplLabel?: string; bnpl?: (r: StoreRow) => string; loyalty?: boolean; minWidth?: number; sort?: Sort;
 }) {
   const none = <span className="muted">Not stated</span>;
+  // Every header sorts the whole list (not just this page): click once for ascending, again for descending.
+  const th = (key: string, text: string, first = false) => {
+    const on = sort?.key === key, next = on && sort?.dir !== "desc" ? "desc" : "asc";
+    return (
+      <th aria-sort={on ? (sort?.dir === "desc" ? "descending" : "ascending") : "none"} style={{ textAlign: first ? "left" : "center", paddingLeft: first ? 20 : undefined }}>
+        {sort ? <Link scroll={false} href={sort.href(key, next)} className="st-sort" title={`Sort by ${text.toLowerCase()}`}>{text}<span aria-hidden="true" className={on ? "st-arrow on" : "st-arrow"}>{on ? (sort?.dir === "desc" ? "↓" : "↑") : "↕"}</span></Link> : text}
+      </th>
+    );
+  };
   return (
     <div className="card scroll" style={{ padding: 0, marginTop: 12 }}>
       <table className="t" style={{ minWidth }}>
-        <thead><tr><th style={{ paddingLeft: 20 }}>Store</th>{industry && <th>Industry</th>}<th>Platform</th><th style={{ textAlign: "right" }}>Free shipping over</th>
-          <th style={{ textAlign: "right" }}>Returns</th><th>{bnplLabel}</th>{loyalty && <th>Loyalty</th>}{loyalty && <th>Last scan</th>}</tr></thead>
+        <thead><tr>{th("name", "Store", true)}{industry && th("industry", "Industry")}{th("p", "Platform")}{th("fs", "Free shipping over")}
+          {th("ret", "Returns")}{th("bn", bnplLabel)}{loyalty && th("lp", "Loyalty")}{loyalty && th("last", "Last scan")}</tr></thead>
         <tbody>
           {rows.map((r) => {
             const b = bnpl ? bnpl(r) : r.bn.map(label).join(", ");
             return (
-              <tr key={r.domain}>
+              <tr key={r.domain} className="st-row">
                 <td style={{ paddingLeft: 20 }}><Link href={`/sites/${r.domain}`} style={{ fontWeight: 600 }}>{r.name}</Link><div className="tiny muted">{r.domain}</div></td>
                 {industry && <td className="muted">{industryName(r.industry)}</td>}
                 <td>{r.p || "—"}</td>
-                <td style={{ textAlign: "right" }}>{r.fs !== null ? money(r.fs) : none}</td>
-                <td style={{ textAlign: "right" }}>{r.ret !== null ? `${r.ret} days` : none}</td>
+                <td>{r.fs !== null ? money(r.fs) : none}</td>
+                <td>{r.ret !== null ? `${r.ret} days` : none}</td>
                 <td>{b || none}</td>
                 {loyalty && <td>{r.lp ?? <span className="muted">—</span>}</td>}
                 {loyalty && <td className="muted">{dateAU(r.last, { day: "numeric", month: "short" })}</td>}

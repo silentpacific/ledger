@@ -174,3 +174,41 @@
 /* phones: the space for the layer text opens only once the picture starts to play, so there's no empty gap before it */
 @keyframes s-th { 0%, 2% { height: 0; } 9%, 100% { height: 280px; } }
 @supports not (animation-timeline: scroll()) { .s-texts { animation: none; } }
+/* Industry pages (design: canvas board IndustryV2). Uses the homepage's h- classes too. */
+.i-panel { border: 1px solid #E2E8F0; border-radius: 16px; padding: 24px; background: #FFFFFF; color: #0F172A; min-width: 0; }
+.i-pt { margin: 0; font-size: 16px; font-weight: 700; } .i-ps { margin: 4px 0 0; font-size: 13px; color: #64748B; }
+.i-two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 26px; }
+.i-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; }
+.i-hbar { display: grid; grid-template-columns: 140px 1fr 92px; align-items: center; gap: 12px; font-size: 14px; }
+.i-donut { display: flex; align-items: center; gap: 26px; margin-top: 14px; }
+.i-figs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+.i-fig { min-width: 0; text-align: center; border: 1px solid #4B5563; border-radius: 14px; padding: 20px 14px; background: #FFFFFF; box-shadow: 0 2px 8px rgba(15,23,42,.08); }
+.i-fig b { display: block; font-size: clamp(28px, 2.7vw, 42px); font-weight: 800; letter-spacing: -1.2px; line-height: 1.1; }
+.i-fig span { display: block; font-size: 14px; color: #64748B; margin-top: 6px; } .i-fig small { display: block; font-size: 12px; color: #94A3B8; margin-top: 6px; }
+.i-table { overflow-x: auto; }
+.cs { position: relative; display: inline-flex; }
+.cs-btn { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 16px; border-radius: 12px; border: 1px solid #E2E8F0; background: #F1F5F9; color: #94A3B8; font: inherit; font-weight: 700; font-size: 15px; cursor: not-allowed; }
+.cs-tip { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: #0F172A; color: #FFFFFF; font-size: 13px; font-weight: 600; padding: 7px 10px; border-radius: 8px; opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 5; }
+.cs-tip.on { opacity: 1; }
+@media (max-width: 1023px) { .i-two { grid-template-columns: 1fr !important; } .i-figs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+  .i-page .h-col, .i-page .i-panel, .i-page .h-dark { text-align: center; }
+  .i-page .h-lede { margin-left: auto; margin-right: auto; }
+  .i-figs { display: flex; flex-wrap: wrap; justify-content: center; } .i-fig { flex: 0 0 calc(50% - 8px); }
+  .i-legend, .i-actions { justify-content: center; }
+  .i-hbar { grid-template-columns: 96px 1fr 78px; text-align: left; gap: 8px; font-size: 13px; }
+  .i-donut { flex-direction: column; gap: 14px; } .i-donut > div { align-items: center; }
+  .i-head { flex-direction: column; align-items: center !important; }
+}
+/* industry page header (28 Nov): the industry's own plate, colour and "what stands out" */
+.i-hero { display: flex; align-items: center; justify-content: space-between; gap: 40px; padding-top: 40px; padding-bottom: 36px; }
+.i-hero-text { flex: 1 1 auto; max-width: 720px; min-width: 0; }
+.i-rule { width: 64px; height: 4px; border-radius: 2px; margin-top: 18px; }
+.i-stand { margin: 6px 0 0; font-size: 22px; line-height: 1.35; font-weight: 700; letter-spacing: -.3px; max-width: 660px; }
+.i-plate { flex: 0 0 440px; width: 440px; height: auto; margin-right: -12px; }
+@media (max-width: 1023px) { .i-plate { flex-basis: 320px; width: 320px; } }
+@media (max-width: 767px) {
+  .i-hero { flex-direction: column-reverse; gap: 8px; padding-top: 24px; text-align: center; }
+  .i-plate { flex: none; width: 240px; margin: 0 auto; } .i-rule { margin-left: auto; margin-right: auto; }
+  .i-stand { font-size: 19px; margin-left: auto; margin-right: auto; }
+}

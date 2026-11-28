@@ -3,7 +3,7 @@
 import type { Change, Promo, Site } from "./data";
 import { filterSites, industryOf, promotionsFor } from "./data";
 import {
-  dateAU, describeChange, facets, isDiscount, label, list, maxPct, median, money, num, show, siteName, slug, val, WALLETS, facetHref,
+  PROMO_TYPES, dateAU, describeChange, facets, isDiscount, label, list, maxPct, median, money, num, show, siteName, slug, val, WALLETS, facetHref,
 } from "./format";
 import { INDUSTRIES, industryName } from "./industries";
 import { COVERAGE, groupStats } from "./stats";
@@ -192,12 +192,80 @@ function industryPage(all: Site[], promosAll: Promo[], slug_: string) {
   bnplSites.forEach((s) => list(s, "payments.bnpl_providers").forEach((p) => prov.set(p, (prov.get(p) || 0) + 1)));
   const best = new Map<string, Promo>();
   live.filter(isDiscount).forEach((p) => { const b = best.get(p.domain); if (!b || maxPct(p) > maxPct(b)) best.set(p.domain, p); });
+  // charts for the redesigned page (28 Nov 2026): fixed bands so every industry reads the same way
+  const band = (xs: number[], edges: [string, (x: number) => boolean][]) => edges.map(([l, t]) => [l, xs.filter(t).length] as [string, number]);
+  const fee = sites.map((s) => num(s, "shipping.standard_shipping_cost")).filter((x): x is number => x !== undefined);
+  const split = (key: string, order: [string, string][]) => { const m = new Map<string, number>();
+    sites.forEach((s) => { const v = val(s, key); if (typeof v === "string") m.set(v, (m.get(v) || 0) + 1); });
+    return order.map(([k, l]) => [l, m.get(k) || 0] as [string, number]).filter(([, n]) => n > 0); };
+  const plat = new Map<string, number>();
+  sites.forEach((s) => { const v = val(s, "tech_stack.platform"); if (typeof v === "string" && v.trim()) plat.set(v, (plat.get(v) || 0) + 1); });
+  const offerSites = new Set(live.map((p) => p.domain));
+  const deepest = new Map<string, number>();
+  live.forEach((p) => deepest.set(p.domain, Math.max(deepest.get(p.domain) ?? 0, maxPct(p))));
+  const dv = [...offerSites].map((d) => deepest.get(d) ?? 0);
+  const kinds = new Map<string, Set<string>>();
+  live.forEach((p) => { const k = p.type || "other"; if (!kinds.has(k)) kinds.set(k, new Set()); kinds.get(k)!.add(p.domain); });
+  const charts = {
+    fsBins: band(fs, [["Free", (x) => x === 0], ["< $75", (x) => x > 0 && x < 75], ["$75–99", (x) => x >= 75 && x < 100], ["$100–149", (x) => x >= 100 && x < 150],
+      ["$150–199", (x) => x >= 150 && x < 200], ["$200–249", (x) => x >= 200 && x < 250], ["$250+", (x) => x >= 250]]),
+    feeBins: band(fee, [["Free", (x) => x === 0], ["< $7", (x) => x > 0 && x < 7], ["$7–8.99", (x) => x >= 7 && x < 9], ["$9–9.99", (x) => x >= 9 && x < 10],
+      ["$10–11.99", (x) => x >= 10 && x < 12], ["$12–14.99", (x) => x >= 12 && x < 15], ["$15+", (x) => x >= 15]]),
+    retBins: band(ret, [["7 or less", (x) => x <= 7], ["8–14", (x) => x > 7 && x <= 14], ["15–28", (x) => x > 14 && x <= 28], ["29–30", (x) => x > 28 && x <= 30],
+      ["31–59", (x) => x > 30 && x < 60], ["60–89", (x) => x >= 60 && x < 90], ["90+", (x) => x >= 90]]),
+    fee: fee.length ? money(median(fee)) : null, feeN: fee.length, feeNum: fee.length ? median(fee) : null, fsNum: fs.length ? median(fs) : null,
+    com: split("policies.returns.change_of_mind", [["conditional", "With conditions"], ["yes", "Yes"], ["no", "No"], ["online_only", "Online orders only"]]),
+    payer: split("policies.returns.return_shipping_payer", [["customer", "Shopper"], ["conditional", "Depends"], ["merchant", "Store"]]),
+    platforms: [...plat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6), platformN: [...plat.values()].reduce((a, b) => a + b, 0),
+    offerN: offerSites.size, bf: new Set(live.filter((p) => /black friday|cyber/i.test(`${p.name} ${p.discount ?? ""}`)).map((p) => p.domain)).size,
+    depth: band(dv, [["No %", (x) => x === 0], ["< 20%", (x) => x > 0 && x < 20], ["20–29%", (x) => x >= 20 && x < 30], ["30–39%", (x) => x >= 30 && x < 40],
+      ["40–49%", (x) => x >= 40 && x < 50], ["50–59%", (x) => x >= 50 && x < 60], ["60%+", (x) => x >= 60]]),
+    kinds: [...kinds.entries()].map(([k, v]) => [({ ...PROMO_TYPES, percent_off: "Percent off", dollar_off: "Dollar off", other: "Other" } as Record<string, string>)[k] ?? label(k), v.size] as [string, number]).sort((a, b) => b[1] - a[1]).slice(0, 8),
+  };
   return {
+    ...charts,
     n: sites.length, latest: latestOf(sites), liveN: live.length, bestN: best.size,
     deals: [...best.values()].sort((a, b) => maxPct(b) - maxPct(a)).slice(0, 8).map((p) => ({ domain: p.domain, store: siteName(p.domain), name: p.name, discount: p.discount })),
     fs: fs.length ? money(median(fs))! : null, fsN: fs.length, ret: ret.length ? median(ret)! : null, retN: ret.length,
     bnplN: bnplSites.length, prov: [...prov.entries()].sort((a, b) => b[1] - a[1]).map(([p, n]) => ({ label: label(p), n })),
   };
+}
+
+/** "What stands out" for each industry page: where it is highest or lowest of the industries (5+ stores; medians only where
+ * at least COVERAGE of its stores state the value; ties don't count). Up to two, joined with "but" when one is good for
+ * shoppers and the other isn't. Falls back to a sentence about the typical store. */
+function standOut(views: Record<string, any>) {
+  const ids = INDUSTRIES.map((i) => i.slug).filter((sl) => (views[`industry:${sl}`]?.n ?? 0) >= 5);
+  const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
+  type M = { key: string; get: (v: any) => number | null; high: string; low: string; goodHigh: boolean; fmt: (x: number) => string };
+  const ok = (v: any, n: number) => n / Math.max(1, v.n) >= COVERAGE;
+  const ms: M[] = [
+    { key: "fs", get: (v) => (ok(v, v.fsN) ? v.fsNum : null), high: "The highest free-shipping minimum of any industry, at %", low: "The lowest free-shipping minimum of any industry, at %", goodHigh: false, fmt: (x) => money(x)! },
+    { key: "fee", get: (v) => (ok(v, v.feeN ?? 0) ? v.feeNum : null), high: "The most expensive standard delivery of any industry, at %", low: "The cheapest standard delivery of any industry, at %", goodHigh: false, fmt: (x) => money(x)! },
+    { key: "ret", get: (v) => (ok(v, v.retN) ? v.ret : null), high: "The longest returns windows of any industry: % is typical", low: "The shortest returns windows of any industry: % is typical", goodHigh: true, fmt: (x) => `${x} days` },
+    { key: "bnpl", get: (v) => pct(v.bnplN, v.n), high: "The most stores offering buy now, pay later: %", low: "The fewest stores offering buy now, pay later: %", goodHigh: true, fmt: (x) => `${x}%` },
+    { key: "sale", get: (v) => pct(v.offerN ?? 0, v.n), high: "The most stores running an offer this week: %", low: "The fewest stores running an offer this week: %", goodHigh: true, fmt: (x) => `${x}%` },
+    { key: "bf", get: (v) => pct(v.bf ?? 0, v.n), high: "The most Black Friday sales, at % of stores", low: "The fewest Black Friday sales, at % of stores", goodHigh: true, fmt: (x) => `${x}%` },
+  ];
+  for (const sl of ids) {
+    const v = views[`industry:${sl}`];
+    const found: { text: string; good: boolean }[] = [];
+    for (const m of ms) {
+      const mine = m.get(v);
+      if (mine === null || mine === undefined) continue;
+      const others = ids.filter((x) => x !== sl).map((x) => m.get(views[`industry:${x}`])).filter((x): x is number => x !== null && x !== undefined);
+      if (others.length < 3) continue;
+      if (mine > Math.max(...others)) found.push({ text: m.high.replace("%", m.fmt(mine)), good: m.goodHigh });
+      else if (mine < Math.min(...others)) found.push({ text: m.low.replace("%", m.fmt(mine)), good: !m.goodHigh });
+    }
+    let line: string | null = null;
+    if (found.length >= 2) {
+      const [a, b] = found;
+      line = `${a.text}, ${a.good === b.good ? "and" : "but"} ${b.text.charAt(0).toLowerCase()}${b.text.slice(1)}.`;
+    } else if (found.length === 1) line = `${found[0].text}.`;
+    else if (v.ret != null && v.prov?.[0]) line = `The typical store here takes returns within ${v.ret} days${v.fs ? ` and offers free shipping over ${v.fs}` : ""}; ${v.prov[0].label} is the most common way to pay later.`;
+    v.standOut = line;
+  }
 }
 
 // ---------- payments, platforms, policies, tech ----------
@@ -396,6 +464,7 @@ export function buildAll(all: Site[], promos: Promo[], changes365: Change[], not
   views.home = { ...home(all, promos, changes60, cs, notFeatured), totals: totals ?? null };
   views.industries = { all: groupStats(all, promos), ind: Object.fromEntries(INDUSTRIES.map((i) => [i.slug, groupStats(filterSites(all, i.slug), promos)])) };
   for (const i of INDUSTRIES) views[`industry:${i.slug}`] = industryPage(all, promos, i.slug);
+  standOut(views);
   for (const sc of SCOPES) {
     views[`feed:${sc}`] = feed(all, promos, changes60, sc);
     views[`payments:${sc}`] = payments(all, changes365, sc);
